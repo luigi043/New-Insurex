@@ -1,0 +1,8 @@
+﻿<Solution>
+  <Project Path="InsureX.Domain/InsureX.Domain.csproj" />
+  <Project Path="InsureX.Shared/InsureX.Shared.csproj" />
+  <Project Path="InsureX.Application/InsureX.Application.csproj" />
+  <Project Path="InsureX.Infrastructure/InsureX.Infrastructure.csproj" />
+  <Project Path="InsureX.API/InsureX.API.csproj" />
+  <Project Path="InsureX.Tests/InsureX.Tests.csproj" />
+</Solution>

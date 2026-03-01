@@ -1,0 +1,396 @@
+﻿using System;
+using System.Linq;
+using System.Threading.Tasks;
+using System.Collections.Generic;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
+using InsureX.Domain.Entities;
+using InsureX.Domain.Interfaces;
+using InsureX.Application.Interfaces;
+using InsureX.Application.DTOs.Policy;
+
+namespace InsureX.Application.Services.Policy;
+
+public interface IPolicyService
+{
+    Task<PolicyDto> GetPolicyByIdAsync(Guid id);
+    Task<List<PolicyDto>> GetAllPoliciesAsync(PolicySearchDto search);
+    Task<PolicyDto> CreatePolicyAsync(CreatePolicyDto createDto, Guid userId);
+    Task<PolicyDto> UpdatePolicyAsync(UpdatePolicyDto updateDto);
+    Task<bool> DeletePolicyAsync(Guid id);
+    Task<bool> UpdatePolicyStatusAsync(Guid id, string status);
+    Task<bool> UpdatePaymentStatusAsync(Guid id, string paymentStatus);
+    Task<List<PolicyDto>> GetPoliciesExpiringAsync(int daysThreshold);
+    Task<List<PolicyDto>> GetPoliciesByPartnerAsync(Guid partnerId);
+    Task<decimal> GetTotalInsuredValueAsync();
+    Task<Dictionary<string, int>> GetPolicyStatusCountsAsync();
+}
+
+public class PolicyService : IPolicyService
+{
+    private readonly IApplicationDbContext _context;
+    private readonly ITenantContext _tenantContext;
+    private readonly ILogger<PolicyService> _logger;
+
+    public PolicyService(
+        IApplicationDbContext context,
+        ITenantContext tenantContext,
+        ILogger<PolicyService> logger)
+    {
+        _context = context;
+        _tenantContext = tenantContext;
+        _logger = logger;
+    }
+
+    public async Task<PolicyDto> GetPolicyByIdAsync(Guid id)
+    {
+        try
+        {
+            var policy = await _context.Policies
+                .Include(p => p.Partner)
+                .Include(p => p.Insurer)
+                .Include(p => p.Financer)
+                .Include(p => p.Assets)
+                .Include(p => p.Claims)
+                .FirstOrDefaultAsync(p => p.Id == id && !p.IsDeleted);
+
+            if (policy == null)
+                throw new KeyNotFoundException($"Domain.Entities.Policy with ID {id} not found");
+
+            return MapToDto(policy);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting Domain.Entities.Policy by ID {PolicyId}", id);
+            throw;
+        }
+    }
+
+    public async Task<List<PolicyDto>> GetAllPoliciesAsync(PolicySearchDto search)
+    {
+        try
+        {
+            var query = _context.Policies
+                .Include(p => p.Partner)
+                .Include(p => p.Assets)
+                .Where(p => !p.IsDeleted);
+
+            // Apply filters (matching IAPR_Web search functionality)
+            if (!string.IsNullOrWhiteSpace(search.SearchTerm))
+            {
+                query = query.Where(p => 
+                    p.PolicyNumber.Contains(search.SearchTerm) ||
+                    p.Partner.Name.Contains(search.SearchTerm));
+            }
+
+            if (!string.IsNullOrWhiteSpace(search.Status))
+            {
+                query = query.Where(p => p.Status == search.Status);
+            }
+
+            if (!string.IsNullOrWhiteSpace(search.PolicyType))
+            {
+                query = query.Where(p => p.PolicyType == search.PolicyType);
+            }
+
+            if (search.FromDate.HasValue)
+            {
+                query = query.Where(p => p.StartDate >= search.FromDate.Value);
+            }
+
+            if (search.ToDate.HasValue)
+            {
+                query = query.Where(p => p.EndDate <= search.ToDate.Value);
+            }
+
+            if (search.PartnerId.HasValue)
+            {
+                query = query.Where(p => p.PartnerId == search.PartnerId.Value);
+            }
+
+            // Apply pagination
+            var policies = await query
+                .OrderByDescending(p => p.CreatedAt)
+                .Skip((search.Page - 1) * search.PageSize)
+                .Take(search.PageSize)
+                .ToListAsync();
+
+            return policies.Select(MapToDto).ToList();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting all policies");
+            throw;
+        }
+    }
+
+    public async Task<PolicyDto> CreatePolicyAsync(CreatePolicyDto createDto, Guid userId)
+    {
+        try
+        {
+            // Generate Domain.Entities.Policy number (matching legacy format)
+            var policyNumber = await GeneratePolicyNumberAsync(createDto.PolicyType);
+
+            var policy = new Policy
+            {
+                Id = Guid.NewGuid(),
+                PolicyNumber = policyNumber,
+                PolicyType = createDto.PolicyType,
+                StartDate = createDto.StartDate,
+                EndDate = createDto.EndDate,
+                Premium = createDto.Premium,
+                InsuredValue = createDto.InsuredValue,
+                Status = "Active",
+                PaymentStatus = "Pending",
+                PartnerId = createDto.PartnerId,
+                InsurerId = createDto.InsurerId,
+                FinancerId = createDto.FinancerId,
+                CreatedByUserId = userId,
+                CreatedAt = DateTime.UtcNow,
+                TenantId = _tenantContext.TenantId
+            };
+
+            _context.Policies.Add(policy);
+            await _context.SaveChangesAsync();
+
+            _logger.LogInformation("Domain.Entities.Policy created: {PolicyNumber} by user {UserId}", policyNumber, userId);
+            
+            return await GetPolicyByIdAsync(policy.Id);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error creating policy");
+            throw;
+        }
+    }
+
+    public async Task<PolicyDto> UpdatePolicyAsync(UpdatePolicyDto updateDto)
+    {
+        try
+        {
+            var policy = await _context.Policies
+                .FirstOrDefaultAsync(p => p.Id == updateDto.Id && !p.IsDeleted);
+
+            if (policy == null)
+                throw new KeyNotFoundException($"Domain.Entities.Policy with ID {updateDto.Id} not found");
+
+            // Update fields
+            policy.PolicyType = updateDto.PolicyType;
+            policy.StartDate = updateDto.StartDate;
+            policy.EndDate = updateDto.EndDate;
+            policy.Premium = updateDto.Premium;
+            policy.InsuredValue = updateDto.InsuredValue;
+            policy.Status = updateDto.Status;
+            policy.PaymentStatus = updateDto.PaymentStatus;
+            policy.InsurerId = updateDto.InsurerId;
+            policy.FinancerId = updateDto.FinancerId;
+            policy.UpdatedAt = DateTime.UtcNow;
+
+            await _context.SaveChangesAsync();
+
+            _logger.LogInformation("Domain.Entities.Policy updated: {PolicyId}", updateDto.Id);
+            
+            return await GetPolicyByIdAsync(policy.Id);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error updating policy {PolicyId}", updateDto.Id);
+            throw;
+        }
+    }
+
+    public async Task<bool> DeletePolicyAsync(Guid id)
+    {
+        try
+        {
+            var policy = await _context.Policies
+                .FirstOrDefaultAsync(p => p.Id == id && !p.IsDeleted);
+
+            if (policy == null)
+                return false;
+
+            policy.IsDeleted = true;
+            policy.DeletedAt = DateTime.UtcNow;
+
+            await _context.SaveChangesAsync();
+
+            _logger.LogInformation("Domain.Entities.Policy deleted: {PolicyId}", id);
+            return true;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error deleting policy {PolicyId}", id);
+            throw;
+        }
+    }
+
+    public async Task<bool> UpdatePolicyStatusAsync(Guid id, string status)
+    {
+        try
+        {
+            var policy = await _context.Policies
+                .FirstOrDefaultAsync(p => p.Id == id && !p.IsDeleted);
+
+            if (policy == null)
+                return false;
+
+            policy.Status = status;
+            policy.UpdatedAt = DateTime.UtcNow;
+
+            await _context.SaveChangesAsync();
+
+            _logger.LogInformation("Policy {PolicyId} status updated to {Status}", id, status);
+            return true;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error updating Domain.Entities.Policy status {PolicyId}", id);
+            throw;
+        }
+    }
+
+    public async Task<bool> UpdatePaymentStatusAsync(Guid id, string paymentStatus)
+    {
+        try
+        {
+            var policy = await _context.Policies
+                .FirstOrDefaultAsync(p => p.Id == id && !p.IsDeleted);
+
+            if (policy == null)
+                return false;
+
+            policy.PaymentStatus = paymentStatus;
+            policy.UpdatedAt = DateTime.UtcNow;
+
+            await _context.SaveChangesAsync();
+
+            _logger.LogInformation("Policy {PolicyId} payment status updated to {PaymentStatus}", id, paymentStatus);
+            return true;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error updating payment status {PolicyId}", id);
+            throw;
+        }
+    }
+
+    public async Task<List<PolicyDto>> GetPoliciesExpiringAsync(int daysThreshold)
+    {
+        try
+        {
+            var thresholdDate = DateTime.UtcNow.AddDays(daysThreshold);
+            
+            var policies = await _context.Policies
+                .Include(p => p.Partner)
+                .Where(p => !p.IsDeleted && 
+                           p.Status == "Active" && 
+                           p.EndDate <= thresholdDate)
+                .OrderBy(p => p.EndDate)
+                .ToListAsync();
+
+            return policies.Select(MapToDto).ToList();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting expiring policies");
+            throw;
+        }
+    }
+
+    public async Task<List<PolicyDto>> GetPoliciesByPartnerAsync(Guid partnerId)
+    {
+        try
+        {
+            var policies = await _context.Policies
+                .Include(p => p.Partner)
+                .Where(p => !p.IsDeleted && p.PartnerId == partnerId)
+                .OrderByDescending(p => p.CreatedAt)
+                .ToListAsync();
+
+            return policies.Select(MapToDto).ToList();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting policies by partner {PartnerId}", partnerId);
+            throw;
+        }
+    }
+
+    public async Task<decimal> GetTotalInsuredValueAsync()
+    {
+        try
+        {
+            return await _context.Policies
+                .Where(p => !p.IsDeleted && p.Status == "Active")
+                .SumAsync(p => p.InsuredValue);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error calculating total insured value");
+            throw;
+        }
+    }
+
+    public async Task<Dictionary<string, int>> GetPolicyStatusCountsAsync()
+    {
+        try
+        {
+            var counts = await _context.Policies
+                .Where(p => !p.IsDeleted)
+                .GroupBy(p => p.Status)
+                .Select(g => new { Status = g.Key, Count = g.Count() })
+                .ToDictionaryAsync(g => g.Status, g => g.Count);
+
+            return counts;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting Domain.Entities.Policy status counts");
+            throw;
+        }
+    }
+
+    private async Task<string> GeneratePolicyNumberAsync(string policyType)
+    {
+        // Match legacy Domain.Entities.Policy number format: POL-{YYYY}-{TYPE}-{SEQUENCE}
+        var year = DateTime.UtcNow.Year;
+        var typeCode = policyType == "Personal" ? "P" : "B";
+        
+        var lastPolicy = await _context.Policies
+            .Where(p => p.PolicyNumber.StartsWith($"POL-{year}-{typeCode}"))
+            .OrderByDescending(p => p.PolicyNumber)
+            .FirstOrDefaultAsync();
+
+        int sequence = 1;
+        if (lastPolicy != null)
+        {
+            var lastNumber = lastPolicy.PolicyNumber.Split('-').Last();
+            sequence = int.Parse(lastNumber) + 1;
+        }
+
+        return $"POL-{year}-{typeCode}-{sequence:D5}";
+    }
+
+    private PolicyDto MapToDto(Domain.Entities.Domain.Entities.Policy policy)
+    {
+        return new PolicyDto
+        {
+            Id = policy.Id,
+            PolicyNumber = policy.PolicyNumber,
+            PolicyType = policy.PolicyType,
+            StartDate = policy.StartDate,
+            EndDate = policy.EndDate,
+            Premium = policy.Premium,
+            InsuredValue = policy.InsuredValue,
+            Status = policy.Status,
+            PaymentStatus = policy.PaymentStatus ?? "N/A",
+            PartnerName = policy.Partner?.Name ?? "N/A",
+            InsurerName = policy.Insurer?.Name ?? "N/A",
+            AssetCount = policy.Assets?.Count(a => !a.IsDeleted) ?? 0,
+            ClaimCount = policy.Claims?.Count(c => !c.IsDeleted) ?? 0,
+            CreatedAt = policy.CreatedAt
+        };
+    }
+}
+
+
