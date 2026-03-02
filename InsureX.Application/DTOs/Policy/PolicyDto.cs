@@ -1,4 +1,4 @@
-namespace InsureX.Application.DTOs.Policy;
+﻿namespace InsureX.Application.DTOs.Policy;
 
 public class PolicyDto
 {
@@ -10,5 +10,4 @@ public class PolicyDto
     public DateTime EndDate { get; set; }
     public string Status { get; set; } = string.Empty;
     public int TenantId { get; set; }
-    public DateTime CreatedAt { get; set; }
 }

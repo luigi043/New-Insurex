@@ -1,109 +1,83 @@
-import api from './api';
+﻿import api from './api';
 
-export interface Claim {
-  id: string;
-  claimNumber: string;
-  policyId: string;
-  policy?: any;
-  clientId: string;
-  client?: any;
-  incidentDate: string;
-  reportedDate: string;
-  description: string;
-  incidentLocation?: string;
-  claimedAmount: number;
-  approvedAmount?: number;
-  status: string;
-  type: string;
-  reviewedAt?: string;
-  reviewedBy?: string;
-  approvedAt?: string;
-  approvedBy?: string;
-  paidAt?: string;
-  paymentReference?: string;
-  rejectionReason?: string;
-}
+const mockClaims = [
+  {
+    id: '1',
+    claimNumber: 'CLM-001',
+    policyId: '1',
+    clientId: '1',
+    incidentDate: '2024-02-15',
+    reportedDate: '2024-02-16',
+    description: 'Vehicle accident on highway',
+    claimedAmount: 15000,
+    status: 'Submitted',
+    type: 'VehicleAccident'
+  },
+  {
+    id: '2',
+    claimNumber: 'CLM-002',
+    policyId: '1',
+    clientId: '1',
+    incidentDate: '2024-02-10',
+    reportedDate: '2024-02-11',
+    description: 'Property damage from storm',
+    claimedAmount: 25000,
+    approvedAmount: 22000,
+    status: 'Approved',
+    type: 'PropertyDamage'
+  },
+  {
+    id: '3',
+    claimNumber: 'CLM-003',
+    policyId: '2',
+    clientId: '2',
+    incidentDate: '2024-02-05',
+    reportedDate: '2024-02-06',
+    description: 'Theft of equipment',
+    claimedAmount: 8000,
+    status: 'UnderReview',
+    type: 'Theft'
+  }
+];
 
 export const claimService = {
-  // Get all claims with pagination
-  getClaims: (page: number = 1, pageSize: number = 10, status?: string) => {
-    const params = new URLSearchParams({
-      page: page.toString(),
-      pageSize: pageSize.toString(),
-      ...(status && { status }),
-    });
-    return api.get(`/claims?${params}`);
+  async getClaims(page = 1, pageSize = 10, status?: string) {
+    let filtered = mockClaims;
+    if (status) {
+      filtered = mockClaims.filter(c => c.status === status);
+    }
+    return {
+      data: {
+        items: filtered,
+        totalItems: filtered.length,
+        page,
+        pageSize
+      }
+    };
   },
 
-  // Get claim by ID
-  getClaim: (id: string) => {
-    return api.get<Claim>(`/claims/${id}`);
+  async getClaim(id: string) {
+    const claim = mockClaims.find(c => c.id === id);
+    return { data: claim };
   },
 
-  // Get claim by number
-  getClaimByNumber: (claimNumber: string) => {
-    return api.get<Claim>(`/claims/number/${claimNumber}`);
+  async createClaim(data: any) {
+    const newClaim = {
+      id: String(mockClaims.length + 1),
+      claimNumber: `CLM-${String(mockClaims.length + 1).padStart(3, '0')}`,
+      reportedDate: new Date().toISOString().split('T')[0],
+      status: 'Submitted',
+      ...data
+    };
+    mockClaims.push(newClaim);
+    return { data: newClaim };
   },
 
-  // Get claims by policy
-  getClaimsByPolicy: (policyId: string) => {
-    return api.get<Claim[]>(`/claims/policy/${policyId}`);
-  },
-
-  // Get claims by client
-  getClaimsByClient: (clientId: string) => {
-    return api.get<Claim[]>(`/claims/client/${clientId}`);
-  },
-
-  // Get claims by status
-  getClaimsByStatus: (status: string) => {
-    return api.get<Claim[]>(`/claims/status/${status}`);
-  },
-
-  // Create claim
-  createClaim: (data: Partial<Claim>) => {
-    return api.post<Claim>('/claims', data);
-  },
-
-  // Update claim
-  updateClaim: (id: string, data: Partial<Claim>) => {
-    return api.put<Claim>(`/claims/${id}`, data);
-  },
-
-  // Update claim status
-  updateClaimStatus: (id: string, status: string, reason?: string) => {
-    return api.patch(`/claims/${id}/status`, { status, reason });
-  },
-
-  // Delete claim
-  deleteClaim: (id: string) => {
-    return api.delete(`/claims/${id}`);
-  },
-
-  // Upload claim document
-  uploadDocument: (claimId: string, file: File) => {
-    const formData = new FormData();
-    formData.append('file', file);
-    return api.post(`/claims/${claimId}/documents`, formData, {
-      headers: { 'Content-Type': 'multipart/form-data' },
-    });
-  },
-
-  // Get claim documents
-  getDocuments: (claimId: string) => {
-    return api.get(`/claims/${claimId}/documents`);
-  },
-
-  // Export claims to CSV
-  exportClaims: (filters?: any) => {
-    return api.get('/claims/export/csv', {
-      params: filters,
-      responseType: 'blob',
-    });
-  },
-
-  // Get claim statistics
-  getClaimStats: () => {
-    return api.get('/claims/stats/summary');
+  async processClaim(id: string, data: any) {
+    const index = mockClaims.findIndex(c => c.id === id);
+    if (index >= 0) {
+      mockClaims[index] = { ...mockClaims[index], ...data };
+    }
+    return { data: mockClaims[index] };
   }
 };

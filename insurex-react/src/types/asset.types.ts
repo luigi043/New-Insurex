@@ -1,4 +1,4 @@
-export enum AssetType {
+﻿export enum AssetType {
   Vehicle = 'Vehicle',
   Property = 'Property',
   Watercraft = 'Watercraft',
@@ -20,49 +20,13 @@ export enum AssetStatus {
   Claimed = 'Claimed'
 }
 
-export enum VehicleType {
-  Car = 'Car',
-  Truck = 'Truck',
-  Motorcycle = 'Motorcycle',
-  Bus = 'Bus',
-  Van = 'Van',
-  Trailer = 'Trailer',
-  Other = 'Other'
-}
-
-export enum FuelType {
-  Petrol = 'Petrol',
-  Diesel = 'Diesel',
-  Electric = 'Electric',
-  Hybrid = 'Hybrid',
-  LPG = 'LPG',
-  Other = 'Other'
-}
-
-export interface CreateAssetRequest {
-  assetType: AssetType;
-  policyId: string;
-  name: string;
-  description?: string;
-  value: number;
-  location: string;
-  acquisitionDate: string;
-  // Vehicle specific
-  vehicleMake?: string;
-  vehicleModel?: string;
-  vehicleYear?: number;
-  vehicleRegistrationNumber?: string;
-  vehicleVinNumber?: string;
-  vehicleType?: VehicleType;
-  fuelType?: FuelType;
-  // Add other asset type specific fields as needed
-}
-
-export interface AssetResponse {
+export interface Asset {
   id: string;
   name: string;
   type: AssetType;
   value: number;
   status: AssetStatus;
-  createdAt: string;
+  policyId: string;
+  location: string;
+  acquisitionDate: string;
 }

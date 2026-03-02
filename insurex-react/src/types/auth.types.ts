@@ -1,25 +1,50 @@
-export interface User {
+﻿export interface User {
   id: string;
   email: string;
   username: string;
   firstName: string;
   lastName: string;
-  role: string;
+  role: UserRole;
   tenantId?: string;
   tenantCode?: string;
+  phoneNumber?: string;
+  status: UserStatus;
+  createdAt: string;
 }
 
-export interface LoginFormData {
+export enum UserRole {
+  Admin = 'Admin',
+  Client = 'Client',
+  Financer = 'Financer',
+  Insurer = 'Insurer',
+  Broker = 'Broker'
+}
+
+export enum UserStatus {
+  Active = 'Active',
+  Inactive = 'Inactive',
+  Suspended = 'Suspended',
+  PendingVerification = 'PendingVerification'
+}
+
+export interface LoginRequest {
   email: string;
   password: string;
 }
 
-export interface RegisterFormData {
+export interface RegisterRequest {
   email: string;
   password: string;
-  confirmPassword: string;
   firstName: string;
   lastName: string;
-  role: string;
+  role: UserRole;
+  phoneNumber?: string;
   tenantId?: string;
+}
+
+export interface AuthResponse {
+  token: string;
+  refreshToken: string;
+  expiresAt: string;
+  user: User;
 }

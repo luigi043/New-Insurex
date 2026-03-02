@@ -1,62 +1,59 @@
 ﻿import api from './api';
-import { Invoice, Payment, Transaction } from '../types/billing.types';
+
+const mockInvoices = [
+  {
+    id: '1',
+    invoiceNumber: 'INV-2024-001',
+    clientId: '1',
+    clientName: 'João Silva',
+    issueDate: '2024-02-01',
+    dueDate: '2024-03-01',
+    amount: 15000,
+    status: 'Paid',
+    items: []
+  },
+  {
+    id: '2',
+    invoiceNumber: 'INV-2024-002',
+    clientId: '2',
+    clientName: 'Maria Santos',
+    issueDate: '2024-02-15',
+    dueDate: '2024-03-15',
+    amount: 25000,
+    status: 'Sent',
+    items: []
+  },
+  {
+    id: '3',
+    invoiceNumber: 'INV-2024-003',
+    clientId: '3',
+    clientName: 'Pedro Oliveira',
+    issueDate: '2024-01-20',
+    dueDate: '2024-02-20',
+    amount: 8000,
+    status: 'Overdue',
+    items: []
+  }
+];
 
 export const billingService = {
-  // ===== INVOICES =====
-  getInvoices: (page: number = 1, pageSize: number = 10, status?: string) => {
-    const params = new URLSearchParams({
-      page: page.toString(),
-      pageSize: pageSize.toString(),
-      ...(status && { status }),
-    });
-    return api.get(\/invoices?\\);
+  async getInvoices(page = 1, pageSize = 10, status?: string) {
+    let filtered = mockInvoices;
+    if (status) {
+      filtered = mockInvoices.filter(i => i.status === status);
+    }
+    return {
+      data: {
+        items: filtered,
+        totalItems: filtered.length,
+        page,
+        pageSize
+      }
+    };
   },
 
-  getInvoice: (id: string) => {
-    return api.get<Invoice>(\/invoices/\\);
-  },
-
-  createInvoice: (data: Partial<Invoice>) => {
-    return api.post<Invoice>('/invoices', data);
-  },
-
-  updateInvoice: (id: string, data: Partial<Invoice>) => {
-    return api.put<Invoice>(\/invoices/\\, data);
-  },
-
-  deleteInvoice: (id: string) => {
-    return api.delete(\/invoices/\\);
-  },
-
-  sendInvoice: (id: string) => {
-    return api.post(\/invoices/\/send\);
-  },
-
-  markAsPaid: (id: string, paymentData: Partial<Payment>) => {
-    return api.post(\/invoices/\/pay\, paymentData);
-  },
-
-  // ===== PAYMENTS =====
-  getPayments: (page: number = 1, pageSize: number = 10) => {
-    return api.get(\/payments?page=\&pageSize=\\);
-  },
-
-  processPayment: (data: Partial<Payment>) => {
-    return api.post<Payment>('/payments', data);
-  },
-
-  // ===== EXPORTS =====
-  exportInvoices: (filters?: any) => {
-    return api.get('/billing/export/invoices', {
-      params: filters,
-      responseType: 'blob',
-    });
-  },
-
-  exportTransactions: (filters?: any) => {
-    return api.get('/billing/export/transactions', {
-      params: filters,
-      responseType: 'blob',
-    });
+  async getInvoice(id: string) {
+    const invoice = mockInvoices.find(i => i.id === id);
+    return { data: invoice };
   }
 };

@@ -1,53 +1,88 @@
-import api from './api';
-import { Policy, PolicyFilter, PaginatedResponse } from '../types/policy.types';
+﻿import api from './api';
+
+// Mock data for testing
+const mockPolicies = [
+  {
+    id: '1',
+    policyNumber: 'POL-001',
+    name: 'Commercial Vehicle Insurance',
+    description: 'Fleet insurance for company vehicles',
+    type: 'Vehicle',
+    coverageAmount: 500000,
+    premium: 15000,
+    startDate: '2024-01-01',
+    endDate: '2024-12-31',
+    status: 'Active',
+    clientId: '1',
+    client: {
+      id: '1',
+      firstName: 'João',
+      lastName: 'Silva',
+      email: 'joao@email.com'
+    }
+  },
+  {
+    id: '2',
+    policyNumber: 'POL-002',
+    name: 'Property Insurance',
+    description: 'Commercial building insurance',
+    type: 'Property',
+    coverageAmount: 1000000,
+    premium: 25000,
+    startDate: '2024-02-01',
+    endDate: '2025-01-31',
+    status: 'Active',
+    clientId: '2',
+    client: {
+      id: '2',
+      firstName: 'Maria',
+      lastName: 'Santos',
+      email: 'maria@email.com'
+    }
+  }
+];
 
 export const policyService = {
-  // Get all policies with pagination and filters
-  getPolicies: (page: number = 1, pageSize: number = 10, filters?: PolicyFilter) => {
-    const params = new URLSearchParams({
-      page: page.toString(),
-      pageSize: pageSize.toString(),
-      ...filters as any,
-    });
-    return api.get<PaginatedResponse<Policy>>(`/policies?${params}`);
+  async getPolicies(page = 1, pageSize = 10, filters?: any) {
+    return {
+      data: {
+        items: mockPolicies,
+        totalItems: mockPolicies.length,
+        page,
+        pageSize,
+        totalPages: 1,
+        hasNext: false
+      }
+    };
   },
 
-  // Get single policy by ID
-  getPolicy: (id: string) => {
-    return api.get<Policy>(`/policies/${id}`);
+  async getPolicy(id: string) {
+    const policy = mockPolicies.find(p => p.id === id);
+    if (!policy) throw new Error('Policy not found');
+    return { data: policy };
   },
 
-  // Create new policy
-  createPolicy: (data: Partial<Policy>) => {
-    return api.post<Policy>('/policies', data);
+  async createPolicy(data: any) {
+    const newPolicy = {
+      id: String(mockPolicies.length + 1),
+      ...data,
+      client: { firstName: 'Novo', lastName: 'Cliente', email: 'cliente@email.com' }
+    };
+    mockPolicies.push(newPolicy);
+    return { data: newPolicy };
   },
 
-  // Update policy
-  updatePolicy: (id: string, data: Partial<Policy>) => {
-    return api.put<Policy>(`/policies/${id}`, data);
+  async updatePolicy(id: string, data: any) {
+    const index = mockPolicies.findIndex(p => p.id === id);
+    if (index === -1) throw new Error('Policy not found');
+    mockPolicies[index] = { ...mockPolicies[index], ...data };
+    return { data: mockPolicies[index] };
   },
 
-  // Delete policy
-  deletePolicy: (id: string) => {
-    return api.delete(`/policies/${id}`);
-  },
-
-  // Get policies by client
-  getClientPolicies: (clientId: string, page: number = 1, pageSize: number = 10) => {
-    return api.get<PaginatedResponse<Policy>>(`/policies/client/${clientId}`, {
-      params: { page, pageSize }
-    });
-  },
-
-  // Get policies by status
-  getPoliciesByStatus: (status: string, page: number = 1, pageSize: number = 10) => {
-    return api.get<PaginatedResponse<Policy>>(`/policies/status/${status}`, {
-      params: { page, pageSize }
-    });
-  },
-
-  // Get policy statistics
-  getPolicyStats: () => {
-    return api.get('/policies/stats/summary');
+  async deletePolicy(id: string) {
+    const index = mockPolicies.findIndex(p => p.id === id);
+    if (index === -1) throw new Error('Policy not found');
+    mockPolicies.splice(index, 1);
+    return { data: {} };
   }
 };

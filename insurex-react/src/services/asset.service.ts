@@ -1,42 +1,79 @@
-import api from './api';
-import { Asset, PaginatedResponse } from '../types/asset.types';
+﻿import api from './api';
+
+const mockAssets = [
+  {
+    id: '1',
+    name: 'Company Car 001',
+    type: 'Vehicle',
+    value: 45000,
+    status: 'Active',
+    policyId: '1',
+    location: 'Main Office',
+    acquisitionDate: '2023-01-15'
+  },
+  {
+    id: '2',
+    name: 'Office Building',
+    type: 'Property',
+    value: 850000,
+    status: 'Active',
+    policyId: '1',
+    location: 'Downtown',
+    acquisitionDate: '2022-06-01'
+  },
+  {
+    id: '3',
+    name: 'Forklift XT-2000',
+    type: 'Machinery',
+    value: 35000,
+    status: 'Active',
+    policyId: '2',
+    location: 'Warehouse A',
+    acquisitionDate: '2023-03-20'
+  },
+  {
+    id: '4',
+    name: 'Inventory Stock',
+    type: 'StockInventory',
+    value: 120000,
+    status: 'Active',
+    policyId: '2',
+    location: 'Warehouse B',
+    acquisitionDate: '2023-11-01'
+  }
+];
 
 export const assetService = {
-  getAssets: (page: number = 1, pageSize: number = 10, type?: string) => {
-    const params = new URLSearchParams({
-      page: page.toString(),
-      pageSize: pageSize.toString(),
-      ...(type && { type }),
-    });
-    return api.get<PaginatedResponse<Asset>>(`/assets?${params}`);
+  async getAssets(page = 1, pageSize = 10, type?: string) {
+    let filtered = mockAssets;
+    if (type) {
+      filtered = mockAssets.filter(a => a.type === type);
+    }
+    return {
+      data: {
+        items: filtered,
+        totalItems: filtered.length,
+        page,
+        pageSize
+      }
+    };
   },
 
-  getAsset: (id: string) => {
-    return api.get<Asset>(`/assets/${id}`);
+  async getAsset(id: string) {
+    const asset = mockAssets.find(a => a.id === id);
+    return { data: asset };
   },
 
-  createAsset: (data: Partial<Asset>) => {
-    return api.post<Asset>('/assets', data);
+  async createAsset(data: any) {
+    const newAsset = {
+      id: String(mockAssets.length + 1),
+      ...data
+    };
+    mockAssets.push(newAsset);
+    return { data: newAsset };
   },
 
-  updateAsset: (id: string, data: Partial<Asset>) => {
-    return api.put<Asset>(`/assets/${id}`, data);
-  },
-
-  deleteAsset: (id: string) => {
-    return api.delete(`/assets/${id}`);
-  },
-
-  getAssetsByPolicy: (policyId: string) => {
-    return api.get<Asset[]>(`/assets/policy/${policyId}`);
-  },
-
-  getAssetTypes: () => {
-    return [
-      'Vehicle', 'Property', 'Watercraft', 'Aviation',
-      'StockInventory', 'AccountsReceivable', 'Machinery',
-      'PlantEquipment', 'BusinessInterruption', 'KeymanInsurance',
-      'ElectronicEquipment'
-    ];
+  async getAssetTypes() {
+    return Object.values(AssetType);
   }
 };

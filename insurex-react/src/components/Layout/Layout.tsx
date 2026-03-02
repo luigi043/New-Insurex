@@ -1,67 +1,68 @@
 ﻿import React from 'react';
 import { Outlet, Link, useNavigate } from 'react-router-dom';
-import { 
-  AppBar, Toolbar, Typography, Drawer, List, ListItem, 
-  ListItemIcon, ListItemText, Box, Container, IconButton,
-  Avatar, Menu, MenuItem 
+import {
+  AppBar,
+  Box,
+  Drawer,
+  IconButton,
+  List,
+  ListItem,
+  ListItemButton,
+  ListItemIcon,
+  ListItemText,
+  Toolbar,
+  Typography,
+  Avatar,
+  Menu,
+  MenuItem
 } from '@mui/material';
-import DashboardIcon from '@mui/icons-material/Dashboard';
-import PolicyIcon from '@mui/icons-material/Policy';
-import InventoryIcon from '@mui/icons-material/Inventory';
-import DescriptionIcon from '@mui/icons-material/Description';
-import AssessmentIcon from '@mui/icons-material/Assessment';
-import ReceiptIcon from '@mui/icons-material/Receipt';
-import PersonIcon from '@mui/icons-material/Person';
-import MenuIcon from '@mui/icons-material/Menu';
+import {
+  Menu as MenuIcon,
+  Dashboard,
+  Policy,
+  Inventory,
+  Description,
+  Assessment,
+  Receipt,
+  Person
+} from '@mui/icons-material';
+import { useAuth } from '../hooks/useAuth';
 
-const drawerWidth = 240;
+const drawerWidth = 260;
 
 export const Layout: React.FC = () => {
-  const navigate = useNavigate();
   const [mobileOpen, setMobileOpen] = React.useState(false);
   const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null);
-  
-  const handleDrawerToggle = () => setMobileOpen(!mobileOpen);
-  const handleMenuOpen = (event: React.MouseEvent<HTMLElement>) => setAnchorEl(event.currentTarget);
-  const handleMenuClose = () => setAnchorEl(null);
-  
-  const handleLogout = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
-    navigate('/login');
-  };
+  const navigate = useNavigate();
+  const { user, logout } = useAuth();
 
   const menuItems = [
-    { text: 'Dashboard', path: '/dashboard', icon: <DashboardIcon /> },
-    { text: 'Policies', path: '/policies', icon: <PolicyIcon /> },
-    { text: 'Assets', path: '/assets', icon: <InventoryIcon /> },
-    { text: 'Claims', path: '/claims', icon: <DescriptionIcon /> },
-    { text: 'Reports', path: '/reports', icon: <AssessmentIcon /> },
-    { text: 'Billing', path: '/billing', icon: <ReceiptIcon /> },
+    { text: 'Dashboard', icon: <Dashboard />, path: '/dashboard' },
+    { text: 'Policies', icon: <Policy />, path: '/policies' },
+    { text: 'Assets', icon: <Inventory />, path: '/assets' },
+    { text: 'Claims', icon: <Description />, path: '/claims' },
+    { text: 'Reports', icon: <Assessment />, path: '/reports' },
+    { text: 'Billing', icon: <Receipt />, path: '/billing' },
   ];
 
   const drawer = (
-    <div>
+    <Box>
       <Toolbar>
-        <Typography variant="h6" noWrap component="div" sx={{ fontWeight: 'bold' }}>
+        <Typography variant="h6" sx={{ fontWeight: 'bold', color: 'primary.main' }}>
           InsureX
         </Typography>
       </Toolbar>
       <List>
         {menuItems.map((item) => (
-          <ListItem 
-            button 
-            key={item.text} 
-            component={Link} 
-            to={item.path}
-            sx={{ '&:hover': { backgroundColor: 'rgba(25, 118, 210, 0.08)' } }}
-          >
-            <ListItemIcon>{item.icon}</ListItemIcon>
-            <ListItemText primary={item.text} />
+          <ListItem key={item.text} disablePadding>
+            <ListItemButton component={Link} to={item.path}>
+              <ListItemIcon>{item.icon}</ListItemIcon>
+              <ListItemText primary={item.text} />
+            </ListItemButton>
           </ListItem>
         ))}
       </List>
-    </div>
+    </Box>
   );
 
   return (
@@ -71,22 +72,26 @@ export const Layout: React.FC = () => {
           <IconButton
             color="inherit"
             edge="start"
-            onClick={handleDrawerToggle}
+            onClick={() => setMobileOpen(!mobileOpen)}
             sx={{ mr: 2, display: { sm: 'none' } }}
           >
             <MenuIcon />
           </IconButton>
-          <Typography variant="h6" noWrap component="div" sx={{ flexGrow: 1 }}>
+          <Typography variant="h6" sx={{ flexGrow: 1 }}>
             InsureX Platform
           </Typography>
-          <IconButton onClick={handleMenuOpen} color="inherit">
+          <IconButton onClick={(e) => setAnchorEl(e.currentTarget)} color="inherit">
             <Avatar sx={{ width: 32, height: 32 }}>
-              <PersonIcon />
+              {user?.firstName?.charAt(0) || <Person />}
             </Avatar>
           </IconButton>
-          <Menu anchorEl={anchorEl} open={Boolean(anchorEl)} onClose={handleMenuClose}>
-            <MenuItem onClick={() => { handleMenuClose(); navigate('/profile'); }}>Profile</MenuItem>
-            <MenuItem onClick={handleLogout}>Logout</MenuItem>
+          <Menu anchorEl={anchorEl} open={Boolean(anchorEl)} onClose={() => setAnchorEl(null)}>
+            <MenuItem onClick={() => { setAnchorEl(null); navigate('/profile'); }}>
+              Profile
+            </MenuItem>
+            <MenuItem onClick={() => { setAnchorEl(null); logout(); }}>
+              Logout
+            </MenuItem>
           </Menu>
         </Toolbar>
       </AppBar>
@@ -95,7 +100,7 @@ export const Layout: React.FC = () => {
         <Drawer
           variant="temporary"
           open={mobileOpen}
-          onClose={handleDrawerToggle}
+          onClose={() => setMobileOpen(false)}
           ModalProps={{ keepMounted: true }}
           sx={{
             display: { xs: 'block', sm: 'none' },
@@ -118,9 +123,7 @@ export const Layout: React.FC = () => {
 
       <Box component="main" sx={{ flexGrow: 1, p: 3, width: { sm: `calc(100% - ${drawerWidth}px)` } }}>
         <Toolbar />
-        <Container maxWidth="xl">
-          <Outlet />
-        </Container>
+        <Outlet />
       </Box>
     </Box>
   );

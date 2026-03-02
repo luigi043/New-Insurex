@@ -1,34 +1,5 @@
-import api from './api';
-
-export interface LoginRequest {
-  email: string;
-  password: string;
-}
-
-export interface RegisterRequest {
-  email: string;
-  password: string;
-  firstName: string;
-  lastName: string;
-  role: string;
-  tenantId?: string;
-}
-
-export interface AuthResponse {
-  token: string;
-  refreshToken: string;
-  expiresAt: string;
-  user: {
-    id: string;
-    email: string;
-    username: string;
-    firstName: string;
-    lastName: string;
-    role: string;
-    tenantId?: string;
-    tenantCode?: string;
-  };
-}
+﻿import api from './api';
+import { LoginRequest, RegisterRequest, AuthResponse, User } from '../types/auth.types';
 
 export const authService = {
   async login(data: LoginRequest): Promise<AuthResponse> {
@@ -46,18 +17,36 @@ export const authService = {
     return response.data;
   },
 
+  async refreshToken(): Promise<AuthResponse> {
+    const refreshToken = localStorage.getItem('refreshToken');
+    const response = await api.post<AuthResponse>('/auth/refresh', { refreshToken });
+    return response.data;
+  },
+
   logout(): void {
     localStorage.removeItem('token');
     localStorage.removeItem('refreshToken');
     localStorage.removeItem('user');
   },
 
-  getCurrentUser() {
+  getCurrentUser(): User | null {
     const userStr = localStorage.getItem('user');
     return userStr ? JSON.parse(userStr) : null;
   },
 
   isAuthenticated(): boolean {
     return !!localStorage.getItem('token');
+  },
+
+  async changePassword(oldPassword: string, newPassword: string): Promise<void> {
+    await api.post('/auth/change-password', { oldPassword, newPassword });
+  },
+
+  async forgotPassword(email: string): Promise<void> {
+    await api.post('/auth/forgot-password', { email });
+  },
+
+  async resetPassword(token: string, newPassword: string): Promise<void> {
+    await api.post('/auth/reset-password', { token, newPassword });
   },
 };

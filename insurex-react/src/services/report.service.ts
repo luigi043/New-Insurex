@@ -1,45 +1,51 @@
-import api from './api';
+﻿import api from './api';
 
 export const reportService = {
-  // Export report
-  exportReport: (reportType: string, params: any) => {
-    return api.get(`/reports/export/${reportType}`, {
-      params,
-      responseType: 'blob',
-    });
+  async getOverview(period: string = 'month') {
+    return {
+      data: {
+        totalPolicies: 145,
+        activePolicies: 128,
+        totalClaims: 32,
+        pendingClaims: 8,
+        totalPremium: 456000,
+        totalPayout: 187000,
+        growthRate: 12.5,
+        claimsRatio: 41.2
+      }
+    };
   },
 
-  // Get report data (for preview)
-  getReportData: (reportType: string, params: any) => {
-    return api.get(`/reports/data/${reportType}`, { params });
+  async getPolicyChart(period: string = 'month') {
+    return {
+      data: {
+        labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
+        datasets: [
+          {
+            label: 'New Policies',
+            data: [12, 19, 15, 17, 24, 23]
+          }
+        ]
+      }
+    };
   },
 
-  // Get available reports
-  getAvailableReports: () => {
-    return [
-      { id: 'policies', name: 'Policies Report' },
-      { id: 'claims', name: 'Claims Report' },
-      { id: 'assets', name: 'Assets Report' },
-      { id: 'premiums', name: 'Premium Collection' },
-      { id: 'expiring', name: 'Expiring Policies' },
-      { id: 'uninsured', name: 'Uninsured Assets' },
-      { id: 'transactions', name: 'Monthly Transactions' },
-      { id: 'reinstated', name: 'Reinstated Cover' },
-    ];
+  async getClaimsChart(period: string = 'month') {
+    return {
+      data: {
+        labels: ['Submitted', 'Under Review', 'Approved', 'Rejected', 'Paid'],
+        values: [15, 8, 12, 3, 9]
+      }
+    };
   },
 
-  // Schedule report
-  scheduleReport: (data: any) => {
-    return api.post('/reports/schedule', data);
-  },
-
-  // Get scheduled reports
-  getScheduledReports: () => {
-    return api.get('/reports/scheduled');
-  },
-
-  // Delete scheduled report
-  deleteScheduledReport: (id: string) => {
-    return api.delete(`/reports/scheduled/${id}`);
+  async getRevenueChart(period: string = 'month') {
+    return {
+      data: {
+        labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
+        premium: [45000, 52000, 48000, 56000, 61000, 59000],
+        payout: [12000, 18000, 15000, 22000, 19000, 21000]
+      }
+    };
   }
 };

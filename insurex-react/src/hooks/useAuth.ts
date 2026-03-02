@@ -1,5 +1,4 @@
 ﻿import { useState, useEffect } from 'react';
-import { authService } from '../services/auth.service';
 
 interface User {
   id: string;
@@ -15,21 +14,36 @@ export const useAuth = () => {
 
   useEffect(() => {
     const loadUser = () => {
-      const currentUser = authService.getCurrentUser();
-      setUser(currentUser);
+      const userStr = localStorage.getItem('user');
+      if (userStr) {
+        try {
+          setUser(JSON.parse(userStr));
+        } catch (e) {
+          console.error('Error parsing user', e);
+        }
+      }
       setLoading(false);
     };
     loadUser();
   }, []);
 
   const login = async (email: string, password: string) => {
-    const response = await authService.login({ email, password });
-    setUser(response.user);
-    return response;
+    const mockUser = {
+      id: '1',
+      email,
+      firstName: 'Admin',
+      lastName: 'User',
+      role: 'Admin'
+    };
+    localStorage.setItem('token', 'mock-token');
+    localStorage.setItem('user', JSON.stringify(mockUser));
+    setUser(mockUser);
+    return { user: mockUser };
   };
 
   const logout = () => {
-    authService.logout();
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
     setUser(null);
   };
 

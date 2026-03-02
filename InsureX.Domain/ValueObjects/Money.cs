@@ -1,11 +1,11 @@
-namespace InsureX.Domain.ValueObjects;
+﻿namespace InsureX.Domain.ValueObjects;
 
 public record Money
 {
     public decimal Amount { get; }
-    public string Currency { get; }
+    public string Currency { get; } = "USD";
 
-    private Money() { } // EF Core protected constructor
+    private Money() { }
 
     public Money(decimal amount, string currency = "USD")
     {

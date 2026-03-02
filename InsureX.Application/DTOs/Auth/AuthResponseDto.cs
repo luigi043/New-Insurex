@@ -1,4 +1,4 @@
-namespace InsureX.Application.DTOs.Auth;
+﻿namespace InsureX.Application.DTOs.Auth;
 
 public class AuthResponseDto
 {

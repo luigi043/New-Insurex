@@ -1,10 +1,10 @@
-namespace InsureX.Domain.ValueObjects;
+﻿namespace InsureX.Domain.ValueObjects;
 
 public record PolicyNumber
 {
-    public string Value { get; }
+    public string Value { get; } = string.Empty;
 
-    private PolicyNumber() { } // EF Core
+    private PolicyNumber() { }
 
     public PolicyNumber(string value)
     {

@@ -1,4 +1,4 @@
-namespace InsureX.Application.DTOs.Policy;
+﻿namespace InsureX.Application.DTOs.Policy;
 
 public class PaginatedList<T>
 {
