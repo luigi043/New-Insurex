@@ -1,4 +1,5 @@
-using InsureX.Domain.Entities;
+﻿using InsureX.Domain.Entities;
+using InsureX.Domain.Enums;
 
 namespace InsureX.Domain.Interfaces
 {
@@ -9,7 +10,7 @@ namespace InsureX.Domain.Interfaces
         Task<IEnumerable<Policy>> GetAllAsync();
         Task<IEnumerable<Policy>> GetByClientIdAsync(Guid clientId);
         Task<IEnumerable<Policy>> GetByStatusAsync(PolicyStatus status);
-        Task<Policy> AddAsync(Policy policy);
+        Task AddAsync(Policy policy);
         Task UpdateAsync(Policy policy);
         Task DeleteAsync(Guid id);
         Task<int> CountAsync();
