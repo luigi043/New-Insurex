@@ -5,7 +5,8 @@ using InsureX.Application.Interfaces;
 using BCrypt.Net;
 using System;
 using System.Threading.Tasks;
-using System.Linq;namespace InsureX.Application.Services;
+using System.Linq;
+namespace InsureX.Application.Services;
 
 public class AuthService : IAuthService
 {

@@ -2,7 +2,6 @@
 using InsureX.Application.Interfaces;
 using InsureX.Domain.Entities;
 using InsureX.Domain.Interfaces;
-
 namespace InsureX.Application.Services.Dashboard
 {
     public class DashboardService : IDashboardService

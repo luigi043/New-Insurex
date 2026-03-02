@@ -12,11 +12,4 @@ namespace InsureX.Domain.Interfaces
         Task DeleteAsync(Guid id);
         Task<bool> ExistsAsync(string name);
     }
-
-    public class Tenant : BaseEntity
-    {
-        public string Name { get; set; } = string.Empty;
-        public string Description { get; set; } = string.Empty;
-        public new bool IsActive { get; set; } = true;
-    }
 }
