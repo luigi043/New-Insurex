@@ -62,5 +62,28 @@ namespace InsureX.Infrastructure.Repositories
 
         public async Task<int> CountAsync()
             => await _context.Assets.CountAsync();
+            public async Task<IEnumerable<Asset>> GetByAcquisitionDateRangeAsync(DateTime from, DateTime to)
+        {
+            return await _context.Assets
+                .Where(a => a.AcquisitionDate >= from && a.AcquisitionDate <= to)
+                .ToListAsync();
+        }
+
+        public async Task<IEnumerable<Asset>> GetByInspectionDueDateAsync(DateTime beforeDate)
+        {
+            // This handles the different asset types that have inspection dates
+            var vehicles = await _context.Assets
+                .OfType<VehicleAsset>()
+                .Where(v => v.NextInspectionDue <= beforeDate)
+                .ToListAsync();
+                
+            var aviation = await _context.Assets
+                .OfType<AviationAsset>()
+                .Where(a => a.NextInspectionDue <= beforeDate)
+                .ToListAsync();
+            
+            return vehicles.Cast<Asset>().Concat(aviation.Cast<Asset>());
+        }
     }
+    
 }

@@ -14,6 +14,9 @@ namespace InsureX.Domain.Interfaces
         Task DeleteAsync(Guid id);
         Task<int> CountAsync();
         Task<decimal> GetTotalValueAsync();
+        Task<IEnumerable<Asset>> GetByAcquisitionDateRangeAsync(DateTime from, DateTime to);
+        Task<IEnumerable<Asset>> GetByInspectionDueDateAsync(DateTime beforeDate);
+        Task<IEnumerable<Asset>> GetRecentlyUpdatedAsync(DateTime since);
         Task<Dictionary<AssetType, int>> GetCountByTypeAsync();
     }
 }

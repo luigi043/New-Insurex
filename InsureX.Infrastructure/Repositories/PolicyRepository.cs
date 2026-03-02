@@ -63,5 +63,34 @@ namespace InsureX.Infrastructure.Repositories
 
         public async Task<decimal> GetTotalPremiumAsync()
             => await _context.Policies.SumAsync(p => p.Premium);
+
+        // Date-based methods
+        public async Task<IEnumerable<Policy>> GetExpiringPoliciesAsync(DateTime from, DateTime to)
+        {
+            return await _context.Policies
+                .Where(p => p.EndDate >= from && p.EndDate <= to)
+                .OrderBy(p => p.EndDate)
+                .ToListAsync();
+        }
+
+        public async Task<IEnumerable<Policy>> GetPoliciesByDateRangeAsync(DateTime from, DateTime to)
+        {
+            return await _context.Policies
+                .Where(p => p.StartDate >= from && p.StartDate <= to)
+                .ToListAsync();
+        }
+
+        public async Task<int> CountActivePoliciesAsOfDateAsync(DateTime date)
+        {
+            return await _context.Policies
+                .CountAsync(p => p.StartDate <= date && p.EndDate >= date);
+        }
+
+        public async Task<decimal> GetTotalPremiumByDateRangeAsync(DateTime from, DateTime to)
+        {
+            return await _context.Policies
+                .Where(p => p.StartDate >= from && p.StartDate <= to)
+                .SumAsync(p => p.Premium);
+        }
     }
 }

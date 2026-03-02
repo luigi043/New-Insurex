@@ -16,5 +16,9 @@ namespace InsureX.Domain.Interfaces
         Task<int> CountActiveAsync();
         Task<decimal> GetTotalCoverageAsync();
         Task<decimal> GetTotalPremiumAsync();
+        Task<IEnumerable<Policy>> GetExpiringPoliciesAsync(DateTime from, DateTime to);
+        Task<IEnumerable<Policy>> GetPoliciesByDateRangeAsync(DateTime from, DateTime to);
+        Task<int> CountActivePoliciesAsOfDateAsync(DateTime date);
+        Task<decimal> GetTotalPremiumByDateRangeAsync(DateTime from, DateTime to);
     }
 }

@@ -12,6 +12,14 @@ public class Partner : BaseEntity
     public string Address { get; set; } = string.Empty;
     public PartnerType Type { get; set; }
     public PartnerStatus Status { get; set; } = PartnerStatus.Pending;
+    public DateTime? ContractStartDate { get; set; }
+    public DateTime? ContractEndDate { get; set; }
+    public DateTime? LastReviewDate { get; set; }
+    public DateTime? NextReviewDate { get; set; }
+    public DateTime? ApprovedAt { get; set; }
+    public string? ApprovedBy { get; set; }
+    public DateTime? SuspendedAt { get; set; }
+    public string? SuspendedReason { get; set; }
     
     // Navigation properties
     public ICollection<Policy> Policies { get; set; } = new List<Policy>();
