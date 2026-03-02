@@ -1,11 +1,10 @@
-﻿using InsureX.Infrastructure.Data;
-using InsureX.Application.Services;
-using InsureX.Domain.Interfaces;
+using InsureX.Infrastructure.Data;
+using InsureX.Application.Interfaces;
 using InsureX.Infrastructure.Repositories;
 using InsureX.Infrastructure.Security;
 using Microsoft.EntityFrameworkCore;
-using InsureX.Infrastructure.Services;  // For TenantValidationService
-using InsureX.Infrastructure.Data;       // For ApplicationDbContext
+using InsureX.Infrastructure.Services;
+using System.Reflection;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -17,22 +16,22 @@ builder.Services.AddSwaggerGen();
 // Add DbContext
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlServer(
-        builder.Configuration.GetConnectionString("DefaultConnection") 
+        builder.Configuration.GetConnectionString("DefaultConnection")
         ?? "Server=(localdb)\\MSSQLLocalDB;Database=InsurexDb;Trusted_Connection=True;TrustServerCertificate=True;"));
 
 // Register repositories
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IPolicyRepository, PolicyRepository>();
-builder.Services.AddScoped<IClaimRepository, ClaimRepository>();
 builder.Services.AddScoped<IAssetRepository, AssetRepository>();
+builder.Services.AddScoped<IClaimRepository, ClaimRepository>();
 builder.Services.AddScoped<ITenantRepository, TenantRepository>();
 
 // Register services
 builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddScoped<IPolicyService, PolicyService>();
 builder.Services.AddScoped<IJwtService, JwtService>();
 builder.Services.AddScoped<IPasswordHasher, PasswordHasher>();
 builder.Services.AddScoped<ITenantContext, TenantContext>();
-// Add Infrastructure services
 builder.Services.AddScoped<ITenantValidationService, TenantValidationService>();
 
 // Add CORS
@@ -41,15 +40,15 @@ builder.Services.AddCors(options =>
     options.AddPolicy("AllowFrontend", policy =>
     {
         policy.WithOrigins("http://localhost:3000", "https://localhost:3000")
-              .AllowAnyHeader()
-              .AllowAnyMethod()
-              .AllowCredentials();
+            .AllowAnyHeader()
+            .AllowAnyMethod()
+            .AllowCredentials();
     });
 });
 
-// Add MediatR
-builder.Services.AddMediatR(cfg => 
-    cfg.RegisterServicesFromAssembly(typeof(Program).Assembly));
+// FIXED: MediatR registration from Application layer
+builder.Services.AddMediatR(cfg =>
+    cfg.RegisterServicesFromAssembly(typeof(IAuthService).Assembly));
 
 var app = builder.Build();
 
@@ -70,11 +69,11 @@ using (var scope = app.Services.CreateScope())
 {
     var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
     await context.Database.MigrateAsync();
-    
+
     // Run validation for each tenant
     var validationService = scope.ServiceProvider.GetRequiredService<ITenantValidationService>();
     var tenants = await context.Tenants.ToListAsync();
-    
+
     foreach (var tenant in tenants)
     {
         await validationService.ValidatePolicyDatesAsync(tenant.Id);

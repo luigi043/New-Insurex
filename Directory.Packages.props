@@ -65,3 +65,12 @@
     <PackageVersion Include="BCrypt.Net-Next" Version="4.0.3" />
   </ItemGroup>
 </Project>
+    <PackageVersion Include="FluentValidation" Version="11.9.0" />
+    <PackageVersion Include="FluentValidation.DependencyInjectionExtensions" Version="11.9.0" />
+    <PackageVersion Include="MediatR" Version="12.2.0" />
+    <PackageVersion Include="FluentValidation" Version="11.9.0" />
+    <PackageVersion Include="FluentValidation.DependencyInjectionExtensions" Version="11.9.0" />
+    <PackageVersion Include="MediatR" Version="12.2.0" />
+    <PackageVersion Include="FluentValidation" Version="11.9.0" />
+    <PackageVersion Include="FluentValidation.DependencyInjectionExtensions" Version="11.9.0" />
+    <PackageVersion Include="MediatR" Version="12.2.0" />
