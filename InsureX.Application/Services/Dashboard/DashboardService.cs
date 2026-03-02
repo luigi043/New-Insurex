@@ -1,4 +1,5 @@
-﻿using InsureX.Domain.Entities;
+﻿using InsureX.Application.Interfaces;
+using InsureX.Domain.Entities;
 using InsureX.Domain.Enums;
 using InsureX.Domain.Interfaces;
 
