@@ -271,3 +271,5 @@ export const Register: React.FC = () => {
     </Container>
   );
 };
+
+export default Register;

@@ -1,37 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
-  Box,
-  Typography,
-  Paper,
-  TextField,
-  Button,
-  Grid,
-  MenuItem,
-  Stepper,
-  Step,
-  StepLabel,
-  CircularProgress,
-  Alert,
-  IconButton,
-  Divider,
-  Card,
-  CardContent,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
+  Box, Typography, Paper, TextField, Button, Grid, MenuItem, CircularProgress, Alert,
+  Stepper, Step, StepLabel, IconButton, Divider, Card, CardContent, Table, TableBody,
+  TableCell, TableContainer, TableHead, TableRow,
 } from '@mui/material';
-import {
-  Add,
-  Delete,
-  ArrowBack,
-  Save,
-} from '@mui/icons-material';
+import { Add, Delete, ArrowBack, Save } from '@mui/icons-material';
 import { policyService } from '../../services/policy.service';
-import { PolicyType, PolicyStatus, PaymentFrequency, CreatePolicyData } from '../../types/policy.types';
+import { PolicyType, PaymentFrequency } from '../../types/policy.types';
 import { useNotification } from '../../hooks/useNotification';
 
 const steps = ['Basic Information', 'Coverage Details', 'Benefits & Documents'];
@@ -69,8 +45,8 @@ export const PolicyForm: React.FC = () => {
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const [formData, setFormData] = useState<CreatePolicyData>({
-    type: 'life',
+  const [formData, setFormData] = useState({
+    type: 'life' as PolicyType,
     holderId: '',
     startDate: '',
     endDate: '',
@@ -78,12 +54,12 @@ export const PolicyForm: React.FC = () => {
     coverageAmount: 0,
     deductible: 0,
     currency: 'USD',
-    paymentFrequency: 'annual',
+    paymentFrequency: 'annual' as PaymentFrequency,
     description: '',
     terms: '',
-    exclusions: [],
-    benefits: [],
-    beneficiaries: [],
+    exclusions: [] as string[],
+    benefits: [] as { name: string; description: string; coverageAmount: number }[],
+    beneficiaries: [] as { name: string; relationship: string; percentage: number }[],
   });
 
   const [newBenefit, setNewBenefit] = useState({ name: '', description: '', coverageAmount: 0 });
@@ -91,9 +67,7 @@ export const PolicyForm: React.FC = () => {
   const [newBeneficiary, setNewBeneficiary] = useState({ name: '', relationship: '', percentage: 0 });
 
   useEffect(() => {
-    if (isEditMode && id) {
-      fetchPolicy(id);
-    }
+    if (isEditMode && id) fetchPolicy(id);
   }, [isEditMode, id]);
 
   const fetchPolicy = async (policyId: string) => {
@@ -103,7 +77,6 @@ export const PolicyForm: React.FC = () => {
       setFormData({
         type: policy.type,
         holderId: policy.holderId,
-        insuredId: policy.insuredId,
         startDate: policy.startDate.split('T')[0],
         endDate: policy.endDate.split('T')[0],
         premium: policy.premium,
@@ -124,25 +97,17 @@ export const PolicyForm: React.FC = () => {
     }
   };
 
-  const handleChange = (field: keyof CreatePolicyData) => (
-    event: React.ChangeEvent<HTMLInputElement>
-  ) => {
+  const handleChange = (field: keyof typeof formData) => (event: React.ChangeEvent<HTMLInputElement>) => {
     const value = event.target.type === 'number' ? parseFloat(event.target.value) : event.target.value;
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
-  const handleNext = () => {
-    setActiveStep((prev) => prev + 1);
-  };
-
-  const handleBack = () => {
-    setActiveStep((prev) => prev - 1);
-  };
+  const handleNext = () => setActiveStep((prev) => prev + 1);
+  const handleBack = () => setActiveStep((prev) => prev - 1);
 
   const handleSubmit = async () => {
     setIsSaving(true);
     setError(null);
-
     try {
       if (isEditMode && id) {
         await policyService.updatePolicy(id, formData);
@@ -162,53 +127,35 @@ export const PolicyForm: React.FC = () => {
 
   const addBenefit = () => {
     if (newBenefit.name && newBenefit.coverageAmount > 0) {
-      setFormData((prev) => ({
-        ...prev,
-        benefits: [...(prev.benefits || []), { ...newBenefit }],
-      }));
+      setFormData((prev) => ({ ...prev, benefits: [...prev.benefits, { ...newBenefit }] }));
       setNewBenefit({ name: '', description: '', coverageAmount: 0 });
     }
   };
 
   const removeBenefit = (index: number) => {
-    setFormData((prev) => ({
-      ...prev,
-      benefits: prev.benefits?.filter((_, i) => i !== index) || [],
-    }));
+    setFormData((prev) => ({ ...prev, benefits: prev.benefits.filter((_, i) => i !== index) }));
   };
 
   const addExclusion = () => {
     if (newExclusion.trim()) {
-      setFormData((prev) => ({
-        ...prev,
-        exclusions: [...(prev.exclusions || []), newExclusion.trim()],
-      }));
+      setFormData((prev) => ({ ...prev, exclusions: [...prev.exclusions, newExclusion.trim()] }));
       setNewExclusion('');
     }
   };
 
   const removeExclusion = (index: number) => {
-    setFormData((prev) => ({
-      ...prev,
-      exclusions: prev.exclusions?.filter((_, i) => i !== index) || [],
-    }));
+    setFormData((prev) => ({ ...prev, exclusions: prev.exclusions.filter((_, i) => i !== index) }));
   };
 
   const addBeneficiary = () => {
     if (newBeneficiary.name && newBeneficiary.relationship && newBeneficiary.percentage > 0) {
-      setFormData((prev) => ({
-        ...prev,
-        beneficiaries: [...(prev.beneficiaries || []), { ...newBeneficiary }],
-      }));
+      setFormData((prev) => ({ ...prev, beneficiaries: [...prev.beneficiaries, { ...newBeneficiary }] }));
       setNewBeneficiary({ name: '', relationship: '', percentage: 0 });
     }
   };
 
   const removeBeneficiary = (index: number) => {
-    setFormData((prev) => ({
-      ...prev,
-      beneficiaries: prev.beneficiaries?.filter((_, i) => i !== index) || [],
-    }));
+    setFormData((prev) => ({ ...prev, beneficiaries: prev.beneficiaries.filter((_, i) => i !== index) }));
   };
 
   const renderStepContent = () => {
@@ -217,61 +164,21 @@ export const PolicyForm: React.FC = () => {
         return (
           <Grid container spacing={3}>
             <Grid item xs={12} sm={6}>
-              <TextField
-                select
-                fullWidth
-                label="Policy Type"
-                value={formData.type}
-                onChange={handleChange('type')}
-                required
-              >
-                {policyTypes.map((type) => (
-                  <MenuItem key={type.value} value={type.value}>
-                    {type.label}
-                  </MenuItem>
-                ))}
+              <TextField select fullWidth label="Policy Type" value={formData.type} onChange={handleChange('type')} required>
+                {policyTypes.map((type) => (<MenuItem key={type.value} value={type.value}>{type.label}</MenuItem>))}
               </TextField>
             </Grid>
             <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                label="Policy Holder ID"
-                value={formData.holderId}
-                onChange={handleChange('holderId')}
-                required
-              />
+              <TextField fullWidth label="Policy Holder ID" value={formData.holderId} onChange={handleChange('holderId')} required />
             </Grid>
             <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                label="Start Date"
-                type="date"
-                value={formData.startDate}
-                onChange={handleChange('startDate')}
-                required
-                InputLabelProps={{ shrink: true }}
-              />
+              <TextField fullWidth label="Start Date" type="date" value={formData.startDate} onChange={handleChange('startDate')} required InputLabelProps={{ shrink: true }} />
             </Grid>
             <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                label="End Date"
-                type="date"
-                value={formData.endDate}
-                onChange={handleChange('endDate')}
-                required
-                InputLabelProps={{ shrink: true }}
-              />
+              <TextField fullWidth label="End Date" type="date" value={formData.endDate} onChange={handleChange('endDate')} required InputLabelProps={{ shrink: true }} />
             </Grid>
             <Grid item xs={12}>
-              <TextField
-                fullWidth
-                label="Description"
-                multiline
-                rows={3}
-                value={formData.description}
-                onChange={handleChange('description')}
-              />
+              <TextField fullWidth label="Description" multiline rows={3} value={formData.description} onChange={handleChange('description')} />
             </Grid>
           </Grid>
         );
@@ -279,78 +186,28 @@ export const PolicyForm: React.FC = () => {
         return (
           <Grid container spacing={3}>
             <Grid item xs={12} sm={4}>
-              <TextField
-                fullWidth
-                label="Premium"
-                type="number"
-                value={formData.premium}
-                onChange={handleChange('premium')}
-                required
-                InputProps={{ inputProps: { min: 0, step: 0.01 } }}
-              />
+              <TextField fullWidth label="Premium" type="number" value={formData.premium} onChange={handleChange('premium')} required InputProps={{ inputProps: { min: 0, step: 0.01 } }} />
             </Grid>
             <Grid item xs={12} sm={4}>
-              <TextField
-                fullWidth
-                label="Coverage Amount"
-                type="number"
-                value={formData.coverageAmount}
-                onChange={handleChange('coverageAmount')}
-                required
-                InputProps={{ inputProps: { min: 0, step: 0.01 } }}
-              />
+              <TextField fullWidth label="Coverage Amount" type="number" value={formData.coverageAmount} onChange={handleChange('coverageAmount')} required InputProps={{ inputProps: { min: 0, step: 0.01 } }} />
             </Grid>
             <Grid item xs={12} sm={4}>
-              <TextField
-                fullWidth
-                label="Deductible"
-                type="number"
-                value={formData.deductible}
-                onChange={handleChange('deductible')}
-                InputProps={{ inputProps: { min: 0, step: 0.01 } }}
-              />
+              <TextField fullWidth label="Deductible" type="number" value={formData.deductible} onChange={handleChange('deductible')} InputProps={{ inputProps: { min: 0, step: 0.01 } }} />
             </Grid>
             <Grid item xs={12} sm={6}>
-              <TextField
-                select
-                fullWidth
-                label="Currency"
-                value={formData.currency}
-                onChange={handleChange('currency')}
-                required
-              >
+              <TextField select fullWidth label="Currency" value={formData.currency} onChange={handleChange('currency')} required>
                 <MenuItem value="USD">USD - US Dollar</MenuItem>
                 <MenuItem value="EUR">EUR - Euro</MenuItem>
                 <MenuItem value="GBP">GBP - British Pound</MenuItem>
-                <MenuItem value="CAD">CAD - Canadian Dollar</MenuItem>
-                <MenuItem value="AUD">AUD - Australian Dollar</MenuItem>
               </TextField>
             </Grid>
             <Grid item xs={12} sm={6}>
-              <TextField
-                select
-                fullWidth
-                label="Payment Frequency"
-                value={formData.paymentFrequency}
-                onChange={handleChange('paymentFrequency')}
-                required
-              >
-                {paymentFrequencies.map((freq) => (
-                  <MenuItem key={freq.value} value={freq.value}>
-                    {freq.label}
-                  </MenuItem>
-                ))}
+              <TextField select fullWidth label="Payment Frequency" value={formData.paymentFrequency} onChange={handleChange('paymentFrequency')} required>
+                {paymentFrequencies.map((freq) => (<MenuItem key={freq.value} value={freq.value}>{freq.label}</MenuItem>))}
               </TextField>
             </Grid>
             <Grid item xs={12}>
-              <TextField
-                fullWidth
-                label="Terms & Conditions"
-                multiline
-                rows={5}
-                value={formData.terms}
-                onChange={handleChange('terms')}
-              />
+              <TextField fullWidth label="Terms & Conditions" multiline rows={5} value={formData.terms} onChange={handleChange('terms')} />
             </Grid>
           </Grid>
         );
@@ -360,51 +217,26 @@ export const PolicyForm: React.FC = () => {
             <Grid item xs={12}>
               <Card>
                 <CardContent>
-                  <Typography variant="h6" gutterBottom>
-                    Benefits
-                  </Typography>
+                  <Typography variant="h6" gutterBottom>Benefits</Typography>
                   <Grid container spacing={2} alignItems="flex-end">
                     <Grid item xs={12} sm={4}>
-                      <TextField
-                        fullWidth
-                        label="Benefit Name"
-                        value={newBenefit.name}
-                        onChange={(e) => setNewBenefit({ ...newBenefit, name: e.target.value })}
-                      />
+                      <TextField fullWidth label="Benefit Name" value={newBenefit.name} onChange={(e) => setNewBenefit({ ...newBenefit, name: e.target.value })} />
                     </Grid>
                     <Grid item xs={12} sm={4}>
-                      <TextField
-                        fullWidth
-                        label="Description"
-                        value={newBenefit.description}
-                        onChange={(e) => setNewBenefit({ ...newBenefit, description: e.target.value })}
-                      />
+                      <TextField fullWidth label="Description" value={newBenefit.description} onChange={(e) => setNewBenefit({ ...newBenefit, description: e.target.value })} />
                     </Grid>
                     <Grid item xs={12} sm={3}>
-                      <TextField
-                        fullWidth
-                        label="Coverage Amount"
-                        type="number"
-                        value={newBenefit.coverageAmount}
-                        onChange={(e) => setNewBenefit({ ...newBenefit, coverageAmount: parseFloat(e.target.value) })}
-                      />
+                      <TextField fullWidth label="Coverage Amount" type="number" value={newBenefit.coverageAmount} onChange={(e) => setNewBenefit({ ...newBenefit, coverageAmount: parseFloat(e.target.value) })} />
                     </Grid>
                     <Grid item xs={12} sm={1}>
-                      <Button variant="contained" onClick={addBenefit} fullWidth>
-                        <Add />
-                      </Button>
+                      <Button variant="contained" onClick={addBenefit} fullWidth><Add /></Button>
                     </Grid>
                   </Grid>
-                  {formData.benefits && formData.benefits.length > 0 && (
+                  {formData.benefits.length > 0 && (
                     <TableContainer sx={{ mt: 2 }}>
                       <Table size="small">
                         <TableHead>
-                          <TableRow>
-                            <TableCell>Name</TableCell>
-                            <TableCell>Description</TableCell>
-                            <TableCell align="right">Coverage</TableCell>
-                            <TableCell align="center">Action</TableCell>
-                          </TableRow>
+                          <TableRow><TableCell>Name</TableCell><TableCell>Description</TableCell><TableCell align="right">Coverage</TableCell><TableCell align="center">Action</TableCell></TableRow>
                         </TableHead>
                         <TableBody>
                           {formData.benefits.map((benefit, index) => (
@@ -412,122 +244,7 @@ export const PolicyForm: React.FC = () => {
                               <TableCell>{benefit.name}</TableCell>
                               <TableCell>{benefit.description}</TableCell>
                               <TableCell align="right">{benefit.coverageAmount}</TableCell>
-                              <TableCell align="center">
-                                <IconButton size="small" color="error" onClick={() => removeBenefit(index)}>
-                                  <Delete />
-                                </IconButton>
-                              </TableCell>
-                            </TableRow>
-                          ))}
-                        </TableBody>
-                      </Table>
-                    </TableContainer>
-                  )}
-                </CardContent>
-              </Card>
-            </Grid>
-
-            <Grid item xs={12}>
-              <Card>
-                <CardContent>
-                  <Typography variant="h6" gutterBottom>
-                    Exclusions
-                  </Typography>
-                  <Grid container spacing={2} alignItems="flex-end">
-                    <Grid item xs={12} sm={11}>
-                      <TextField
-                        fullWidth
-                        label="Add Exclusion"
-                        value={newExclusion}
-                        onChange={(e) => setNewExclusion(e.target.value)}
-                        onKeyPress={(e) => e.key === 'Enter' && addExclusion()}
-                      />
-                    </Grid>
-                    <Grid item xs={12} sm={1}>
-                      <Button variant="contained" onClick={addExclusion} fullWidth>
-                        <Add />
-                      </Button>
-                    </Grid>
-                  </Grid>
-                  {formData.exclusions && formData.exclusions.length > 0 && (
-                    <Box sx={{ mt: 2 }}>
-                      {formData.exclusions.map((exclusion, index) => (
-                        <Box key={index} sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-                          <Typography variant="body2" sx={{ flex: 1 }}>
-                            • {exclusion}
-                          </Typography>
-                          <IconButton size="small" color="error" onClick={() => removeExclusion(index)}>
-                            <Delete />
-                          </IconButton>
-                        </Box>
-                      ))}
-                    </Box>
-                  )}
-                </CardContent>
-              </Card>
-            </Grid>
-
-            <Grid item xs={12}>
-              <Card>
-                <CardContent>
-                  <Typography variant="h6" gutterBottom>
-                    Beneficiaries
-                  </Typography>
-                  <Grid container spacing={2} alignItems="flex-end">
-                    <Grid item xs={12} sm={4}>
-                      <TextField
-                        fullWidth
-                        label="Name"
-                        value={newBeneficiary.name}
-                        onChange={(e) => setNewBeneficiary({ ...newBeneficiary, name: e.target.value })}
-                      />
-                    </Grid>
-                    <Grid item xs={12} sm={4}>
-                      <TextField
-                        fullWidth
-                        label="Relationship"
-                        value={newBeneficiary.relationship}
-                        onChange={(e) => setNewBeneficiary({ ...newBeneficiary, relationship: e.target.value })}
-                      />
-                    </Grid>
-                    <Grid item xs={12} sm={3}>
-                      <TextField
-                        fullWidth
-                        label="Percentage"
-                        type="number"
-                        value={newBeneficiary.percentage}
-                        onChange={(e) => setNewBeneficiary({ ...newBeneficiary, percentage: parseFloat(e.target.value) })}
-                        InputProps={{ inputProps: { min: 0, max: 100 } }}
-                      />
-                    </Grid>
-                    <Grid item xs={12} sm={1}>
-                      <Button variant="contained" onClick={addBeneficiary} fullWidth>
-                        <Add />
-                      </Button>
-                    </Grid>
-                  </Grid>
-                  {formData.beneficiaries && formData.beneficiaries.length > 0 && (
-                    <TableContainer sx={{ mt: 2 }}>
-                      <Table size="small">
-                        <TableHead>
-                          <TableRow>
-                            <TableCell>Name</TableCell>
-                            <TableCell>Relationship</TableCell>
-                            <TableCell align="right">Percentage</TableCell>
-                            <TableCell align="center">Action</TableCell>
-                          </TableRow>
-                        </TableHead>
-                        <TableBody>
-                          {formData.beneficiaries.map((beneficiary, index) => (
-                            <TableRow key={index}>
-                              <TableCell>{beneficiary.name}</TableCell>
-                              <TableCell>{beneficiary.relationship}</TableCell>
-                              <TableCell align="right">{beneficiary.percentage}%</TableCell>
-                              <TableCell align="center">
-                                <IconButton size="small" color="error" onClick={() => removeBeneficiary(index)}>
-                                  <Delete />
-                                </IconButton>
-                              </TableCell>
+                              <TableCell align="center"><IconButton size="small" color="error" onClick={() => removeBenefit(index)}><Delete /></IconButton></TableCell>
                             </TableRow>
                           ))}
                         </TableBody>
@@ -544,69 +261,36 @@ export const PolicyForm: React.FC = () => {
     }
   };
 
-  if (isLoading) {
-    return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
-        <CircularProgress />
-      </Box>
-    );
-  }
+  if (isLoading) return (<Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}><CircularProgress /></Box>);
 
   return (
     <Box>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-          <Button startIcon={<ArrowBack />} onClick={() => navigate('/policies')}>
-            Back
-          </Button>
-          <Typography variant="h4">
-            {isEditMode ? 'Edit Policy' : 'New Policy'}
-          </Typography>
+          <Button startIcon={<ArrowBack />} onClick={() => navigate('/policies')}>Back</Button>
+          <Typography variant="h4">{isEditMode ? 'Edit Policy' : 'New Policy'}</Typography>
         </Box>
       </Box>
 
-      {error && (
-        <Alert severity="error" sx={{ mb: 2 }}>
-          {error}
-        </Alert>
-      )}
+      {error && (<Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>)}
 
       <Paper sx={{ p: 3 }}>
         <Stepper activeStep={activeStep} sx={{ mb: 4 }}>
-          {steps.map((label) => (
-            <Step key={label}>
-              <StepLabel>{label}</StepLabel>
-            </Step>
-          ))}
+          {steps.map((label) => (<Step key={label}><StepLabel>{label}</StepLabel></Step>))}
         </Stepper>
-
         {renderStepContent()}
-
         <Divider sx={{ my: 3 }} />
-
         <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-          <Button disabled={activeStep === 0 || isSaving} onClick={handleBack}>
-            Back
-          </Button>
-          <Box sx={{ display: 'flex', gap: 1 }}>
-            {activeStep === steps.length - 1 ? (
-              <Button
-                variant="contained"
-                color="primary"
-                startIcon={isSaving ? <CircularProgress size={20} /> : <Save />}
-                onClick={handleSubmit}
-                disabled={isSaving}
-              >
-                {isSaving ? 'Saving...' : isEditMode ? 'Update Policy' : 'Create Policy'}
-              </Button>
-            ) : (
-              <Button variant="contained" onClick={handleNext}>
-                Next
-              </Button>
-            )}
-          </Box>
+          <Button disabled={activeStep === 0 || isSaving} onClick={handleBack}>Back</Button>
+          {activeStep === steps.length - 1 ? (
+            <Button variant="contained" color="primary" startIcon={isSaving ? <CircularProgress size={20} /> : <Save />} onClick={handleSubmit} disabled={isSaving}>
+              {isSaving ? 'Saving...' : isEditMode ? 'Update Policy' : 'Create Policy'}
+            </Button>
+          ) : (<Button variant="contained" onClick={handleNext}>Next</Button>)}
         </Box>
       </Paper>
     </Box>
   );
 };
+
+export default PolicyForm;

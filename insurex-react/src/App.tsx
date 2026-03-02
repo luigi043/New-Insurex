@@ -13,7 +13,7 @@ const Login = lazy(() => import('./pages/auth/Login').then(m => ({ default: m.Lo
 const Register = lazy(() => import('./pages/auth/Register').then(m => ({ default: m.Register })));
 const ForgotPassword = lazy(() => import('./pages/auth/ForgotPassword').then(m => ({ default: m.ForgotPassword })));
 const ResetPassword = lazy(() => import('./pages/auth/ResetPassword').then(m => ({ default: m.ResetPassword })));
-const Dashboard = lazy(() => import('./pages/dashboard/Dashboard').then(m => ({ default: m.Dashboard })));
+const Dashboard = lazy(() => import('./pages/Dashboard').then(m => ({ default: m.Dashboard })));
 const PolicyList = lazy(() => import('./pages/policies/PolicyList').then(m => ({ default: m.PolicyList })));
 const PolicyForm = lazy(() => import('./pages/policies/PolicyForm').then(m => ({ default: m.PolicyForm })));
 const PolicyDetails = lazy(() => import('./pages/policies/PolicyDetails').then(m => ({ default: m.PolicyDetails })));

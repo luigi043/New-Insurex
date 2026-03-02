@@ -152,3 +152,5 @@ export const ResetPassword: React.FC = () => {
     </Container>
   );
 };
+
+export default ResetPassword;
