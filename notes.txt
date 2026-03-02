@@ -43,11 +43,3 @@ dotnet run --project InsureX.SeedTool generate --type all --count 100
 
 
 
-# Backup SQL Server database
-sqlcmd -S localhost -d InsureXDb -Q "BACKUP DATABASE InsureXDb TO DISK='C:\Backups\InsureXDb_$(Get-Date -Format 'yyyyMMdd').bak'"
-
-# Restore from backup
-sqlcmd -S localhost -Q "RESTORE DATABASE InsureXDb FROM DISK='C:\Backups\InsureXDb_20260302.bak' WITH REPLACE"
-
-# Generate data dictionary
-dotnet ef dbcontext scaffold --output-dir Models --context ApplicationDbContext

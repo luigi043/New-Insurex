@@ -29,9 +29,11 @@ builder.Services.AddScoped<ITenantRepository, TenantRepository>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IJwtService, JwtService>();
 builder.Services.AddScoped<IPasswordHasher, PasswordHasher>();
-builder.Services.AddScoped<ITenantValidationService, TenantValidationService>();
 builder.Services.AddScoped<ITenantContext, TenantContext>();
-
+// Add Infrastructure services
+builder.Services.AddScoped<ITenantValidationService, TenantValidationService>();
+builder.Services.AddDbContext<ApplicationDbContext>(options =>
+    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 // Add CORS
 builder.Services.AddCors(options =>
 {

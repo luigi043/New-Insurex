@@ -1,27 +1,24 @@
 using InsureX.Domain.Entities;
 using InsureX.Domain.Interfaces;
+using InsureX.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 
-namespace InsureX.Application.Services;
-
-public interface ITenantValidationService
-{
-    Task ValidatePolicyDatesAsync(Guid tenantId);
-    Task CheckExpiredPoliciesAsync(Guid tenantId);
-}
+namespace InsureX.Infrastructure.Services;
 
 public class TenantValidationService : ITenantValidationService
 {
     private readonly ApplicationDbContext _context;
     private readonly ILogger<TenantValidationService> _logger;
 
-    public TenantValidationService(ApplicationDbContext context, ILogger<TenantValidationService> logger)
+    public TenantValidationService(
+        ApplicationDbContext context, 
+        ILogger<TenantValidationService> logger)
     {
         _context = context;
         _logger = logger;
     }
 
-    // Validate date ranges
     public async Task ValidatePolicyDatesAsync(Guid tenantId)
     {
         var invalidPolicies = await _context.Policies
@@ -41,7 +38,6 @@ public class TenantValidationService : ITenantValidationService
         }
     }
 
-    // Check for expired policies
     public async Task CheckExpiredPoliciesAsync(Guid tenantId)
     {
         var expired = await _context.Policies
@@ -55,7 +51,6 @@ public class TenantValidationService : ITenantValidationService
             _logger.LogWarning("Found {Count} active but expired policies for tenant {TenantId}", 
                 expired.Count, tenantId);
             
-            // Auto-update expired policies
             foreach (var policy in expired)
             {
                 policy.Status = PolicyStatus.Expired;
