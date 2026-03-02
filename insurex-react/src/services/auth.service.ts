@@ -1,4 +1,4 @@
-﻿import api from './api';
+import api from './api';
 
 export interface LoginRequest {
   email: string;
@@ -11,7 +11,7 @@ export interface RegisterRequest {
   firstName: string;
   lastName: string;
   role: string;
-  phoneNumber?: string;
+  tenantId?: string;
 }
 
 export interface AuthResponse {
@@ -21,9 +21,12 @@ export interface AuthResponse {
   user: {
     id: string;
     email: string;
+    username: string;
     firstName: string;
     lastName: string;
     role: string;
+    tenantId?: string;
+    tenantCode?: string;
   };
 }
 
@@ -32,6 +35,7 @@ export const authService = {
     const response = await api.post<AuthResponse>('/auth/login', data);
     if (response.data.token) {
       localStorage.setItem('token', response.data.token);
+      localStorage.setItem('refreshToken', response.data.refreshToken);
       localStorage.setItem('user', JSON.stringify(response.data.user));
     }
     return response.data;
@@ -44,6 +48,7 @@ export const authService = {
 
   logout(): void {
     localStorage.removeItem('token');
+    localStorage.removeItem('refreshToken');
     localStorage.removeItem('user');
   },
 
