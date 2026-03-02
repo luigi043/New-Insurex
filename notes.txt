@@ -49,4 +49,20 @@ dotnet run --project InsureX.SeedTool generate --type all --count 100
 
 
 
+dotnet build InsureX.slnx
+
+#Check for compilation errors
+dotnet build 2>&1 | grep -i error
+
+#Verify MediatR registration
+grep -r "RegisterServicesFromAssembly" InsureX.API/
+
+#Check handlers exist
+ls -la InsureX.Application/Handlers/
+
+#Test run (if database exists)
+dotnet run --project InsureX.API
+
+
+
 

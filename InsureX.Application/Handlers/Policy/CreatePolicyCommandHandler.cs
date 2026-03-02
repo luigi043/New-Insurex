@@ -20,19 +20,15 @@ public class CreatePolicyCommandHandler : IRequestHandler<CreatePolicyCommand, P
 
     public async Task<Policy> Handle(CreatePolicyCommand request, CancellationToken cancellationToken)
     {
-        var policy = new Policy
-        {
-            PolicyNumber = request.PolicyNumber,
-            PolicyType = request.PolicyType,
-            Premium = request.Premium,
-            StartDate = request.StartDate,
-            EndDate = request.EndDate,
-            TenantId = request.TenantId,
-            AssetId = request.AssetId,
-            PartnerId = request.PartnerId,
-            Status = "Active",
-            CreatedAt = DateTime.UtcNow
-        };
+        var policy = Policy.Create(
+            request.PolicyNumber,
+            request.PolicyType,
+            request.Premium,
+            request.StartDate,
+            request.EndDate,
+            request.TenantId,
+            request.AssetId,
+            request.PartnerId);
 
         await _policyRepository.AddAsync(policy, cancellationToken);
         await _unitOfWork.SaveChangesAsync(cancellationToken);

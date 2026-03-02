@@ -1,6 +1,6 @@
 using InsureX.Application.DTOs.Policy;
-using InsureX.Application.Interfaces;
+using MediatR;
 
 namespace InsureX.Application.Queries.Policy;
 
-public record GetPolicyByIdQuery(int Id) : IQuery<PolicyDto?>;
+public record GetPolicyByIdQuery(int Id) : IRequest<PolicyDto?>;
