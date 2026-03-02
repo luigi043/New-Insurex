@@ -9,7 +9,7 @@ namespace InsureX.Domain.Entities
         public Guid PolicyId { get; set; }
         public Policy Policy { get; set; } = null!;
         public AssetType Type { get; set; }
-        public string Location { get; set; } = string.Empty;
+        public new string Location { get; set; } = string.Empty;
         public DateTime AcquisitionDate { get; set; }
         public string? InsuranceCertificateNumber { get; set; }
     }
@@ -218,7 +218,7 @@ namespace InsureX.Domain.Entities
         public string Model { get; set; } = string.Empty;
         public string SerialNumber { get; set; } = string.Empty;
         public int YearOfManufacture { get; set; }
-        public string Location { get; set; } = string.Empty;
+        public new string Location { get; set; } = string.Empty;
         public string? TechnicalSpecs { get; set; }
         public string? MaintenanceSchedule { get; set; }
         public DateTime LastMaintenanceDate { get; set; }
@@ -285,7 +285,7 @@ namespace InsureX.Domain.Entities
         public string Model { get; set; } = string.Empty;
         public string SerialNumber { get; set; } = string.Empty;
         public int YearOfPurchase { get; set; }
-        public string Location { get; set; } = string.Empty;
+        public new string Location { get; set; } = string.Empty;
         public string? TechnicalSpecifications { get; set; }
         public bool IsPortable { get; set; }
         public string? SoftwareLicenses { get; set; }
