@@ -44,6 +44,7 @@ namespace InsureX.Domain.Entities
         public string Make { get; set; } = string.Empty;
         public string Model { get; set; } = string.Empty;
         public int Year { get; set; }
+        public DateTime? NextInspectionDue { get; set; }
         public string RegistrationNumber { get; set; } = string.Empty;
         public string VinNumber { get; set; } = string.Empty;
         public string EngineNumber { get; set; } = string.Empty;

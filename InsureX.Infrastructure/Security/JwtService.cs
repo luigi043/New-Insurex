@@ -1,8 +1,10 @@
-using System;
+﻿using System;
+using System.Collections.Generic;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
+using System.Linq;
 using InsureX.Domain.Entities;
 using InsureX.Domain.Interfaces;
 using Microsoft.Extensions.Configuration;
@@ -32,12 +34,12 @@ public class JwtService : IJwtService
         var tokenHandler = new JwtSecurityTokenHandler();
         var key = Encoding.ASCII.GetBytes(_secret);
         
-        var claims = new[]
+        var claims = new List<Claim>
         {
             new Claim(JwtRegisteredClaimNames.Sub, user.Id.ToString()),
             new Claim(JwtRegisteredClaimNames.Email, user.Email),
             new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
-            new Claim("tenant_id", user.TenantId?.ToString() ?? ""),
+            new Claim("tenant_id", user.TenantId?.ToString() ?? string.Empty),
             new Claim(ClaimTypes.Role, user.Role.ToString())
         };
 
