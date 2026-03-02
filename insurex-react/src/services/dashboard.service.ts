@@ -33,28 +33,23 @@ export interface ChartData {
 }
 
 export const dashboardService = {
-  async getSummary(): Promise<DashboardSummary> {
-    const response = await api.get<DashboardSummary>('/dashboard/summary');
+  async getSummary() {
+    const response = await api.get('/dashboard/summary');
     return response.data;
   },
 
-  async getPolicyChart(period: string = 'month'): Promise<ChartData> {
-    const response = await api.get<ChartData>(`/dashboard/charts/policies?period=${period}`);
+  async getChartData() {
+    const response = await api.get('/dashboard/charts');
     return response.data;
   },
 
-  async getClaimChart(period: string = 'month'): Promise<ChartData> {
-    const response = await api.get<ChartData>(`/dashboard/charts/claims?period=${period}`);
+  async getRecentActivity(limit = 10) {
+    const response = await api.get('/dashboard/activity', { params: { limit } });
     return response.data;
   },
 
-  async getRevenueChart(period: string = 'month'): Promise<ChartData> {
-    const response = await api.get<ChartData>(`/dashboard/charts/revenue?period=${period}`);
+  async getKPI() {
+    const response = await api.get('/dashboard/kpi');
     return response.data;
-  },
-
-  async getRecentActivity(limit: number = 10): Promise<ActivityItem[]> {
-    const response = await api.get<ActivityItem[]>(`/dashboard/activity?limit=${limit}`);
-    return response.data;
-  },
+  }
 };

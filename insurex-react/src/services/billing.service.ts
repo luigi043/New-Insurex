@@ -6,7 +6,13 @@ const mockInvoices: Invoice[] = [
   { id: '2', invoiceNumber: 'INV-2024-002', clientId: '2', clientName: 'Maria Santos', issueDate: '2024-02-15', dueDate: '2024-03-15', amount: 25000, status: 'Sent' },
   { id: '3', invoiceNumber: 'INV-2024-003', clientId: '3', clientName: 'Pedro Oliveira', issueDate: '2024-01-20', dueDate: '2024-02-20', amount: 8000, status: 'Overdue' }
 ];
-
+import api from './api';
+export const billingService = {
+  getInvoices: (page, pageSize, status) => api.get('/billing/invoices', { params: { page, pageSize, status } }),
+  getInvoice: (id) => api.get(`/billing/invoices/${id}`),
+  generateInvoice: (id) => api.post(`/billing/invoices/${id}/generate`),
+  recordPayment: (id, data) => api.post(`/billing/invoices/${id}/pay`, data),
+};
 export const billingService = {
   async getInvoices(page = 1, pageSize = 10, status?: string) {
     let filtered = mockInvoices;

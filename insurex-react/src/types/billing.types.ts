@@ -25,7 +25,37 @@ export interface Invoice {
   createdAt: string;
   updatedAt: string;
 }
+export enum BillingStatus {
+  PENDING = 'pending',
+  PAID = 'paid',
+  OVERDUE = 'overdue',
+  CANCELLED = 'cancelled',
+  PARTIAL = 'partial'
+}
 
+export enum BillingType {
+  PREMIUM = 'premium',
+  COMMISSION = 'commission',
+  FEE = 'fee',
+  REFUND = 'refund',
+  OTHER = 'other'
+}
+
+export interface Invoice {
+  id: string;
+  invoiceNumber: string;
+  type: BillingType;
+  status: BillingStatus;
+  amount: number;
+  dueDate: string;
+  paidDate?: string;
+  clientId: string;
+  clientName: string;
+  policyId?: string;
+  claimId?: string;
+  createdAt: string;
+  updatedAt: string;
+}
 export type InvoiceType = 'premium' | 'endorsement' | 'renewal' | 'fee' | 'refund';
 
 export type InvoiceStatus = 'draft' | 'sent' | 'paid' | 'partially_paid' | 'overdue' | 'cancelled' | 'refunded';

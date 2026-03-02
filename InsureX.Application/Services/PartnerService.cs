@@ -48,4 +48,20 @@ public class PartnerService : IPartnerService
     {
         return await _partnerRepository.DeleteAsync(id);
     }
+
+    public Task<Partner?> GetByIdAsync(int id)
+    {
+        throw new NotImplementedException();
+    }
+
+    public Task<IEnumerable<Partner>> GetByTypeAsync(string partnerType)
+    {
+        throw new NotImplementedException();
+    }
+
+    public Task<bool> DeleteAsync(int id)
+    {
+        throw new NotImplementedException();
+    }
+
 }

@@ -1,38 +1,26 @@
 ﻿import api from './api';
 
 export const reportService = {
-  async getOverview(period = 'month') {
-    return {
-      totalPolicies: 145,
-      activePolicies: 128,
-      totalClaims: 32,
-      pendingClaims: 8,
-      totalPremium: 456000,
-      totalPayout: 187000,
-      growthRate: 12.5,
-      claimsRatio: 41.2
-    };
+  async getReportData(reportType: string, params?: any) {
+    const response = await api.get(`/reports/${reportType}`, { params });
+    return response.data;
   },
 
-  async getPolicyChart(period = 'month') {
-    return {
-      labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
-      datasets: [{ label: 'New Policies', data: [12, 19, 15, 17, 24, 23] }]
-    };
+  async exportReport(reportType: string, params?: any) {
+    const response = await api.get(`/reports/${reportType}/export`, {
+      params,
+      responseType: 'blob'
+    });
+    return response;
   },
 
-  async getClaimsChart(period = 'month') {
-    return {
-      labels: ['Submitted', 'Under Review', 'Approved', 'Rejected', 'Paid'],
-      values: [15, 8, 12, 3, 9]
-    };
+  async getReportList() {
+    const response = await api.get('/reports');
+    return response.data;
   },
 
-  async getRevenueChart(period = 'month') {
-    return {
-      labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
-      premium: [45000, 52000, 48000, 56000, 61000, 59000],
-      payout: [12000, 18000, 15000, 22000, 19000, 21000]
-    };
+  async scheduleReport(reportType: string, schedule: any) {
+    const response = await api.post('/reports/schedule', { reportType, schedule });
+    return response.data;
   }
 };
