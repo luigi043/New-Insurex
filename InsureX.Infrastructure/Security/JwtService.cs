@@ -9,6 +9,7 @@ using InsureX.Domain.Entities;
 using InsureX.Domain.Interfaces;
 using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
+using JwtClaim = System.Security.Claims.Claim;
 
 namespace InsureX.Infrastructure.Security;
 
@@ -34,13 +35,13 @@ public class JwtService : IJwtService
         var tokenHandler = new JwtSecurityTokenHandler();
         var key = Encoding.ASCII.GetBytes(_secret);
         
-        var claims = new List<Claim>
+        var claims = new List<JwtClaim>
         {
-            new Claim(JwtRegisteredClaimNames.Sub, user.Id.ToString()),
-            new Claim(JwtRegisteredClaimNames.Email, user.Email),
-            new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
-            new Claim("tenant_id", user.TenantId?.ToString() ?? string.Empty),
-            new Claim(ClaimTypes.Role, user.Role.ToString())
+            new JwtClaim(JwtRegisteredClaimNames.Sub, user.Id.ToString()),
+            new JwtClaim(JwtRegisteredClaimNames.Email, user.Email),
+            new JwtClaim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
+            new JwtClaim("tenant_id", user.TenantId?.ToString() ?? string.Empty),
+            new JwtClaim(ClaimTypes.Role, user.Role.ToString())
         };
 
         var tokenDescriptor = new SecurityTokenDescriptor
