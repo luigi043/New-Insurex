@@ -1,326 +1,448 @@
-import React, { useState } from 'react';
-import axios from 'axios';
-
-// Define types locally to avoid import issues
-enum AssetType {
-  Vehicle = 'Vehicle',
-  Property = 'Property',
-  Watercraft = 'Watercraft',
-  Aviation = 'Aviation',
-  StockInventory = 'StockInventory',
-  AccountsReceivable = 'AccountsReceivable',
-  Machinery = 'Machinery',
-  PlantEquipment = 'PlantEquipment',
-  BusinessInterruption = 'BusinessInterruption',
-  KeymanInsurance = 'KeymanInsurance',
-  ElectronicEquipment = 'ElectronicEquipment'
-}
-
-enum VehicleType {
-  Car = 'Car',
-  Truck = 'Truck',
-  Motorcycle = 'Motorcycle',
-  Bus = 'Bus',
-  Van = 'Van',
-  Trailer = 'Trailer',
-  Other = 'Other'
-}
-
-enum FuelType {
-  Petrol = 'Petrol',
-  Diesel = 'Diesel',
-  Electric = 'Electric',
-  Hybrid = 'Hybrid',
-  LPG = 'LPG',
-  Other = 'Other'
-}
+import React, { useState, useEffect } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
+import {
+  Box,
+  Paper,
+  Typography,
+  TextField,
+  Button,
+  Grid,
+  MenuItem,
+  FormControl,
+  InputLabel,
+  Select,
+  FormControlLabel,
+  Checkbox,
+  Alert,
+  Stepper,
+  Step,
+  StepLabel,
+} from '@mui/material';
+import { assetService } from '../../services/asset.service';
 
 interface AssetFormProps {
-  policyId: string;
-  onSuccess: () => void;
-  onCancel: () => void;
+  assetType: string;
 }
 
-const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
-
-export const AssetForm: React.FC<AssetFormProps> = ({ policyId, onSuccess, onCancel }) => {
-  const [selectedType, setSelectedType] = useState<AssetType | null>(null);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+export const AssetForm: React.FC<AssetFormProps> = ({ assetType }) => {
+  const navigate = useNavigate();
+  const { id } = useParams();
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [activeStep, setActiveStep] = useState(0);
   const [formData, setFormData] = useState<any>({
-    policyId,
     name: '',
     description: '',
     value: '',
+    status: 'Active',
+    type: assetType,
+    policyId: '',
     location: '',
     acquisitionDate: new Date().toISOString().split('T')[0],
-    // Vehicle specific
-    vehicleMake: '',
-    vehicleModel: '',
-    vehicleYear: new Date().getFullYear(),
-    vehicleRegistrationNumber: '',
-    vehicleVinNumber: '',
-    vehicleType: VehicleType.Car,
-    fuelType: FuelType.Petrol,
   });
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsSubmitting(true);
+  const steps = ['Basic Information', 'Asset Details', 'Review'];
+
+  useEffect(() => {
+    if (id) {
+      loadAsset();
+    }
+  }, [id]);
+
+  const loadAsset = async () => {
     try {
-      const token = localStorage.getItem('token');
-      await axios.post(`${API_URL}/assets`, {
-        ...formData,
-        assetType: selectedType,
-        value: parseFloat(formData.value) || 0,
-      }, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      });
-      onSuccess();
-    } catch (error) {
-      console.error('Failed to create asset:', error);
-      alert('Failed to create asset. Check console for details.');
-    } finally {
-      setIsSubmitting(false);
+      const response = await assetService.getAsset(id!);
+      setFormData(response.data);
+    } catch (err) {
+      setError('Failed to load asset');
     }
   };
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
-    const { name, value, type } = e.target;
-    setFormData((prev: any) => ({
-      ...prev,
-      [name]: type === 'number' ? (value === '' ? '' : parseFloat(value)) : value,
-    }));
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | { name?: string; value: unknown }>) => {
+    const name = e.target.name as string;
+    const value = e.target.value;
+    setFormData({ ...formData, [name]: value });
   };
 
-  // Add placeholder and title to fix axe warnings
-  const inputProps = (placeholder: string) => ({
-    placeholder,
-    title: placeholder,
-  });
+  const handleCheckboxChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setFormData({ ...formData, [e.target.name]: e.target.checked });
+  };
 
-  if (!selectedType) {
-    return (
-      <div className="p-6 bg-white rounded-lg shadow-md">
-        <h2 className="text-2xl font-bold mb-6">Select Asset Type</h2>
-        <div className="grid grid-cols-3 gap-4">
-          {Object.values(AssetType).map((type) => (
-            <button
-              key={type}
-              onClick={() => setSelectedType(type)}
-              className="p-4 border-2 border-gray-200 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition-all text-left"
-            >
-              <span className="font-medium">{type.replace(/([A-Z])/g, ' $1').trim()}</span>
-            </button>
-          ))}
-        </div>
-        <button 
-          onClick={onCancel} 
-          className="mt-6 px-4 py-2 text-gray-600 hover:text-gray-800 border border-gray-300 rounded"
-        >
-          Cancel
-        </button>
-      </div>
-    );
-  }
+  const handleSubmit = async () => {
+    setLoading(true);
+    setError('');
+    try {
+      if (id) {
+        await assetService.updateAsset(id, formData);
+      } else {
+        await assetService.createAsset(formData);
+      }
+      navigate('/assets');
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Failed to save asset');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleNext = () => {
+    setActiveStep((prev) => prev + 1);
+  };
+
+  const handleBack = () => {
+    setActiveStep((prev) => prev - 1);
+  };
+
+  const renderAssetSpecificFields = () => {
+    switch (assetType) {
+      case 'Vehicle':
+        return <VehicleAssetFields formData={formData} handleChange={handleChange} handleCheckboxChange={handleCheckboxChange} />;
+      case 'Property':
+        return <PropertyAssetFields formData={formData} handleChange={handleChange} handleCheckboxChange={handleCheckboxChange} />;
+      case 'Watercraft':
+        return <WatercraftAssetFields formData={formData} handleChange={handleChange} handleCheckboxChange={handleCheckboxChange} />;
+      case 'Aviation':
+        return <AviationAssetFields formData={formData} handleChange={handleChange} handleCheckboxChange={handleCheckboxChange} />;
+      case 'StockInventory':
+        return <StockInventoryAssetFields formData={formData} handleChange={handleChange} handleCheckboxChange={handleCheckboxChange} />;
+      case 'AccountsReceivable':
+        return <AccountsReceivableAssetFields formData={formData} handleChange={handleChange} handleCheckboxChange={handleCheckboxChange} />;
+      case 'Machinery':
+        return <MachineryAssetFields formData={formData} handleChange={handleChange} handleCheckboxChange={handleCheckboxChange} />;
+      case 'PlantEquipment':
+        return <PlantEquipmentAssetFields formData={formData} handleChange={handleChange} handleCheckboxChange={handleCheckboxChange} />;
+      case 'BusinessInterruption':
+        return <BusinessInterruptionAssetFields formData={formData} handleChange={handleChange} handleCheckboxChange={handleCheckboxChange} />;
+      case 'KeymanInsurance':
+        return <KeymanInsuranceAssetFields formData={formData} handleChange={handleChange} handleCheckboxChange={handleCheckboxChange} />;
+      case 'ElectronicEquipment':
+        return <ElectronicEquipmentAssetFields formData={formData} handleChange={handleChange} handleCheckboxChange={handleCheckboxChange} />;
+      default:
+        return null;
+    }
+  };
+
+  const renderStepContent = () => {
+    switch (activeStep) {
+      case 0:
+        return (
+          <Grid container spacing={2}>
+            <Grid item xs={12}>
+              <TextField
+                required
+                fullWidth
+                name="name"
+                label="Asset Name"
+                value={formData.name}
+                onChange={handleChange}
+              />
+            </Grid>
+            <Grid item xs={12}>
+              <TextField
+                fullWidth
+                multiline
+                rows={3}
+                name="description"
+                label="Description"
+                value={formData.description}
+                onChange={handleChange}
+              />
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <TextField
+                required
+                fullWidth
+                type="number"
+                name="value"
+                label="Value ($)"
+                value={formData.value}
+                onChange={handleChange}
+              />
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <FormControl fullWidth required>
+                <InputLabel>Status</InputLabel>
+                <Select
+                  name="status"
+                  value={formData.status}
+                  label="Status"
+                  onChange={handleChange}
+                >
+                  <MenuItem value="Active">Active</MenuItem>
+                  <MenuItem value="Inactive">Inactive</MenuItem>
+                  <MenuItem value="UnderMaintenance">Under Maintenance</MenuItem>
+                  <MenuItem value="Disposed">Disposed</MenuItem>
+                  <MenuItem value="Claimed">Claimed</MenuItem>
+                </Select>
+              </FormControl>
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <TextField
+                required
+                fullWidth
+                name="policyId"
+                label="Policy ID"
+                value={formData.policyId}
+                onChange={handleChange}
+              />
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <TextField
+                required
+                fullWidth
+                name="location"
+                label="Location"
+                value={formData.location}
+                onChange={handleChange}
+              />
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <TextField
+                required
+                fullWidth
+                type="date"
+                name="acquisitionDate"
+                label="Acquisition Date"
+                InputLabelProps={{ shrink: true }}
+                value={formData.acquisitionDate}
+                onChange={handleChange}
+              />
+            </Grid>
+          </Grid>
+        );
+      case 1:
+        return renderAssetSpecificFields();
+      case 2:
+        return (
+          <Box>
+            <Typography variant="h6" gutterBottom>Review Asset Information</Typography>
+            <Grid container spacing={2}>
+              {Object.entries(formData).map(([key, value]) => (
+                <Grid item xs={12} md={6} key={key}>
+                  <Typography variant="body2" color="textSecondary">
+                    {key.charAt(0).toUpperCase() + key.slice(1)}:
+                  </Typography>
+                  <Typography variant="body1">
+                    {typeof value === 'boolean' ? (value ? 'Yes' : 'No') : String(value)}
+                  </Typography>
+                </Grid>
+              ))}
+            </Grid>
+          </Box>
+        );
+      default:
+        return null;
+    }
+  };
 
   return (
-    <form onSubmit={handleSubmit} className="p-6 bg-white rounded-lg shadow-md space-y-4">
-      <div className="flex items-center justify-between mb-6">
-        <h2 className="text-2xl font-bold">
-          Add {selectedType.replace(/([A-Z])/g, ' $1').trim()}
-        </h2>
-        <button
-          type="button"
-          onClick={() => setSelectedType(null)}
-          className="text-sm text-blue-600 hover:text-blue-800 underline"
-        >
-          Change Type
-        </button>
-      </div>
+    <Box>
+      <Typography variant="h4" gutterBottom>
+        {id ? 'Edit' : 'New'} {assetType} Asset
+      </Typography>
 
-      <div className="grid grid-cols-2 gap-4">
-        <div>
-          <label className="block text-sm font-medium text-gray-700">Asset Name *</label>
-          <input
-            name="name"
-            value={formData.name}
-            onChange={handleChange}
-            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-            required
-            {...inputProps('Enter asset name')}
-          />
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700">Value ($) *</label>
-          <input
-            name="value"
-            type="number"
-            step="0.01"
-            value={formData.value}
-            onChange={handleChange}
-            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-            required
-            {...inputProps('Enter asset value')}
-          />
-        </div>
-      </div>
+      <Paper sx={{ p: 3 }}>
+        {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
 
-      <div>
-        <label className="block text-sm font-medium text-gray-700">Location *</label>
-        <input
-          name="location"
-          value={formData.location}
-          onChange={handleChange}
-          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-          required
-          {...inputProps('Enter asset location')}
-        />
-      </div>
+        <Stepper activeStep={activeStep} sx={{ mb: 3 }}>
+          {steps.map((label) => (
+            <Step key={label}>
+              <StepLabel>{label}</StepLabel>
+            </Step>
+          ))}
+        </Stepper>
 
-      <div>
-        <label className="block text-sm font-medium text-gray-700">Description</label>
-        <textarea
-          name="description"
-          value={formData.description}
-          onChange={handleChange}
-          rows={3}
-          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-          {...inputProps('Enter description')}
-        />
-      </div>
+        {renderStepContent()}
 
-      <div>
-        <label className="block text-sm font-medium text-gray-700">Acquisition Date *</label>
-        <input
-          name="acquisitionDate"
-          type="date"
-          value={formData.acquisitionDate}
-          onChange={handleChange}
-          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-          required
-          title="Acquisition Date"
-        />
-      </div>
-
-      {/* Vehicle specific fields */}
-      {selectedType === AssetType.Vehicle && (
-        <div className="space-y-4 border-t pt-4 mt-4">
-          <h3 className="font-medium text-gray-900">Vehicle Details</h3>
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Make *</label>
-              <input
-                name="vehicleMake"
-                value={formData.vehicleMake}
-                onChange={handleChange}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                required
-                {...inputProps('Vehicle make')}
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Model *</label>
-              <input
-                name="vehicleModel"
-                value={formData.vehicleModel}
-                onChange={handleChange}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                required
-                {...inputProps('Vehicle model')}
-              />
-            </div>
-          </div>
-          
-          <div className="grid grid-cols-3 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Year *</label>
-              <input
-                name="vehicleYear"
-                type="number"
-                value={formData.vehicleYear}
-                onChange={handleChange}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                required
-                {...inputProps('Vehicle year')}
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Registration *</label>
-              <input
-                name="vehicleRegistrationNumber"
-                value={formData.vehicleRegistrationNumber}
-                onChange={handleChange}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                required
-                {...inputProps('Registration number')}
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700">VIN *</label>
-              <input
-                name="vehicleVinNumber"
-                value={formData.vehicleVinNumber}
-                onChange={handleChange}
-                maxLength={17}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                required
-                {...inputProps('17-character VIN')}
-              />
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Vehicle Type</label>
-              <select
-                name="vehicleType"
-                value={formData.vehicleType}
-                onChange={handleChange}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                title="Vehicle Type"
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 3 }}>
+          <Button
+            disabled={activeStep === 0}
+            onClick={handleBack}
+          >
+            Back
+          </Button>
+          <Box>
+            {activeStep === steps.length - 1 ? (
+              <Button
+                variant="contained"
+                onClick={handleSubmit}
+                disabled={loading}
               >
-                {Object.values(VehicleType).map((type) => (
-                  <option key={type} value={type}>{type}</option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Fuel Type</label>
-              <select
-                name="fuelType"
-                value={formData.fuelType}
-                onChange={handleChange}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                title="Fuel Type"
+                {loading ? 'Saving...' : 'Submit'}
+              </Button>
+            ) : (
+              <Button
+                variant="contained"
+                onClick={handleNext}
               >
-                {Object.values(FuelType).map((type) => (
-                  <option key={type} value={type}>{type}</option>
-                ))}
-              </select>
-            </div>
-          </div>
-        </div>
-      )}
-
-      <div className="flex justify-end space-x-3 pt-4">
-        <button
-          type="button"
-          onClick={onCancel}
-          className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
-        >
-          Cancel
-        </button>
-        <button
-          type="submit"
-          disabled={isSubmitting}
-          className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
-        >
-          {isSubmitting ? 'Creating...' : 'Create Asset'}
-        </button>
-      </div>
-    </form>
+                Next
+              </Button>
+            )}
+          </Box>
+        </Box>
+      </Paper>
+    </Box>
   );
 };
+
+// Vehicle Asset Fields
+const VehicleAssetFields: React.FC<any> = ({ formData, handleChange, handleCheckboxChange }) => (
+  <Grid container spacing={2}>
+    <Grid item xs={12} md={6}>
+      <TextField fullWidth name="make" label="Make" value={formData.make || ''} onChange={handleChange} />
+    </Grid>
+    <Grid item xs={12} md={6}>
+      <TextField fullWidth name="model" label="Model" value={formData.model || ''} onChange={handleChange} />
+    </Grid>
+    <Grid item xs={12} md={4}>
+      <TextField fullWidth type="number" name="year" label="Year" value={formData.year || ''} onChange={handleChange} />
+    </Grid>
+    <Grid item xs={12} md={4}>
+      <TextField fullWidth name="registrationNumber" label="Registration Number" value={formData.registrationNumber || ''} onChange={handleChange} />
+    </Grid>
+    <Grid item xs={12} md={4}>
+      <TextField fullWidth name="vinNumber" label="VIN Number" value={formData.vinNumber || ''} onChange={handleChange} />
+    </Grid>
+    <Grid item xs={12} md={4}>
+      <TextField fullWidth name="engineNumber" label="Engine Number" value={formData.engineNumber || ''} onChange={handleChange} />
+    </Grid>
+    <Grid item xs={12} md={4}>
+      <TextField fullWidth name="color" label="Color" value={formData.color || ''} onChange={handleChange} />
+    </Grid>
+    <Grid item xs={12} md={4}>
+      <TextField fullWidth type="number" name="mileage" label="Mileage" value={formData.mileage || ''} onChange={handleChange} />
+    </Grid>
+    <Grid item xs={12} md={4}>
+      <FormControl fullWidth>
+        <InputLabel>Vehicle Type</InputLabel>
+        <Select name="vehicleType" value={formData.vehicleType || ''} label="Vehicle Type" onChange={handleChange}>
+          <MenuItem value="Car">Car</MenuItem>
+          <MenuItem value="Truck">Truck</MenuItem>
+          <MenuItem value="Motorcycle">Motorcycle</MenuItem>
+          <MenuItem value="Bus">Bus</MenuItem>
+          <MenuItem value="Van">Van</MenuItem>
+          <MenuItem value="Trailer">Trailer</MenuItem>
+          <MenuItem value="Other">Other</MenuItem>
+        </Select>
+      </FormControl>
+    </Grid>
+    <Grid item xs={12} md={4}>
+      <FormControl fullWidth>
+        <InputLabel>Fuel Type</InputLabel>
+        <Select name="fuelType" value={formData.fuelType || ''} label="Fuel Type" onChange={handleChange}>
+          <MenuItem value="Petrol">Petrol</MenuItem>
+          <MenuItem value="Diesel">Diesel</MenuItem>
+          <MenuItem value="Electric">Electric</MenuItem>
+          <MenuItem value="Hybrid">Hybrid</MenuItem>
+          <MenuItem value="LPG">LPG</MenuItem>
+          <MenuItem value="Other">Other</MenuItem>
+        </Select>
+      </FormControl>
+    </Grid>
+    <Grid item xs={12}>
+      <FormControlLabel
+        control={
+          <Checkbox
+            name="isCommercial"
+            checked={formData.isCommercial || false}
+            onChange={handleCheckboxChange}
+          />
+        }
+        label="Commercial Vehicle"
+      />
+    </Grid>
+  </Grid>
+);
+
+// Property Asset Fields
+const PropertyAssetFields: React.FC<any> = ({ formData, handleChange, handleCheckboxChange }) => (
+  <Grid container spacing={2}>
+    <Grid item xs={12}>
+      <FormControl fullWidth>
+        <InputLabel>Property Type</InputLabel>
+        <Select name="propertyType" value={formData.propertyType || ''} label="Property Type" onChange={handleChange}>
+          <MenuItem value="Residential">Residential</MenuItem>
+          <MenuItem value="Commercial">Commercial</MenuItem>
+          <MenuItem value="Industrial">Industrial</MenuItem>
+          <MenuItem value="Agricultural">Agricultural</MenuItem>
+          <MenuItem value="MixedUse">Mixed Use</MenuItem>
+        </Select>
+      </FormControl>
+    </Grid>
+    <Grid item xs={12}>
+      <TextField fullWidth name="address" label="Address" value={formData.address || ''} onChange={handleChange} />
+    </Grid>
+    <Grid item xs={12} md={4}>
+      <TextField fullWidth name="city" label="City" value={formData.city || ''} onChange={handleChange} />
+    </Grid>
+    <Grid item xs={12} md={4}>
+      <TextField fullWidth name="state" label="State" value={formData.state || ''} onChange={handleChange} />
+    </Grid>
+    <Grid item xs={12} md={4}>
+      <TextField fullWidth name="zipCode" label="Zip Code" value={formData.zipCode || ''} onChange={handleChange} />
+    </Grid>
+    <Grid item xs={12} md={4}>
+      <TextField fullWidth name="country" label="Country" value={formData.country || ''} onChange={handleChange} />
+    </Grid>
+    <Grid item xs={12} md={4}>
+      <TextField fullWidth type="number" name="squareFeet" label="Square Feet" value={formData.squareFeet || ''} onChange={handleChange} />
+    </Grid>
+    <Grid item xs={12} md={4}>
+      <TextField fullWidth type="number" name="yearBuilt" label="Year Built" value={formData.yearBuilt || ''} onChange={handleChange} />
+    </Grid>
+    <Grid item xs={12} md={4}>
+      <FormControl fullWidth>
+        <InputLabel>Construction Type</InputLabel>
+        <Select name="constructionType" value={formData.constructionType || ''} label="Construction Type" onChange={handleChange}>
+          <MenuItem value="WoodFrame">Wood Frame</MenuItem>
+          <MenuItem value="SteelFrame">Steel Frame</MenuItem>
+          <MenuItem value="Concrete">Concrete</MenuItem>
+          <MenuItem value="Brick">Brick</MenuItem>
+          <MenuItem value="Stone">Stone</MenuItem>
+          <MenuItem value="Other">Other</MenuItem>
+        </Select>
+      </FormControl>
+    </Grid>
+    <Grid item xs={12}>
+      <FormControlLabel
+        control={
+          <Checkbox
+            name="hasSecuritySystem"
+            checked={formData.hasSecuritySystem || false}
+            onChange={handleCheckboxChange}
+          />
+        }
+        label="Has Security System"
+      />
+    </Grid>
+    <Grid item xs={12}>
+      <FormControlLabel
+        control={
+          <Checkbox
+            name="hasFireAlarm"
+            checked={formData.hasFireAlarm || false}
+            onChange={handleCheckboxChange}
+          />
+        }
+        label="Has Fire Alarm"
+      />
+    </Grid>
+    <Grid item xs={12}>
+      <FormControlLabel
+        control={
+          <Checkbox
+            name="hasSprinklerSystem"
+            checked={formData.hasSprinklerSystem || false}
+            onChange={handleCheckboxChange}
+          />
+        }
+        label="Has Sprinkler System"
+      />
+    </Grid>
+  </Grid>
+);
+
+// Add other asset type fields similarly...
+// WatercraftAssetFields, AviationAssetFields, StockInventoryAssetFields,
+// AccountsReceivableAssetFields, MachineryAssetFields, PlantEquipmentAssetFields,
+// BusinessInterruptionAssetFields, KeymanInsuranceAssetFields, ElectronicEquipmentAssetFields
