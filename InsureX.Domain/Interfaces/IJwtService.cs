@@ -1,10 +1,11 @@
-﻿using System.Security.Claims;
+﻿using InsureX.Domain.Entities;
 
 namespace InsureX.Domain.Interfaces;
 
 public interface IJwtService
 {
-    string GenerateJwtToken(Domain.Entities.User user);
-    string GenerateRefreshToken();
-    ClaimsPrincipal? ValidateJwtToken(string token);
+    string GenerateToken(User user);  // Not GenerateJwtToken
+    string GenerateRefreshToken();    // Not GenerateRefreshToken (no parameters)
+    bool ValidateToken(string token);   // Not ValidateJwtToken
+    Guid? GetUserIdFromToken(string token);
 }

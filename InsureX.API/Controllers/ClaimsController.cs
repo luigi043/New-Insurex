@@ -1,134 +1,145 @@
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Threading.Tasks;
-using InsureX.Application.DTOs;
-using InsureX.Application.Interfaces;
+
+using Insurex.Domain.Entities;
 using InsureX.Domain.Entities;
+using InsureX.Infrastructure.Data;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 
-namespace InsureX.API.Controllers
+namespace InsureX.Api.Controllers;
+
+[ApiController]
+[Route("api/[controller]")]
+[Authorize]
+public class ClaimsController : ControllerBase
 {
-    [ApiController]
-    [Route("api/[controller]")]
-    [Authorize]
-    public class ClaimsController : ControllerBase
+    private readonly ApplicationDbContext _context;
+
+    public ClaimsController(ApplicationDbContext context)
     {
-        private readonly IClaimService _claimService;
-
-        public ClaimsController(IClaimService claimService)
-        {
-            _claimService = claimService;
-        }
-
-        // GET api/claims?policyId=1&status=Pending&page=1&pageSize=20
-        [HttpGet]
-        public async Task<IActionResult> GetAll(
-            [FromQuery] int? policyId,
-            [FromQuery] ClaimStatus? status,
-            [FromQuery] string? search,
-            [FromQuery] int page = 1,
-            [FromQuery] int pageSize = 20)
-        {
-            var result = await _claimService.GetPagedAsync(policyId, status, search, page, pageSize);
-            return Ok(result);
-        }
-
-        // GET api/claims/5
-        [HttpGet("{id}")]
-        public async Task<IActionResult> GetById(int id)
-        {
-            var claim = await _claimService.GetByIdAsync(id);
-            if (claim == null) return NotFound();
-            return Ok(claim);
-        }
-
-        // POST api/claims
-        [HttpPost]
-        public async Task<IActionResult> Create([FromBody] CreateClaimDto dto)
-        {
-            if (!ModelState.IsValid) return BadRequest(ModelState);
-            var created = await _claimService.CreateAsync(dto, User.Identity!.Name!);
-            return CreatedAtAction(nameof(GetById), new { id = created.Id }, created);
-        }
-
-        // PUT api/claims/5
-        [HttpPut("{id}")]
-        public async Task<IActionResult> Update(int id, [FromBody] UpdateClaimDto dto)
-        {
-            if (!ModelState.IsValid) return BadRequest(ModelState);
-            var updated = await _claimService.UpdateAsync(id, dto, User.Identity!.Name!);
-            if (updated == null) return NotFound();
-            return Ok(updated);
-        }
-
-        // POST api/claims/5/approve
-        [HttpPost("{id}/approve")]
-        [Authorize(Roles = "Admin,Manager")]
-        public async Task<IActionResult> Approve(int id, [FromBody] ApproveClaimDto dto)
-        {
-            var result = await _claimService.ApproveAsync(id, dto, User.Identity!.Name!);
-            if (result == null) return NotFound();
-            return Ok(result);
-        }
-
-        // POST api/claims/5/reject
-        [HttpPost("{id}/reject")]
-        [Authorize(Roles = "Admin,Manager")]
-        public async Task<IActionResult> Reject(int id, [FromBody] RejectClaimDto dto)
-        {
-            var result = await _claimService.RejectAsync(id, dto, User.Identity!.Name!);
-            if (result == null) return NotFound();
-            return Ok(result);
-        }
-
-        // POST api/claims/5/pay
-        [HttpPost("{id}/pay")]
-        [Authorize(Roles = "Admin,Finance")]
-        public async Task<IActionResult> Pay(int id, [FromBody] PayClaimDto dto)
-        {
-            var result = await _claimService.PayAsync(id, dto, User.Identity!.Name!);
-            if (result == null) return NotFound();
-            return Ok(result);
-        }
-
-        // POST api/claims/5/documents
-        [HttpPost("{id}/documents")]
-        [RequestSizeLimit(10_485_760)] // 10 MB
-        public async Task<IActionResult> UploadDocument(int id, IFormFile file)
-        {
-            if (file == null || file.Length == 0)
-                return BadRequest("No file provided.");
-
-            var allowedTypes = new[] { "application/pdf", "image/jpeg", "image/png", "image/gif" };
-            if (!allowedTypes.Contains(file.ContentType))
-                return BadRequest("Unsupported file type.");
-
-            using var stream = file.OpenReadStream();
-            var doc = await _claimService.AddDocumentAsync(id, file.FileName, file.ContentType, stream);
-            if (doc == null) return NotFound();
-            return Ok(doc);
-        }
-
-        // DELETE api/claims/5
-        [HttpDelete("{id}")]
-        [Authorize(Roles = "Admin")]
-        public async Task<IActionResult> Delete(int id)
-        {
-            var deleted = await _claimService.DeleteAsync(id);
-            if (!deleted) return NotFound();
-            return NoContent();
-        }
-
-        // GET api/claims/stats
-        [HttpGet("stats")]
-        public async Task<IActionResult> GetStats()
-        {
-            var stats = await _claimService.GetStatsAsync();
-            return Ok(stats);
-        }
+        _context = context;
     }
+
+    [HttpGet]
+    public async Task<ActionResult> GetClaims(
+        [FromQuery] Guid? policyId = null,
+        [FromQuery] ClaimStatus? status = null,
+        [FromQuery] int pageNumber = 1,
+        [FromQuery] int pageSize = 10)
+    {
+        var query = _context.Claims
+            .Include(c => c.Policy)
+            .Include(c => c.Client)
+            .AsNoTracking()
+            .AsQueryable();
+
+        if (policyId.HasValue)
+            query = query.Where(c => c.PolicyId == policyId.Value);
+        
+        if (status.HasValue)
+            query = query.Where(c => c.Status == status.Value);
+
+        var totalCount = await query.CountAsync();
+        
+        var items = await query
+            .OrderByDescending(c => c.CreatedAt)
+            .Skip((pageNumber - 1) * pageSize)
+            .Take(pageSize)
+            .Select(c => new {
+                c.Id,
+                c.ClaimNumber,
+                c.Status,
+                c.ClaimedAmount,
+                c.ApprovedAmount,
+                c.IncidentDate,
+                c.CreatedAt,
+                PolicyNumber = c.Policy.PolicyNumber,
+                ClientName = c.Client.FirstName + " " + c.Client.LastName
+            })
+            .ToListAsync();
+
+        return Ok(new { items, totalCount, pageNumber, pageSize });
+    }
+
+    [HttpGet("{id:guid}")]
+    public async Task<ActionResult> GetClaim(Guid id)
+    {
+        var claim = await _context.Claims
+            .Include(c => c.Policy)
+            .Include(c => c.Client)
+            .Include(c => c.Documents)
+            .Include(c => c.StatusHistory)
+            .FirstOrDefaultAsync(c => c.Id == id);
+
+        if (claim == null) return NotFound();
+
+        return Ok(claim);
+    }
+
+    [HttpPost]
+    [Authorize(Roles = "Admin,Client")]
+    public async Task<ActionResult> CreateClaim([FromBody] CreateClaimRequest request)
+    {
+        var policy = await _context.Policies.FindAsync(request.PolicyId);
+        if (policy == null) return NotFound("Policy not found");
+
+        var year = DateTime.UtcNow.Year;
+        var count = await _context.Claims.CountAsync(c => c.CreatedAt.Year == year) + 1;
+        var claimNumber = $"CLM-{year}-{count:D6}";
+        
+        var claim = new Claim
+        {
+            ClaimNumber = claimNumber,
+            PolicyId = request.PolicyId,
+            ClientId = policy.ClientId,
+            IncidentDate = request.IncidentDate,
+            Description = request.Description,
+            IncidentLocation = request.IncidentLocation,
+            ClaimedAmount = request.ClaimedAmount,
+            Type = request.Type,
+            Status = ClaimStatus.Submitted
+        };
+
+        _context.Claims.Add(claim);
+        await _context.SaveChangesAsync();
+
+        return CreatedAtAction(nameof(GetClaim), new { id = claim.Id }, claim);
+    }
+
+    [HttpPost("{id:guid}/process")]
+    [Authorize(Roles = "Admin,Insurer")]
+    public async Task<ActionResult> ProcessClaim(Guid id, [FromBody] ProcessClaimRequest request)
+    {
+        var claim = await _context.Claims.FindAsync(id);
+        if (claim == null) return NotFound();
+
+        claim.Status = request.NewStatus;
+        
+        if (request.NewStatus == ClaimStatus.Approved)
+            claim.ApprovedAmount = request.ApprovedAmount;
+        
+        if (request.NewStatus == ClaimStatus.Rejected)
+            claim.RejectionReason = request.Reason;
+
+        await _context.SaveChangesAsync();
+
+        return Ok(claim);
+    }
+}
+
+public class CreateClaimRequest
+{
+    public Guid PolicyId { get; set; }
+    public DateTime IncidentDate { get; set; }
+    public string Description { get; set; } = string.Empty;
+    public string? IncidentLocation { get; set; }
+    public decimal ClaimedAmount { get; set; }
+    public ClaimType Type { get; set; }
+}
+
+public class ProcessClaimRequest
+{
+    public ClaimStatus NewStatus { get; set; }
+    public decimal? ApprovedAmount { get; set; }
+    public string? Reason { get; set; }
 }

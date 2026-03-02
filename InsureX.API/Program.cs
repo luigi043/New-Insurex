@@ -1,57 +1,38 @@
-﻿using InsureX.Infrastructure.Security;
-using InsureX.Infrastructure.Tenancy;
-using InsureX.Infrastructure.Data;
-using InsureX.Application.Services;
-using InsureX.Application.Services.Policy;
-using InsureX.Application.Services.Dashboard;
-using InsureX.Domain.Interfaces;
-using InsureX.Application.Interfaces;
+﻿using InsureX.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services
+// Add services to the container.
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-// Register services
-builder.Services.AddHttpContextAccessor();
-builder.Services.AddScoped<ITenantContext, TenantContext>();
-builder.Services.AddScoped<IPasswordHasher, PasswordHasher>();
-builder.Services.AddScoped<IJwtService, JwtService>();
-builder.Services.AddScoped<IAuthService, AuthService>();
-
-// Configure JWT Settings
-builder.Services.Configure<JwtSettings>(builder.Configuration.GetSection("Jwt"));
-
 // Add DbContext
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
-    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
-
-// Register IApplicationDbContext
-builder.Services.AddScoped<IApplicationDbContext>(provider => 
-    provider.GetRequiredService<ApplicationDbContext>());
+    options.UseSqlServer(
+        builder.Configuration.GetConnectionString("DefaultConnection") 
+        ?? "Server=(localdb)\\MSSQLLocalDB;Database=InsurexDb;Trusted_Connection=True;TrustServerCertificate=True;"));
 
 // Add CORS
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy("AllowReactApp",
-        policy =>
-        {
-            policy.WithOrigins("http://localhost:3000")
-                  .AllowAnyHeader()
-                  .AllowAnyMethod()
-                  .AllowCredentials();
-        });
+    options.AddPolicy("AllowFrontend", policy =>
+    {
+        policy.WithOrigins("http://localhost:3000", "https://localhost:3000")
+              .AllowAnyHeader()
+              .AllowAnyMethod()
+              .AllowCredentials();
+    });
 });
 
-builder.Services.AddScoped<IPolicyService, PolicyService>();
-        builder.Services.AddScoped<IDashboardService, DashboardService>();
+// Add MediatR
+builder.Services.AddMediatR(cfg => 
+    cfg.RegisterServicesFromAssembly(typeof(Program).Assembly));
 
-        var app = builder.Build();
+var app = builder.Build();
 
-// Configure pipeline
+// Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
@@ -59,19 +40,15 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
-app.UseCors("AllowReactApp");
+app.UseCors("AllowFrontend");
 app.UseAuthorization();
 app.MapControllers();
 
-// Ensure database is created
+// Initialize database
 using (var scope = app.Services.CreateScope())
 {
-    var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-    dbContext.Database.EnsureCreated();
+    var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+    await context.Database.MigrateAsync();
 }
 
 app.Run();
-
-
-
-

@@ -1,173 +1,175 @@
-﻿using System;
-using System.Linq;
-using System.Threading.Tasks;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Logging;
-using InsureX.Domain.Entities;
-using InsureX.Domain.Enums;
+﻿using InsureX.Domain.Entities;
 using InsureX.Domain.Interfaces;
-using InsureX.Application.Interfaces;
 using InsureX.Application.DTOs.Auth;
+using InsureX.Application.Interfaces;
+using BCrypt.Net;
+using System;
+using System.Threading.Tasks;
+using System.Linq;
 
 namespace InsureX.Application.Services;
 
-public interface IAuthService
-{
-    Task<AuthResponseDto> LoginAsync(LoginDto loginDto);
-    Task<AuthResponseDto> RegisterAsync(RegisterDto registerDto);
-    Task<bool> ValidateTokenAsync(string token);
-}
-
 public class AuthService : IAuthService
 {
-    private readonly IApplicationDbContext _context;
-    private readonly IPasswordHasher _passwordHasher;
+    private readonly IUserRepository _userRepository;
+    private readonly ITenantRepository _tenantRepository;
     private readonly IJwtService _jwtService;
-    private readonly ITenantContext _tenantContext;
-    private readonly ILogger<AuthService> _logger;
 
     public AuthService(
-        IApplicationDbContext context,
-        IPasswordHasher passwordHasher,
-        IJwtService jwtService,
-        ITenantContext tenantContext,
-        ILogger<AuthService> logger)
+        IUserRepository userRepository,
+        ITenantRepository tenantRepository,
+        IJwtService jwtService)
     {
-        _context = context;
-        _passwordHasher = passwordHasher;
+        _userRepository = userRepository;
+        _tenantRepository = tenantRepository;
         _jwtService = jwtService;
-        _tenantContext = tenantContext;
-        _logger = logger;
     }
 
-    public async Task<AuthResponseDto> LoginAsync(LoginDto loginDto)
+    public async Task<AuthResponseDto> LoginAsync(LoginRequestDto request)
     {
-        try
+        var user = await _userRepository.GetByEmailAsync(request.Email);
+        if (user == null || !BCrypt.Net.BCrypt.Verify(request.Password, user.PasswordHash))
         {
-            var user = await _context.Users
-                .Include(u => u.Tenant)
-                .FirstOrDefaultAsync(u => u.Email == loginDto.Email && !u.IsDeleted);
+            throw new UnauthorizedAccessException("Invalid credentials");
+        }
 
-            if (user == null)
-                throw new UnauthorizedAccessException("Invalid email or password");
+        if (user.Status != UserStatus.Active)
+        {
+            throw new UnauthorizedAccessException("Account is not active");
+        }
 
-            if (!_passwordHasher.VerifyPassword(loginDto.Password, user.PasswordHash))
-                throw new UnauthorizedAccessException("Invalid email or password");
+        // Use correct method name: GenerateToken (not GenerateJwtToken)
+        var token = _jwtService.GenerateToken(user);
+        var refreshToken = _jwtService.GenerateRefreshToken();
 
-            if (!user.IsActive)
-                throw new UnauthorizedAccessException("Account is deactivated");
+        user.RefreshToken = refreshToken;
+        user.RefreshTokenExpiryTime = DateTime.UtcNow.AddDays(7);
+        await _userRepository.UpdateAsync(user);
 
-            user.LastLoginAt = DateTime.UtcNow;
-            await _context.SaveChangesAsync();
-
-            var token = _jwtService.GenerateJwtToken(user);
-            var refreshToken = _jwtService.GenerateRefreshToken();
-
-            user.RefreshToken = refreshToken;
-            user.RefreshTokenExpiryTime = DateTime.UtcNow.AddDays(7);
-            await _context.SaveChangesAsync();
-
-            return new AuthResponseDto
+        return new AuthResponseDto
+        {
+            Token = token,
+            RefreshToken = refreshToken,
+            ExpiresAt = DateTime.UtcNow.AddHours(1),
+            User = new UserDto
             {
-                Token = token,
-                RefreshToken = refreshToken,
-                Expiration = DateTime.UtcNow.AddMinutes(60),
+                Id = user.Id,
+                Email = user.Email,
+                // Use Username property (not user.Tenant?.Name)
+                Username = user.Username,
+                FirstName = user.FirstName,
+                LastName = user.LastName,
+                Role = user.Role.ToString(),
+                TenantId = user.TenantId,
+                // Use Tenant.Code if tenant exists
+                TenantCode = user.Tenant?.Code
+            }
+        };
+    }
+
+    public async Task<AuthResponseDto> RegisterAsync(RegisterRequestDto request)
+    {
+        if (await _userRepository.ExistsByEmailAsync(request.Email))
+        {
+            throw new InvalidOperationException("Email already registered");
+        }
+
+        // Resolve UserRole ambiguity by using fully qualified name or ensuring single enum
+        // Assuming UserRole is in InsureX.Domain.Entities (remove using for Enums if conflicting)
+        var userRole = Enum.Parse<UserRole>(request.Role, true);
+
+        var user = new User
+        {
+            Id = Guid.NewGuid(),
+            Email = request.Email,
+            // Set Username from request or generate from email
+            Username = request.Username ?? request.Email.Split('@')[0],
+            PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.Password),
+            FirstName = request.FirstName,
+            LastName = request.LastName,
+            PhoneNumber = request.PhoneNumber ?? string.Empty,
+            Role = userRole,
+            Status = UserStatus.Active,
+            // Set TenantId if provided
+            TenantId = request.TenantId,
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow
+        };
+
+        await _userRepository.AddAsync(user);
+
+        var token = _jwtService.GenerateToken(user);
+        var refreshToken = _jwtService.GenerateRefreshToken();
+
+        user.RefreshToken = refreshToken;
+        user.RefreshTokenExpiryTime = DateTime.UtcNow.AddDays(7);
+        await _userRepository.UpdateAsync(user);
+
+        return new AuthResponseDto
+        {
+            Token = token,
+            RefreshToken = refreshToken,
+            ExpiresAt = DateTime.UtcNow.AddHours(1),
+            User = new UserDto
+            {
+                Id = user.Id,
                 Email = user.Email,
                 Username = user.Username,
                 FirstName = user.FirstName,
                 LastName = user.LastName,
-                Role = user.Role.ToString()
-            };
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error during login for user {Email}", loginDto.Email);
-            throw;
-        }
+                Role = user.Role.ToString(),
+                TenantId = user.TenantId
+            }
+        };
     }
 
-    public async Task<AuthResponseDto> RegisterAsync(RegisterDto registerDto)
+    public async Task<AuthResponseDto> RefreshTokenAsync(string refreshToken)
     {
-        try
+        var user = await _userRepository.GetByRefreshTokenAsync(refreshToken);
+        if (user == null || user.RefreshTokenExpiryTime <= DateTime.UtcNow)
         {
-            // Check if user exists
-            var existingUser = await _context.Users
-                .FirstOrDefaultAsync(u => u.Email == registerDto.Email || u.Username == registerDto.Username);
+            throw new UnauthorizedAccessException("Invalid refresh token");
+        }
 
-            if (existingUser != null)
-                throw new InvalidOperationException("User with this email or username already exists");
+        var newToken = _jwtService.GenerateToken(user);
+        var newRefreshToken = _jwtService.GenerateRefreshToken();
 
-            // Create default tenant for new user
-            var tenant = new Tenant
+        user.RefreshToken = newRefreshToken;
+        user.RefreshTokenExpiryTime = DateTime.UtcNow.AddDays(7);
+        await _userRepository.UpdateAsync(user);
+
+        return new AuthResponseDto
+        {
+            Token = newToken,
+            RefreshToken = newRefreshToken,
+            ExpiresAt = DateTime.UtcNow.AddHours(1),
+            User = new UserDto
             {
-                Id = Guid.NewGuid(),
-                Name = $"{registerDto.Username}'s Organization",
-                Code = Guid.NewGuid().ToString().Substring(0, 8).ToUpper(),
-                IsActive = true,
-                CreatedAt = DateTime.UtcNow
-            };
-
-            _context.Tenants.Add(tenant);
-            await _context.SaveChangesAsync();
-
-            // Create user
-            var user = new User
-            {
-                Id = Guid.NewGuid(),
-                Email = registerDto.Email,
-                Username = registerDto.Username,
-                FirstName = registerDto.FirstName,
-                LastName = registerDto.LastName,
-                PasswordHash = _passwordHasher.HashPassword(registerDto.Password),
-                Role = UserRole.User,
-                IsActive = true,
-                TenantId = tenant.Id,
-                CreatedAt = DateTime.UtcNow
-            };
-
-            _context.Users.Add(user);
-            await _context.SaveChangesAsync();
-
-            // Generate tokens
-            var token = _jwtService.GenerateJwtToken(user);
-            var refreshToken = _jwtService.GenerateRefreshToken();
-
-            user.RefreshToken = refreshToken;
-            user.RefreshTokenExpiryTime = DateTime.UtcNow.AddDays(7);
-            await _context.SaveChangesAsync();
-
-            return new AuthResponseDto
-            {
-                Token = token,
-                RefreshToken = refreshToken,
-                Expiration = DateTime.UtcNow.AddMinutes(60),
+                Id = user.Id,
                 Email = user.Email,
                 Username = user.Username,
                 FirstName = user.FirstName,
                 LastName = user.LastName,
-                Role = user.Role.ToString()
-            };
-        }
-        catch (Exception ex)
+                Role = user.Role.ToString(),
+                TenantId = user.TenantId
+            }
+        };
+    }
+
+    public async Task RevokeTokenAsync(Guid userId)
+    {
+        var user = await _userRepository.GetByIdAsync(userId);
+        if (user != null)
         {
-            _logger.LogError(ex, "Error during registration for user {Email}", registerDto.Email);
-            throw;
+            user.RefreshToken = null;
+            user.RefreshTokenExpiryTime = null;
+            await _userRepository.UpdateAsync(user);
         }
     }
 
     public async Task<bool> ValidateTokenAsync(string token)
     {
-        try
-        {
-            var principal = _jwtService.ValidateJwtToken(token);
-            return principal != null;
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error validating token");
-            return false;
-        }
+        // Use correct method name: ValidateToken (not ValidateJwtToken)
+        return _jwtService.ValidateToken(token);
     }
 }
-
-

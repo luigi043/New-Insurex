@@ -1,273 +1,222 @@
-﻿using System;
+﻿using InsureX.Domain.Entities;
+using InsureX.Domain.Interfaces;
+using InsureX.Application.DTOs.Dashboard;
+using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using System.Collections.Generic;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Logging;
-using InsureX.Domain.Entities;
-using InsureX.Domain.Interfaces;
-using InsureX.Application.Interfaces;
-using InsureX.Application.DTOs.Dashboard;
 
 namespace InsureX.Application.Services.Dashboard;
 
-public interface IDashboardService
-{
-    Task<DashboardSummaryDto> GetDashboardSummaryAsync();
-    Task<PolicyStatusChartDto> GetPolicyChartDataAsync();
-    Task<List<RecentActivityDto>> GetRecentActivityAsync(int count = 10);
-    Task<List<ChartDataDto>> GetMonthlyPremiumTrendAsync(int months = 6);
-    Task<List<ChartDataDto>> GetExpiringPoliciesChartAsync();
-}
-
 public class DashboardService : IDashboardService
 {
-    private readonly IApplicationDbContext _context;
-    private readonly ITenantContext _tenantContext;
-    private readonly ILogger<DashboardService> _logger;
+    private readonly IPolicyRepository _policyRepository;
+    private readonly IClaimRepository _claimRepository;
+    private readonly IAssetRepository _assetRepository;
+    private readonly IUserRepository _userRepository;
 
     public DashboardService(
-        IApplicationDbContext context,
-        ITenantContext tenantContext,
-        ILogger<DashboardService> logger)
+        IPolicyRepository policyRepository,
+        IClaimRepository claimRepository,
+        IAssetRepository assetRepository,
+        IUserRepository userRepository)
     {
-        _context = context;
-        _tenantContext = tenantContext;
-        _logger = logger;
+        _policyRepository = policyRepository;
+        _claimRepository = claimRepository;
+        _assetRepository = assetRepository;
+        _userRepository = userRepository;
     }
 
-    public async Task<DashboardSummaryDto> GetDashboardSummaryAsync()
+    public async Task<DashboardSummaryDto> GetDashboardSummaryAsync(Guid? userId = null)
     {
-        try
-        {
-            var now = DateTime.UtcNow;
-            var thirtyDaysFromNow = now.AddDays(30);
+        var policies = await _policyRepository.GetAllAsync();
+        var claims = await _claimRepository.GetAllAsync();
+        var assets = await _assetRepository.GetAllAsync();
 
-            var summary = new DashboardSummaryDto
-            {
-                TotalPolicies = await _context.Policies
-                    .CountAsync(p => !p.IsDeleted),
-                
-                ActivePolicies = await _context.Policies
-                    .CountAsync(p => !p.IsDeleted && p.Status == "Active"),
-                
-                ExpiringSoon = await _context.Policies
-                    .CountAsync(p => !p.IsDeleted && 
-                                    p.Status == "Active" && 
-                                    p.EndDate <= thirtyDaysFromNow),
-                
-                TotalAssets = await _context.Assets
-                    .CountAsync(a => !a.IsDeleted),
-                
-                TotalInsuredValue = await _context.Policies
-                    .Where(p => !p.IsDeleted && p.Status == "Active")
-                    .SumAsync(p => p.InsuredValue),
-                
-                PendingClaims = await _context.Claims
-                    .CountAsync(c => !c.IsDeleted && c.Status == "Filed"),
-                
-                OutstandingPremiums = await _context.Policies
-                    .Where(p => !p.IsDeleted && p.PaymentStatus == "Pending")
-                    .SumAsync(p => p.Premium),
-                
-                UninsuredAssets = await _context.Assets
-                    .CountAsync(a => !a.IsDeleted && a.InsuredValue == 0)
-            };
+        // Filter deleted records and use correct enum comparisons
+        var activePolicies = policies.Where(p => !p.IsDeleted && p.Status == PolicyStatus.Active).ToList();
+        var pendingClaims = claims.Where(c => !c.IsDeleted && c.Status == ClaimStatus.Submitted).ToList();
+        var totalAssets = assets.Where(a => !a.IsDeleted).ToList();
 
-            return summary;
-        }
-        catch (Exception ex)
+        var totalPremium = activePolicies.Sum(p => p.Premium);
+        var totalCoverage = activePolicies.Sum(p => p.CoverageAmount);
+        var totalClaimsAmount = claims.Where(c => !c.IsDeleted && (c.Status == ClaimStatus.Approved || c.Status == ClaimStatus.Paid))
+            .Sum(c => c.ApprovedAmount ?? 0);
+
+        return new DashboardSummaryDto
         {
-            _logger.LogError(ex, "Error getting dashboard summary");
-            throw;
-        }
+            TotalPolicies = policies.Count(p => !p.IsDeleted),
+            ActivePolicies = activePolicies.Count,
+            ExpiredPolicies = policies.Count(p => !p.IsDeleted && p.Status == PolicyStatus.Expired),
+            TotalClaims = claims.Count(c => !c.IsDeleted),
+            PendingClaims = pendingClaims.Count,
+            ApprovedClaims = claims.Count(c => !c.IsDeleted && c.Status == ClaimStatus.Approved),
+            TotalAssets = totalAssets.Count,
+            TotalPremium = totalPremium,
+            TotalCoverage = totalCoverage,
+            TotalClaimsAmount = totalClaimsAmount,
+            LossRatio = totalPremium > 0 ? (totalClaimsAmount / totalPremium) * 100 : 0
+        };
     }
 
-    public async Task<PolicyStatusChartDto> GetPolicyChartDataAsync()
+    public async Task<List<MonthlyStatsDto>> GetMonthlyStatsAsync(int months = 12)
     {
-        try
+        var policies = await _policyRepository.GetAllAsync();
+        var claims = await _claimRepository.GetAllAsync();
+
+        var result = new List<MonthlyStatsDto>();
+        var endDate = DateTime.UtcNow;
+        var startDate = endDate.AddMonths(-months);
+
+        for (var date = startDate; date <= endDate; date = date.AddMonths(1))
         {
-            var chartData = new PolicyStatusChartDto();
+            var monthPolicies = policies.Where(p => 
+                !p.IsDeleted && 
+                p.CreatedAt.Month == date.Month && 
+                p.CreatedAt.Year == date.Year).ToList();
 
-            // Status breakdown
-            var statusCounts = await _context.Policies
-                .Where(p => !p.IsDeleted)
-                .GroupBy(p => p.Status)
-                .Select(g => new { Status = g.Key, Count = g.Count() })
-                .ToListAsync();
+            var monthClaims = claims.Where(c => 
+                !c.IsDeleted && 
+                c.CreatedAt.Month == date.Month && 
+                c.CreatedAt.Year == date.Year).ToList();
 
-            chartData.ByStatus = statusCounts
-                .Select(x => new ChartDataDto 
-                { 
-                    Label = x.Status, 
-                    Value = x.Count 
-                })
-                .ToList();
-
-            // Type breakdown
-            var typeCounts = await _context.Policies
-                .Where(p => !p.IsDeleted)
-                .GroupBy(p => p.PolicyType)
-                .Select(g => new { Type = g.Key, Count = g.Count() })
-                .ToListAsync();
-
-            chartData.ByType = typeCounts
-                .Select(x => new ChartDataDto 
-                { 
-                    Label = x.Type, 
-                    Value = x.Count 
-                })
-                .ToList();
-
-            // Monthly trend (last 6 months)
-            var sixMonthsAgo = DateTime.UtcNow.AddMonths(-6);
-            var monthlyData = await _context.Policies
-                .Where(p => !p.IsDeleted && p.CreatedAt >= sixMonthsAgo)
-                .GroupBy(p => new { p.CreatedAt.Year, p.CreatedAt.Month })
-                .Select(g => new 
-                { 
-                    Year = g.Key.Year, 
-                    Month = g.Key.Month, 
-                    Count = g.Count() 
-                })
-                .OrderBy(g => g.Year).ThenBy(g => g.Month)
-                .ToListAsync();
-
-            foreach (var data in monthlyData)
+            result.Add(new MonthlyStatsDto
             {
-                var monthName = new DateTime(data.Year, data.Month, 1).ToString("MMM yyyy");
-                chartData.ByMonth.Add(new ChartDataDto 
-                { 
-                    Label = monthName, 
-                    Value = data.Count 
-                });
-            }
+                Month = date.ToString("MMM yyyy"),
+                NewPolicies = monthPolicies.Count,
+                NewClaims = monthClaims.Count,
+                PremiumCollected = monthPolicies.Where(p => p.Status == PolicyStatus.Active).Sum(p => p.Premium),
+                ClaimsPaid = monthClaims.Where(c => c.Status == ClaimStatus.Paid).Sum(c => c.ApprovedAmount ?? 0)
+            });
+        }
 
-            return chartData;
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error getting policy chart data");
-            throw;
-        }
+        return result;
+    }
+
+    public async Task<List<PolicyTypeStatsDto>> GetPolicyTypeStatsAsync()
+    {
+        var policies = await _policyRepository.GetAllAsync();
+        var activePolicies = policies.Where(p => !p.IsDeleted && p.Status == PolicyStatus.Active);
+
+        return activePolicies
+            .GroupBy(p => p.Type)
+            .Select(g => new PolicyTypeStatsDto
+            {
+                Type = g.Key.ToString(),
+                Count = g.Count(),
+                TotalValue = g.Sum(p => p.CoverageAmount),
+                AveragePremium = g.Average(p => p.Premium)
+            })
+            .ToList();
+    }
+
+    public async Task<List<ClaimStatusStatsDto>> GetClaimStatusStatsAsync()
+    {
+        var claims = await _claimRepository.GetAllAsync();
+        var nonDeletedClaims = claims.Where(c => !c.IsDeleted);
+
+        return nonDeletedClaims
+            .GroupBy(c => c.Status)
+            .Select(g => new ClaimStatusStatsDto
+            {
+                Status = g.Key.ToString(),
+                Count = g.Count(),
+                TotalAmount = g.Sum(c => c.ClaimedAmount)
+            })
+            .ToList();
+    }
+
+    public async Task<List<AssetTypeStatsDto>> GetAssetTypeStatsAsync()
+    {
+        var assets = await _assetRepository.GetAllAsync();
+        var nonDeletedAssets = assets.Where(a => !a.IsDeleted);
+
+        return nonDeletedAssets
+            .GroupBy(a => a.Type)
+            .Select(g => new AssetTypeStatsDto
+            {
+                Type = g.Key.ToString(),
+                Count = g.Count(),
+                TotalValue = g.Sum(a => a.Value),
+                TotalInsuredValue = g.Sum(a => a.InsuredValue)  // Use InsuredValue property
+            })
+            .ToList();
     }
 
     public async Task<List<RecentActivityDto>> GetRecentActivityAsync(int count = 10)
     {
-        try
-        {
-            var activities = new List<RecentActivityDto>();
+        var policies = await _policyRepository.GetAllAsync();
+        var claims = await _claimRepository.GetAllAsync();
 
-            // Get recent policies
-            var recentPolicies = await _context.Policies
-                .Include(p => p.CreatedByUser)
-                .Where(p => !p.IsDeleted)
-                .OrderByDescending(p => p.CreatedAt)
-                .Take(count / 2)
-                .Select(p => new RecentActivityDto
-                {
-                    ActivityType = "Policy Created",
-                    Description = $"Policy {p.PolicyNumber} created",
-                    Reference = p.PolicyNumber,
-                    Timestamp = p.CreatedAt,
-                    User = p.CreatedByUser != null ? p.CreatedByUser.Email : "System"
-                })
-                .ToListAsync();
-
-            activities.AddRange(recentPolicies);
-
-            // Get recent claims
-            var recentClaims = await _context.Claims
-                .Include(c => c.Policy)
-                .Where(c => !c.IsDeleted)
-                .OrderByDescending(c => c.CreatedAt)
-                .Take(count / 2)
-                .Select(c => new RecentActivityDto
-                {
-                    ActivityType = "Claim Filed",
-                    Description = $"Claim {c.ClaimNumber} filed for {c.ClaimAmount:C}",
-                    Reference = c.ClaimNumber,
-                    Timestamp = c.CreatedAt,
-                    User = "System"
-                })
-                .ToListAsync();
-
-            activities.AddRange(recentClaims);
-
-            return activities.OrderByDescending(a => a.Timestamp).Take(count).ToList();
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error getting recent activity");
-            throw;
-        }
-    }
-
-    public async Task<List<ChartDataDto>> GetMonthlyPremiumTrendAsync(int months = 6)
-    {
-        try
-        {
-            var startDate = DateTime.UtcNow.AddMonths(-months);
-            
-            var premiumTrend = await _context.Policies
-                .Where(p => !p.IsDeleted && p.CreatedAt >= startDate)
-                .GroupBy(p => new { p.CreatedAt.Year, p.CreatedAt.Month })
-                .Select(g => new 
-                { 
-                    Year = g.Key.Year, 
-                    Month = g.Key.Month, 
-                    Total = g.Sum(p => p.Premium) 
-                })
-                .OrderBy(g => g.Year).ThenBy(g => g.Month)
-                .ToListAsync();
-
-            return premiumTrend
-                .Select(x => new ChartDataDto
-                {
-                    Label = new DateTime(x.Year, x.Month, 1).ToString("MMM yyyy"),
-                    Amount = x.Total,
-                    Value = (int)x.Total
-                })
-                .ToList();
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error getting monthly premium trend");
-            throw;
-        }
-    }
-
-    public async Task<List<ChartDataDto>> GetExpiringPoliciesChartAsync()
-    {
-        try
-        {
-            var now = DateTime.UtcNow;
-            var chartData = new List<ChartDataDto>();
-
-            for (int i = 0; i < 6; i++)
+        var policyActivities = policies
+            .Where(p => !p.IsDeleted)
+            .OrderByDescending(p => p.CreatedAt)
+            .Take(count)
+            .Select(p => new RecentActivityDto
             {
-                var startDate = now.AddDays(i * 30);
-                var endDate = now.AddDays((i + 1) * 30);
-                
-                var count = await _context.Policies
-                    .CountAsync(p => !p.IsDeleted && 
-                                    p.Status == "Active" && 
-                                    p.EndDate >= startDate && 
-                                    p.EndDate < endDate);
+                Id = p.Id,
+                Type = "Policy",
+                Description = $"Policy {p.PolicyNumber} created",
+                Date = p.CreatedAt,
+                Status = p.Status.ToString(),
+                // Use CreatedByUser instead of CreatedByUser
+                UserName = p.CreatedByUser != null ? $"{p.CreatedByUser.FirstName} {p.CreatedByUser.LastName}" : "System"
+            });
 
-                chartData.Add(new ChartDataDto
-                {
-                    Label = $"Month {i + 1}",
-                    Value = count
-                });
-            }
+        var claimActivities = claims
+            .Where(c => !c.IsDeleted)
+            .OrderByDescending(c => c.CreatedAt)
+            .Take(count)
+            .Select(c => new RecentActivityDto
+            {
+                Id = c.Id,
+                Type = "Claim",
+                Description = $"Claim {c.ClaimNumber} submitted",
+                Date = c.CreatedAt,
+                Status = c.Status.ToString(),
+                UserName = $"{c.Client.FirstName} {c.Client.LastName}"
+            });
 
-            return chartData;
-        }
-        catch (Exception ex)
+        return policyActivities
+            .Union(claimActivities)
+            .OrderByDescending(a => a.Date)
+            .Take(count)
+            .ToList();
+    }
+
+    public async Task<FinancialSummaryDto> GetFinancialSummaryAsync(DateTime? startDate = null, DateTime? endDate = null)
+    {
+        var start = startDate ?? DateTime.UtcNow.AddYears(-1);
+        var end = endDate ?? DateTime.UtcNow;
+
+        var policies = await _policyRepository.GetAllAsync();
+        var claims = await _claimRepository.GetAllAsync();
+
+        var periodPolicies = policies.Where(p => 
+            !p.IsDeleted && 
+            p.CreatedAt >= start && 
+            p.CreatedAt <= end).ToList();
+
+        var periodClaims = claims.Where(c => 
+            !c.IsDeleted && 
+            c.CreatedAt >= start && 
+            c.CreatedAt <= end &&
+            (c.Status == ClaimStatus.Approved || c.Status == ClaimStatus.Paid)).ToList();
+
+        var totalPremium = periodPolicies.Sum(p => p.Premium);
+        var totalClaimsPaid = periodClaims.Sum(c => c.ApprovedAmount ?? 0);
+
+        return new FinancialSummaryDto
         {
-            _logger.LogError(ex, "Error getting expiring policies chart");
-            throw;
-        }
+            StartDate = start,
+            EndDate = end,
+            TotalPremium = totalPremium,
+            TotalClaimsPaid = totalClaimsPaid,
+            NetProfit = totalPremium - totalClaimsPaid,
+            LossRatio = totalPremium > 0 ? (totalClaimsPaid / totalPremium) * 100 : 0,
+            AveragePolicyValue = periodPolicies.Any() ? periodPolicies.Average(p => p.CoverageAmount) : 0,
+            AverageClaimValue = periodClaims.Any() ? periodClaims.Average(c => c.ClaimedAmount) : 0
+        };
     }
 }

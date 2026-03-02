@@ -1,49 +1,55 @@
-version: '3.9'
+# docker-compose.yml
+version: '3.8'
 
 services:
-  db:
-    image: mcr.microsoft.com/mssql/server:2022-latest
-    environment:
-      SA_PASSWORD: "InsureX_Dev@2026"
-      ACCEPT_EULA: "Y"
-    ports:
-      - "1433:1433"
-    volumes:
-      - sqldata:/var/opt/mssql
-
   api:
     build:
       context: .
-      dockerfile: InsureX.API/Dockerfile
-    environment:
-      ASPNETCORE_ENVIRONMENT: Development
-      ConnectionStrings__DefaultConnection: "Server=db;Database=InsureXDb;User Id=sa;Password=InsureX_Dev@2026;TrustServerCertificate=True"
+      dockerfile: Dockerfile
     ports:
       - "5000:80"
       - "5001:443"
-    depends_on:
-      - db
-
-  iapr-api:
-    build:
-      context: .
-      dockerfile: IAPR_API/Dockerfile
     environment:
-      ASPNETCORE_ENVIRONMENT: Development
-      ConnectionStrings__DefaultConnection: "Server=db;Database=InsureXDb;User Id=sa;Password=InsureX_Dev@2026;TrustServerCertificate=True"
-    ports:
-      - "5002:80"
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ConnectionStrings__DefaultConnection=Server=sqlserver;Database=InsurexDb;User Id=sa;Password=YourStrong@Passw0rd;TrustServerCertificate=True;
+      - Jwt__Key=YourSuperSecretKeyHereMakeItLongAndSecure123!
+      - Jwt__Issuer=InsurexApi
+      - Jwt__Audience=InsurexClient
     depends_on:
-      - db
+      - sqlserver
+    networks:
+      - insurex-network
 
-  web:
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: insurex-sqlserver
+    environment:
+      - ACCEPT_EULA=Y
+      - SA_PASSWORD=YourStrong@Passw0rd
+      - MSSQL_PID=Developer
+    ports:
+      - "1433:1433"
+    volumes:
+      - sqlserver_data:/var/opt/mssql
+    networks:
+      - insurex-network
+
+  frontend:
     build:
-      context: ./insurex-react
+      context: ./frontend
       dockerfile: Dockerfile
     ports:
-      - "3000:80"
+      - "3000:3000"
+    environment:
+      - REACT_APP_API_URL=http://localhost:5000/api
     depends_on:
       - api
+    networks:
+      - insurex-network
 
 volumes:
-  sqldata:
+  sqlserver_data:
+
+networks:
+  insurex-network:
+    driver: bridge

@@ -1,4 +1,5 @@
-﻿namespace InsureX.Domain.Interfaces;
+﻿
+namespace InsureX.Domain.Interfaces;
 
 public interface IPasswordHasher
 {

@@ -1,19 +1,33 @@
-﻿using System;
-using System.Collections.Generic;
-
+﻿
+using InsureX.Domain.Entities;
 namespace InsureX.Domain.Entities;
 
 public class Partner : BaseEntity
 {
-    public string Name { get; set; } = string.Empty;
-    public string PartnerType { get; set; } = string.Empty; // Financer, Insurer, Broker
-    public string? ContactPerson { get; set; }
-    public string? Email { get; set; }
-    public string? Phone { get; set; }
-    public string? Address { get; set; }
-    public string? Logo { get; set; }
-    public bool IsActive { get; set; } = true;
+    public string CompanyName { get; set; } = string.Empty;
+    public string RegistrationNumber { get; set; } = string.Empty;
+    public string ContactPerson { get; set; } = string.Empty;
+    public string Email { get; set; } = string.Empty;
+    public string PhoneNumber { get; set; } = string.Empty;
+    public string Address { get; set; } = string.Empty;
+    public PartnerType Type { get; set; }
+    public PartnerStatus Status { get; set; } = PartnerStatus.Pending;
     
-    // Navigation Properties
-    public virtual ICollection<Policy> Policies { get; set; } = new List<Policy>();
+    // Navigation properties
+    public ICollection<Policy> Policies { get; set; } = new List<Policy>();
+}
+
+public enum PartnerType
+{
+    Financer,
+    Insurer,
+    Broker
+}
+
+public enum PartnerStatus
+{
+    Pending,
+    Active,
+    Suspended,
+    Rejected
 }
