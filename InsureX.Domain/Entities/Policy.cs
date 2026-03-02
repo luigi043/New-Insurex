@@ -55,7 +55,6 @@
         public string FilePath { get; set; } = string.Empty;
         public string FileType { get; set; } = string.Empty;
         public long FileSize { get; set; }
-         public Guid TenantId { get; set; }
     public Tenant? Tenant { get; set; }
         public string? Description { get; set; }
     }

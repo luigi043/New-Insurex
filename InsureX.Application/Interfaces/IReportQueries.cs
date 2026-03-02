@@ -1,8 +1,6 @@
-using System;
-using System.Collections.Generic;
-using System.Threading.Tasks;
+using InsureX.Application.DTOs.Reports;
 
-namespace InsureX.Domain.Interfaces;
+namespace InsureX.Application.Interfaces;
 
 public interface IReportQueries
 {

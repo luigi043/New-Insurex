@@ -1,5 +1,3 @@
-using System;
-
 namespace InsureX.Application.DTOs.Reports;
 
 public class ComplianceDashboardDto
