@@ -33,7 +33,7 @@ public class PartnerService : IPartnerService
 
     public async Task<Partner> CreateAsync(Partner partner)
     {
-        partner.TenantId = _tenantContext.CurrentTenantId;
+        partner.TenantId = _tenantContext.CurrentTenantId;partner.TenantId = _tenantContext.CurrentTenantId;
         partner.CreatedAt = DateTime.UtcNow;
         return await _partnerRepository.AddAsync(partner);
     }
@@ -48,20 +48,4 @@ public class PartnerService : IPartnerService
     {
         return await _partnerRepository.DeleteAsync(id);
     }
-
-    public Task<Partner?> GetByIdAsync(int id)
-    {
-        throw new NotImplementedException();
-    }
-
-    public Task<IEnumerable<Partner>> GetByTypeAsync(string partnerType)
-    {
-        throw new NotImplementedException();
-    }
-
-    public Task<bool> DeleteAsync(int id)
-    {
-        throw new NotImplementedException();
-    }
-
 }

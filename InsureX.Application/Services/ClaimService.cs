@@ -99,3 +99,103 @@ public class ProcessClaimRequest
     public decimal? ApprovedAmount { get; set; }
     public string? Reason { get; set; }
 }
+
+using InsureX.Application.Interfaces;
+using InsureX.Domain.Entities;
+using InsureX.Domain.Enums;
+using InsureX.Domain.Interfaces;
+
+namespace InsureX.Application.Services;
+
+public class ClaimService : IClaimService
+{
+    private readonly IClaimRepository _claimRepository;
+    private readonly ITenantContext _tenantContext;
+
+    public ClaimService(
+        IClaimRepository claimRepository,
+        ITenantContext tenantContext)
+    {
+        _claimRepository = claimRepository;
+        _tenantContext = tenantContext;
+    }
+
+    public async Task<Claim?> GetByIdAsync(int id)
+    {
+        return await _claimRepository.GetByIdAsync(id);
+    }
+
+    public async Task<IEnumerable<Claim>> GetAllAsync()
+    {
+        return await _claimRepository.GetAllAsync();
+    }
+
+    public async Task<IEnumerable<Claim>> GetByPolicyIdAsync(int policyId)
+    {
+        return await _claimRepository.GetByPolicyIdAsync(policyId);
+    }
+
+    public async Task<IEnumerable<Claim>> GetByStatusAsync(ClaimStatus status)
+    {
+        return await _claimRepository.GetByStatusAsync(status);
+    }
+
+    public async Task<Claim> CreateAsync(Claim claim)
+    {
+        claim.TenantId = _tenantContext.TenantId;
+        claim.CreatedAt = DateTime.UtcNow;
+        claim.Status = ClaimStatus.Submitted;
+
+        return await _claimRepository.AddAsync(claim);
+    }
+
+    public async Task<Claim> UpdateAsync(Claim claim)
+    {
+        claim.UpdatedAt = DateTime.UtcNow;
+        return await _claimRepository.UpdateAsync(claim);
+    }
+
+    public async Task<bool> DeleteAsync(int id)
+    {
+        return await _claimRepository.DeleteAsync(id);
+    }
+
+    public async Task<Claim> ApproveAsync(int id, string? notes)
+    {
+        var claim = await _claimRepository.GetByIdAsync(id)
+            ?? throw new Exception("Claim not found");
+
+        claim.Status = ClaimStatus.Approved;
+        claim.UpdatedAt = DateTime.UtcNow;
+
+        return await _claimRepository.UpdateAsync(claim);
+    }
+
+    public async Task<Claim> RejectAsync(int id, string reason)
+    {
+        var claim = await _claimRepository.GetByIdAsync(id)
+            ?? throw new Exception("Claim not found");
+
+        claim.Status = ClaimStatus.Rejected;
+        claim.RejectionReason = reason;
+        claim.UpdatedAt = DateTime.UtcNow;
+
+        return await _claimRepository.UpdateAsync(claim);
+    }
+
+    public async Task<Claim> SubmitAsync(int policyId, decimal amount, string description, DateTime dateOfLoss)
+    {
+        var claim = new Claim
+        {
+            PolicyId = policyId,
+            Amount = amount,
+            Description = description,
+            DateOfLoss = dateOfLoss,
+            Status = ClaimStatus.Submitted,
+            TenantId = _tenantContext.TenantId,
+            CreatedAt = DateTime.UtcNow
+        };
+
+        return await _claimRepository.AddAsync(claim);
+    }
+}

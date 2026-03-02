@@ -1,3 +1,7 @@
+// ==========================
+// INVOICE CORE TYPES
+// ==========================
+
 export interface Invoice {
   id: string;
   invoiceNumber: string;
@@ -51,6 +55,10 @@ export interface InvoiceItem {
   totalPrice: number;
 }
 
+// ==========================
+// PAYMENTS
+// ==========================
+
 export interface Payment {
   id: string;
   invoiceId: string;
@@ -73,6 +81,40 @@ export enum PaymentMethod {
   OTHER = 'OTHER'
 }
 
+// ==========================
+// BILLING (Lightweight View)
+// ==========================
+
+export enum BillingStatus {
+  PENDING = 'PENDING',
+  PAID = 'PAID',
+  OVERDUE = 'OVERDUE',
+  CANCELLED = 'CANCELLED',
+  PARTIAL = 'PARTIAL'
+}
+
+export enum BillingType {
+  PREMIUM = 'PREMIUM',
+  COMMISSION = 'COMMISSION',
+  FEE = 'FEE',
+  REFUND = 'REFUND',
+  OTHER = 'OTHER'
+}
+
+export interface Billing {
+  id: string;
+  policyId: string;
+  amount: number;
+  status: BillingStatus;
+  type: BillingType;
+  dueDate: string;
+  createdAt: string;
+}
+
+// ==========================
+// CREATE DTOs
+// ==========================
+
 export interface CreateInvoiceData {
   policyId: string;
   type: InvoiceType;
@@ -93,6 +135,10 @@ export interface CreatePaymentData {
   transactionId?: string;
   notes?: string;
 }
+
+// ==========================
+// FILTERS & STATS
+// ==========================
 
 export interface BillingFilters {
   search?: string;
