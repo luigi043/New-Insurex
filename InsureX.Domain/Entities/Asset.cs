@@ -1,19 +1,40 @@
-namespace InsureX.Domain.Entities
-{
-    public abstract class Asset : BaseEntity
-    {
-        public string Name { get; set; } = string.Empty;
-        public string Description { get; set; } = string.Empty;
-        public decimal Value { get; set; }
-        public AssetStatus Status { get; set; } = AssetStatus.Active;
-        public Guid PolicyId { get; set; }
-        public Policy Policy { get; set; } = null!;
-        public AssetType Type { get; set; }
-        public string Location { get; set; } = string.Empty;
-        public DateTime AcquisitionDate { get; set; }
-        public string? InsuranceCertificateNumber { get; set; }
-    }
+using InsureX.Domain.Enums;
 
+namespace InsureX.Domain.Entities{
+
+public class Asset : BaseEntity
+{
+    public Guid TenantId { get; set; }
+    public string Name { get; set; } = string.Empty;
+    public string Description { get; set; } = string.Empty;
+    public AssetType Type { get; set; }
+    public decimal Value { get; set; }
+    public string? Location { get; set; }
+    public DateTime? PurchaseDate { get; set; }
+    public string? SerialNumber { get; set; }
+    public AssetStatus Status { get; set; } = AssetStatus.ACTIVE;
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    public DateTime? UpdatedAt { get; set; }
+    
+    // Navigation
+    public ICollection<PolicyAsset> PolicyAssets { get; set; } = new List<PolicyAsset>();
+}
+
+public enum AssetType
+{
+    VEHICLE,
+    PROPERTY,
+    EQUIPMENT,
+    INVENTORY,
+    OTHER
+}
+
+public enum AssetStatus
+{
+    ACTIVE,
+    INACTIVE,
+    DISPOSED
+}
     public enum AssetStatus
     {
         Active,

@@ -62,3 +62,21 @@ using (var scope = app.Services.CreateScope()) {
     await context.Database.MigrateAsync();
 }
 app.Run();
+// InsureX.API/Program.cs (Add to existing)
+// Add these service registrations:
+
+builder.Services.AddScoped<IClaimService, ClaimService>();
+builder.Services.AddScoped<IClaimRepository, ClaimRepository>();
+
+builder.Services.AddScoped<IAssetService, AssetService>();
+builder.Services.AddScoped<IAssetRepository, AssetRepository>();
+
+builder.Services.AddScoped<IPartnerService, PartnerService>();
+builder.Services.AddScoped<IPartnerRepository, PartnerRepository>();
+
+builder.Services.AddScoped<IInvoiceService, InvoiceService>();
+builder.Services.AddScoped<IInvoiceRepository, InvoiceRepository>();
+builder.Services.AddScoped<IPaymentRepository, PaymentRepository>();
+
+// Add middleware
+app.UseMiddleware<ExceptionHandlingMiddleware>();

@@ -1,143 +1,203 @@
-using InsureX.Domain.Entities;
-using InsureX.Infrastructure.Data;
+// InsureX.API/Controllers/ClaimsController.cs
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
+using InsureX.Application.Interfaces;
+using InsureX.Domain.Entities;
+using InsureX.Domain.Enums;
+using InsureX.Application.Exceptions;
 
-namespace InsureX.Api.Controllers;
+namespace InsureX.API.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
 [Authorize]
 public class ClaimsController : ControllerBase
 {
-    private readonly ApplicationDbContext _context;
+    private readonly IClaimService _claimService;
+    private readonly ILogger<ClaimsController> _logger;
 
-    public ClaimsController(ApplicationDbContext context)
+    public ClaimsController(IClaimService claimService, ILogger<ClaimsController> logger)
     {
-        _context = context;
+        _claimService = claimService;
+        _logger = logger;
     }
 
     [HttpGet]
-    public async Task<ActionResult> GetClaims(
-        [FromQuery] Guid? policyId = null,
-        [FromQuery] ClaimStatus? status = null,
-        [FromQuery] int pageNumber = 1,
-        [FromQuery] int pageSize = 10)
+    [ProducesResponseType(typeof(IEnumerable<Claim>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetAll()
     {
-        var query = _context.Claims
-            .Include(c => c.Policy)
-            .Include(c => c.Client)
-            .AsNoTracking()
-            .AsQueryable();
-
-        if (policyId.HasValue)
-            query = query.Where(c => c.PolicyId == policyId.Value);
-        
-        if (status.HasValue)
-            query = query.Where(c => c.Status == status.Value);
-
-        var totalCount = await query.CountAsync();
-        
-        var items = await query
-            .OrderByDescending(c => c.CreatedAt)
-            .Skip((pageNumber - 1) * pageSize)
-            .Take(pageSize)
-            .Select(c => new {
-                c.Id,
-                c.ClaimNumber,
-                c.Status,
-                c.ClaimedAmount,
-                c.ApprovedAmount,
-                c.IncidentDate,
-                c.CreatedAt,
-                PolicyNumber = c.Policy.PolicyNumber,
-                ClientName = c.Client.FirstName + " " + c.Client.LastName
-            })
-            .ToListAsync();
-
-        return Ok(new { items, totalCount, pageNumber, pageSize });
+        try
+        {
+            var claims = await _claimService.GetAllAsync();
+            return Ok(claims);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving claims");
+            return StatusCode(500, "Internal server error");
+        }
     }
 
-    [HttpGet("{id:guid}")]
-    public async Task<ActionResult> GetClaim(Guid id)
+    [HttpGet("{id:int}")]
+    [ProducesResponseType(typeof(Claim), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetById(int id)
     {
-        var claim = await _context.Claims
-            .Include(c => c.Policy)
-            .Include(c => c.Client)
-            .Include(c => c.Documents)
-            .Include(c => c.StatusHistory)
-            .FirstOrDefaultAsync(c => c.Id == id);
+        try
+        {
+            var claim = await _claimService.GetByIdAsync(id);
+            return claim == null ? NotFound() : Ok(claim);
+        }
+        catch (NotFoundException ex)
+        {
+            return NotFound(new { message = ex.Message });
+        }
+    }
 
-        if (claim == null) return NotFound();
+    [HttpGet("policy/{policyId:int}")]
+    [ProducesResponseType(typeof(IEnumerable<Claim>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetByPolicy(int policyId)
+    {
+        try
+        {
+            var claims = await _claimService.GetByPolicyIdAsync(policyId);
+            return Ok(claims);
+        }
+        catch (NotFoundException ex)
+        {
+            return NotFound(new { message = ex.Message });
+        }
+    }
 
-        return Ok(claim);
+    [HttpGet("status/{status}")]
+    [ProducesResponseType(typeof(IEnumerable<Claim>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetByStatus(ClaimStatus status)
+    {
+        var claims = await _claimService.GetByStatusAsync(status);
+        return Ok(claims);
     }
 
     [HttpPost]
-    [Authorize(Roles = "Admin,Client")]
-    public async Task<ActionResult> CreateClaim([FromBody] CreateClaimRequest request)
+    [ProducesResponseType(typeof(Claim), StatusCodes.Status201Created)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> Create([FromBody] Claim claim)
     {
-        var policy = await _context.Policies.FindAsync(request.PolicyId);
-        if (policy == null) return NotFound("Policy not found");
-
-        var year = DateTime.UtcNow.Year;
-        var count = await _context.Claims.CountAsync(c => c.CreatedAt.Year == year) + 1;
-        var claimNumber = $"CLM-{year}-{count:D6}";
-        
-        var claim = new Claim
+        try
         {
-            ClaimNumber = claimNumber,
-            PolicyId = request.PolicyId,
-            ClientId = policy.ClientId,
-            IncidentDate = request.IncidentDate,
-            Description = request.Description,
-            IncidentLocation = request.IncidentLocation,
-            ClaimedAmount = request.ClaimedAmount,
-            Type = request.Type,
-            Status = ClaimStatus.Submitted
-        };
-
-        _context.Claims.Add(claim);
-        await _context.SaveChangesAsync();
-
-        return CreatedAtAction(nameof(GetClaim), new { id = claim.Id }, claim);
+            var created = await _claimService.CreateAsync(claim);
+            return CreatedAtAction(nameof(GetById), new { id = created.Id }, created);
+        }
+        catch (ValidationException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+        catch (NotFoundException ex)
+        {
+            return NotFound(new { message = ex.Message });
+        }
     }
 
-    [HttpPost("{id:guid}/process")]
-    [Authorize(Roles = "Admin,Insurer")]
-    public async Task<ActionResult> ProcessClaim(Guid id, [FromBody] ProcessClaimRequest request)
+    [HttpPut("{id:int}")]
+    [ProducesResponseType(typeof(Claim), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> Update(int id, [FromBody] Claim claim)
     {
-        var claim = await _context.Claims.FindAsync(id);
-        if (claim == null) return NotFound();
+        try
+        {
+            claim.Id = id;
+            var updated = await _claimService.UpdateAsync(claim);
+            return Ok(updated);
+        }
+        catch (ValidationException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+        catch (NotFoundException ex)
+        {
+            return NotFound(new { message = ex.Message });
+        }
+    }
 
-        claim.Status = request.NewStatus;
-        
-        if (request.NewStatus == ClaimStatus.Approved)
-            claim.ApprovedAmount = request.ApprovedAmount;
-        
-        if (request.NewStatus == ClaimStatus.Rejected)
-            claim.RejectionReason = request.Reason;
+    [HttpDelete("{id:int}")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> Delete(int id)
+    {
+        try
+        {
+            await _claimService.DeleteAsync(id);
+            return NoContent();
+        }
+        catch (NotFoundException ex)
+        {
+            return NotFound(new { message = ex.Message });
+        }
+        catch (ValidationException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+    }
 
-        await _context.SaveChangesAsync();
+    [HttpPost("{id:int}/approve")]
+    [Authorize(Roles = "Admin,ClaimsManager")]
+    [ProducesResponseType(typeof(Claim), StatusCodes.Status200OK)]
+    public async Task<IActionResult> Approve(int id, [FromQuery] string? notes)
+    {
+        try
+        {
+            var claim = await _claimService.ApproveAsync(id, notes);
+            return Ok(claim);
+        }
+        catch (NotFoundException ex)
+        {
+            return NotFound(new { message = ex.Message });
+        }
+        catch (ValidationException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+    }
 
-        return Ok(claim);
+    [HttpPost("{id:int}/reject")]
+    [Authorize(Roles = "Admin,ClaimsManager")]
+    [ProducesResponseType(typeof(Claim), StatusCodes.Status200OK)]
+    public async Task<IActionResult> Reject(int id, [FromQuery] string reason)
+    {
+        try
+        {
+            var claim = await _claimService.RejectAsync(id, reason);
+            return Ok(claim);
+        }
+        catch (NotFoundException ex)
+        {
+            return NotFound(new { message = ex.Message });
+        }
+        catch (ValidationException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+    }
+
+    [HttpPost("submit")]
+    [ProducesResponseType(typeof(Claim), StatusCodes.Status201Created)]
+    public async Task<IActionResult> Submit([FromBody] SubmitClaimRequest request)
+    {
+        try
+        {
+            var claim = await _claimService.SubmitAsync(
+                request.PolicyId, 
+                request.Amount, 
+                request.Description, 
+                request.DateOfLoss
+            );
+            return CreatedAtAction(nameof(GetById), new { id = claim.Id }, claim);
+        }
+        catch (ValidationException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
     }
 }
 
-public class CreateClaimRequest
-{
-    public Guid PolicyId { get; set; }
-    public DateTime IncidentDate { get; set; }
-    public string Description { get; set; } = string.Empty;
-    public string? IncidentLocation { get; set; }
-    public decimal ClaimedAmount { get; set; }
-    public ClaimType Type { get; set; }
-}
-
-public class ProcessClaimRequest
-{
-    public ClaimStatus NewStatus { get; set; }
-    public decimal? ApprovedAmount { get; set; }
-    public string? Reason { get; set; }
-}
+public record SubmitClaimRequest(int PolicyId, decimal Amount, string Description, DateTime DateOfLoss);
