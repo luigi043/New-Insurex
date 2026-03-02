@@ -9,6 +9,9 @@ public class ApplicationDbContext : DbContext, IApplicationDbContext
 {
     private readonly ITenantContext _tenantContext;
 
+    public DbSet<Claim> Claims => Set<Claim>();
+    public DbSet<ClaimDocument> ClaimDocuments => Set<ClaimDocument>();
+    public DbSet<Asset> Assets => Set<Asset>();
     public ApplicationDbContext(
         DbContextOptions<ApplicationDbContext> options,
         ITenantContext tenantContext) : base(options)
