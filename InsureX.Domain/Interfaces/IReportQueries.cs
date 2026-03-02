@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
-using InsureX.Application.DTOs.Reports;
+using InsureX.Shared.DTOs;
 
 namespace InsureX.Domain.Interfaces;
 
