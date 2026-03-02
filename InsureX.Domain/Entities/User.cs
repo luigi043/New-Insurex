@@ -14,6 +14,7 @@ namespace InsureX.Domain.Entities
         public string? RefreshToken { get; set; }
         public DateTime? RefreshTokenExpiryTime { get; set; }  
         public Tenant? Tenant { get; set; }
+        public Guid TenantId { get; set; }
         public ICollection<Policy> Policies { get; set; } = new List<Policy>();
         public ICollection<Claim> Claims { get; set; } = new List<Claim>();
         public ICollection<Asset> Assets { get; set; } = new List<Asset>();
