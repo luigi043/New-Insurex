@@ -1,12 +1,8 @@
-using InsureX.Domain.Entities;
-
+﻿using InsureX.Domain.Entities;
 namespace InsureX.Application.Interfaces;
-
-public interface IAssetService
-{
-    Task<object> GetPagedAsync(int? policyId, AssetType? type, string? search, int page, int pageSize);
-    Task<object?> GetByIdAsync(int id);
-    Task<dynamic> CreateAsync<T>(object dto, AssetType assetType);
-    Task<object?> UpdateAsync(int id, object dto);
-    Task<bool> DeleteAsync(int id);
+public interface IAssetService {
+    Task<Asset?> GetByIdAsync(int id); Task<IEnumerable<Asset>> GetAllAsync();
+    Task<IEnumerable<Asset>> GetByTenantIdAsync(int tenantId); Task<IEnumerable<Asset>> GetByTypeAsync(string assetType);
+    Task<Asset> CreateAsync(Asset asset); Task<Asset> UpdateAsync(Asset asset); Task<bool> DeleteAsync(int id);
+    Task<decimal> GetTotalValueAsync(int tenantId);
 }
