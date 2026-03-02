@@ -68,6 +68,13 @@ namespace InsureX.Infrastructure.Repositories
                 .Where(a => a.AcquisitionDate >= from && a.AcquisitionDate <= to)
                 .ToListAsync();
         }
+        public async Task<IEnumerable<Asset>> GetRecentlyUpdatedAsync(DateTime since)
+{
+    return await _context.Assets
+        .Where(a => a.UpdatedAt >= since)
+        .OrderByDescending(a => a.UpdatedAt)
+        .ToListAsync();
+}
 
         public async Task<IEnumerable<Asset>> GetByInspectionDueDateAsync(DateTime beforeDate)
         {
@@ -85,5 +92,6 @@ namespace InsureX.Infrastructure.Repositories
             return vehicles.Cast<Asset>().Concat(aviation.Cast<Asset>());
         }
     }
+    
     
 }

@@ -1,3 +1,17 @@
+using System;
+using System.Collections.Generic;
+using System.Data;
+using System.IO;
+using System.Linq;
+using System.Threading.Tasks;
+using Microsoft.Data.SqlClient;
+using Microsoft.Extensions.Configuration;
+using Dapper;
+using CsvHelper;
+using System.Globalization;
+using InsureX.Domain.Interfaces;
+using InsureX.Application.DTOs.Reports;
+
 namespace InsureX.Infrastructure.Reporting;
 
 public class ReportQueries : IReportQueries
@@ -7,40 +21,42 @@ public class ReportQueries : IReportQueries
 
     public ReportQueries(IConfiguration configuration, ITenantContext tenantContext)
     {
-        _connectionString = configuration.GetConnectionString("DefaultConnection");
+        _connectionString = configuration.GetConnectionString("DefaultConnection") 
+            ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
         _tenantContext = tenantContext;
     }
 
-    // Port complex legacy reporting query
     public async Task<IEnumerable<ComplianceDashboardDto>> GetComplianceDashboardAsync(
         DateTime startDate, 
         DateTime endDate)
     {
         using var connection = new SqlConnection(_connectionString);
         
-        // This is your legacy stored procedure logic, optimized for reporting
         const string sql = @"
             WITH ComplianceStats AS (
                 SELECT 
-                    a.TenantId,
                     a.AssetType,
                     COUNT(DISTINCT a.Id) as TotalAssets,
                     COUNT(DISTINCT CASE WHEN cs.IsCompliant = 1 THEN a.Id END) as CompliantAssets,
                     COUNT(DISTINCT CASE WHEN cs.IsCompliant = 0 THEN a.Id END) as NonCompliantAssets,
                     AVG(DATEDIFF(day, cs.LastCheckedDate, GETDATE())) as AvgDaysSinceLastCheck
-                FROM registry.Assets a
-                JOIN compliance.ComplianceStates cs ON a.Id = cs.AssetId
+                FROM Assets a
+                LEFT JOIN ComplianceStates cs ON a.Id = cs.AssetId
                 WHERE a.TenantId = @TenantId
-                    AND cs.CheckedDate BETWEEN @StartDate AND @EndDate
-                GROUP BY a.TenantId, a.AssetType
+                    AND (cs.CheckedDate BETWEEN @StartDate AND @EndDate OR cs.CheckedDate IS NULL)
+                GROUP BY a.AssetType
             )
             SELECT 
                 AssetType,
                 TotalAssets,
                 CompliantAssets,
                 NonCompliantAssets,
-                CAST(CompliantAssets AS FLOAT) / NULLIF(TotalAssets, 0) * 100 as ComplianceRate,
-                AvgDaysSinceLastCheck
+                CASE 
+                    WHEN TotalAssets > 0 
+                    THEN CAST(CompliantAssets AS FLOAT) / TotalAssets * 100 
+                    ELSE 0 
+                END as ComplianceRate,
+                ISNULL(AvgDaysSinceLastCheck, 0) as AvgDaysSinceLastCheck
             FROM ComplianceStats
             ORDER BY ComplianceRate";
         
@@ -52,7 +68,6 @@ public class ReportQueries : IReportQueries
         });
     }
 
-    // Export-friendly version
     public async Task<byte[]> ExportComplianceReportAsync(
         DateTime startDate, 
         DateTime endDate,
@@ -63,8 +78,8 @@ public class ReportQueries : IReportQueries
         return format switch
         {
             ExportFormat.Csv => await ExportToCsvAsync(data),
-            ExportFormat.Excel => await ExportToExcelAsync(data),
-            ExportFormat.Pdf => await ExportToPdfAsync(data),
+            ExportFormat.Excel => throw new NotImplementedException("Excel export not implemented yet"),
+            ExportFormat.Pdf => throw new NotImplementedException("PDF export not implemented yet"),
             _ => throw new NotSupportedException($"Format {format} not supported")
         };
     }

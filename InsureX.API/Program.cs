@@ -4,6 +4,8 @@ using InsureX.Domain.Interfaces;
 using InsureX.Infrastructure.Repositories;
 using InsureX.Infrastructure.Security;
 using Microsoft.EntityFrameworkCore;
+using InsureX.Infrastructure.Services;  // For TenantValidationService
+using InsureX.Infrastructure.Data;       // For ApplicationDbContext
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -32,8 +34,7 @@ builder.Services.AddScoped<IPasswordHasher, PasswordHasher>();
 builder.Services.AddScoped<ITenantContext, TenantContext>();
 // Add Infrastructure services
 builder.Services.AddScoped<ITenantValidationService, TenantValidationService>();
-builder.Services.AddDbContext<ApplicationDbContext>(options =>
-    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+
 // Add CORS
 builder.Services.AddCors(options =>
 {
