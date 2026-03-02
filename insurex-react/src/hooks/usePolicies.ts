@@ -1,134 +1,172 @@
-import { useState, useEffect, useCallback } from 'react';
-import { policyService } from '../services/policy.service';
-import { Policy, PolicyFilter, PaginatedResponse, PolicyStats } from '../types/policy.types';
+import { useState, useCallback, useEffect } from 'react';
+import { policyService, PaginatedResponse } from '../services/policy.service';
+import { Policy, CreatePolicyData, UpdatePolicyData, PolicyFilters, PolicyStats } from '../types/policy.types';
 
 interface UsePoliciesOptions {
   page?: number;
-  pageSize?: number;
-  filters?: PolicyFilter;
+  limit?: number;
+  filters?: PolicyFilters;
   autoFetch?: boolean;
 }
 
-interface UsePoliciesReturn {
-  policies: Policy[];
-  totalItems: number;
-  totalPages: number;
-  currentPage: number;
-  isLoading: boolean;
-  error: string | null;
-  refetch: () => Promise<void>;
-  fetchPolicy: (id: string) => Promise<Policy | null>;
-  createPolicy: (data: any) => Promise<Policy | null>;
-  updatePolicy: (id: string, data: any) => Promise<Policy | null>;
-  deletePolicy: (id: string) => Promise<boolean>;
-  getStats: () => Promise<PolicyStats | null>;
-}
-
-export const usePolicies = (options: UsePoliciesOptions = {}): UsePoliciesReturn => {
-  const {
-    page = 1,
-    pageSize = 10,
-    filters,
-    autoFetch = true,
-  } = options;
-
+export const usePolicies = (options: UsePoliciesOptions = {}) => {
+  const { page = 1, limit = 10, filters, autoFetch = true } = options;
+  
   const [policies, setPolicies] = useState<Policy[]>([]);
-  const [totalItems, setTotalItems] = useState(0);
-  const [totalPages, setTotalPages] = useState(0);
-  const [currentPage, setCurrentPage] = useState(page);
+  const [pagination, setPagination] = useState({
+    page,
+    limit,
+    total: 0,
+    totalPages: 0,
+  });
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchPolicies = useCallback(async () => {
+  const fetchPolicies = useCallback(async (
+    fetchPage = page, 
+    fetchLimit = limit, 
+    fetchFilters = filters
+  ) => {
     setIsLoading(true);
     setError(null);
     try {
-      const response: PaginatedResponse<Policy> = await policyService.getPolicies(
-        currentPage,
-        pageSize,
-        filters
+      const response: PaginatedResponse<Policy> = await policyService.getAll(
+        fetchFilters,
+        fetchPage,
+        fetchLimit
       );
-      setPolicies(response.items);
-      setTotalItems(response.totalItems);
-      setTotalPages(response.totalPages);
+      setPolicies(response.data);
+      setPagination({
+        page: response.page,
+        limit: response.limit,
+        total: response.total,
+        totalPages: response.totalPages,
+      });
     } catch (err: any) {
-      setError(err.message || 'Failed to fetch policies');
+      setError(err.response?.data?.message || 'Failed to fetch policies');
     } finally {
       setIsLoading(false);
     }
-  }, [currentPage, pageSize, filters]);
+  }, [page, limit, filters]);
 
   useEffect(() => {
     if (autoFetch) {
       fetchPolicies();
     }
-  }, [fetchPolicies, autoFetch]);
+  }, [autoFetch, fetchPolicies]);
 
-  const fetchPolicy = useCallback(async (id: string): Promise<Policy | null> => {
+  const createPolicy = useCallback(async (data: CreatePolicyData) => {
+    setIsLoading(true);
+    setError(null);
     try {
-      return await policyService.getPolicy(id);
+      const newPolicy = await policyService.create(data);
+      setPolicies((prev) => [newPolicy, ...prev]);
+      return newPolicy;
     } catch (err: any) {
-      setError(err.message || 'Failed to fetch policy');
-      return null;
+      setError(err.response?.data?.message || 'Failed to create policy');
+      throw err;
+    } finally {
+      setIsLoading(false);
     }
   }, []);
 
-  const createPolicy = useCallback(async (data: any): Promise<Policy | null> => {
+  const updatePolicy = useCallback(async (id: string, data: UpdatePolicyData) => {
+    setIsLoading(true);
+    setError(null);
     try {
-      const newPolicy = await policyService.createPolicy(data);
-      await fetchPolicies();
-      return newPolicy;
-    } catch (err: any) {
-      setError(err.message || 'Failed to create policy');
-      return null;
-    }
-  }, [fetchPolicies]);
-
-  const updatePolicy = useCallback(async (id: string, data: any): Promise<Policy | null> => {
-    try {
-      const updatedPolicy = await policyService.updatePolicy(id, data);
+      const updatedPolicy = await policyService.update(id, data);
       setPolicies((prev) =>
-        prev.map((p) => (p.id === id ? updatedPolicy : p))
+        prev.map((policy) => (policy.id === id ? updatedPolicy : policy))
       );
       return updatedPolicy;
     } catch (err: any) {
-      setError(err.message || 'Failed to update policy');
-      return null;
+      setError(err.response?.data?.message || 'Failed to update policy');
+      throw err;
+    } finally {
+      setIsLoading(false);
     }
   }, []);
 
-  const deletePolicy = useCallback(async (id: string): Promise<boolean> => {
+  const deletePolicy = useCallback(async (id: string) => {
+    setIsLoading(true);
+    setError(null);
     try {
-      await policyService.deletePolicy(id);
-      setPolicies((prev) => prev.filter((p) => p.id !== id));
-      return true;
+      await policyService.delete(id);
+      setPolicies((prev) => prev.filter((policy) => policy.id !== id));
     } catch (err: any) {
-      setError(err.message || 'Failed to delete policy');
-      return false;
+      setError(err.response?.data?.message || 'Failed to delete policy');
+      throw err;
+    } finally {
+      setIsLoading(false);
     }
   }, []);
 
-  const getStats = useCallback(async (): Promise<PolicyStats | null> => {
+  const getPolicy = useCallback(async (id: string) => {
+    setIsLoading(true);
+    setError(null);
     try {
-      return await policyService.getPolicyStats();
+      const policy = await policyService.getById(id);
+      return policy;
     } catch (err: any) {
-      setError(err.message || 'Failed to fetch policy stats');
-      return null;
+      setError(err.response?.data?.message || 'Failed to fetch policy');
+      throw err;
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  const cancelPolicy = useCallback(async (id: string, reason?: string) => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const cancelledPolicy = await policyService.cancel(id, reason);
+      setPolicies((prev) =>
+        prev.map((policy) => (policy.id === id ? cancelledPolicy : policy))
+      );
+      return cancelledPolicy;
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Failed to cancel policy');
+      throw err;
+    } finally {
+      setIsLoading(false);
     }
   }, []);
 
   return {
     policies,
-    totalItems,
-    totalPages,
-    currentPage,
+    pagination,
     isLoading,
     error,
-    refetch: fetchPolicies,
-    fetchPolicy,
+    fetchPolicies,
     createPolicy,
     updatePolicy,
     deletePolicy,
-    getStats,
+    getPolicy,
+    cancelPolicy,
   };
+};
+
+export const usePolicyStats = () => {
+  const [stats, setStats] = useState<PolicyStats | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const fetchStats = useCallback(async () => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const data = await policyService.getStats();
+      setStats(data);
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Failed to fetch policy stats');
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchStats();
+  }, [fetchStats]);
+
+  return { stats, isLoading, error, refetch: fetchStats };
 };

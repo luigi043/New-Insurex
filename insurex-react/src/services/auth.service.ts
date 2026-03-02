@@ -1,62 +1,87 @@
-import api from './api';
+import apiClient from './api.service';
 import { 
-  User, 
   LoginCredentials, 
-  LoginResponse, 
   RegisterData, 
-  RegisterResponse,
-  PasswordChangeData 
+  AuthResponse, 
+  User, 
+  ForgotPasswordData, 
+  ResetPasswordData,
+  ChangePasswordData,
+  UpdateProfileData 
 } from '../types/auth.types';
 
-export const authService = {
-  async login(credentials: LoginCredentials): Promise<LoginResponse> {
-    const response = await api.post<LoginResponse>('/auth/login', credentials);
+class AuthService {
+  async login(credentials: LoginCredentials): Promise<AuthResponse> {
+    const response = await apiClient.post<AuthResponse>('/auth/login', credentials);
+    if (response.data.accessToken) {
+      localStorage.setItem('accessToken', response.data.accessToken);
+      localStorage.setItem('refreshToken', response.data.refreshToken);
+      localStorage.setItem('user', JSON.stringify(response.data.user));
+    }
     return response.data;
-  },
+  }
 
-  async register(data: RegisterData): Promise<RegisterResponse> {
-    const response = await api.post<RegisterResponse>('/auth/register', data);
+  async register(data: RegisterData): Promise<AuthResponse> {
+    const response = await apiClient.post<AuthResponse>('/auth/register', data);
+    if (response.data.accessToken) {
+      localStorage.setItem('accessToken', response.data.accessToken);
+      localStorage.setItem('refreshToken', response.data.refreshToken);
+      localStorage.setItem('user', JSON.stringify(response.data.user));
+    }
     return response.data;
-  },
+  }
 
   async logout(): Promise<void> {
-    await api.post('/auth/logout');
-  },
+    try {
+      await apiClient.post('/auth/logout');
+    } finally {
+      localStorage.removeItem('accessToken');
+      localStorage.removeItem('refreshToken');
+      localStorage.removeItem('user');
+    }
+  }
+
+  async refreshToken(): Promise<{ accessToken: string; refreshToken: string }> {
+    const refreshToken = localStorage.getItem('refreshToken');
+    const response = await apiClient.post('/auth/refresh', { refreshToken });
+    if (response.data.accessToken) {
+      localStorage.setItem('accessToken', response.data.accessToken);
+      localStorage.setItem('refreshToken', response.data.refreshToken);
+    }
+    return response.data;
+  }
+
+  async forgotPassword(data: ForgotPasswordData): Promise<void> {
+    await apiClient.post('/auth/forgot-password', data);
+  }
+
+  async resetPassword(data: ResetPasswordData): Promise<void> {
+    await apiClient.post('/auth/reset-password', data);
+  }
+
+  async changePassword(data: ChangePasswordData): Promise<void> {
+    await apiClient.post('/auth/change-password', data);
+  }
 
   async getCurrentUser(): Promise<User> {
-    const response = await api.get<User>('/auth/me');
+    const response = await apiClient.get<User>('/auth/me');
     return response.data;
-  },
+  }
 
-  async forgotPassword(email: string): Promise<void> {
-    await api.post('/auth/forgot-password', { email });
-  },
-
-  async resetPassword(token: string, newPassword: string): Promise<void> {
-    await api.post('/auth/reset-password', { token, newPassword });
-  },
-
-  async updateProfile(data: Partial<User>): Promise<User> {
-    const response = await api.put<User>('/auth/profile', data);
+  async updateProfile(data: UpdateProfileData): Promise<User> {
+    const response = await apiClient.patch<User>('/auth/profile', data);
+    localStorage.setItem('user', JSON.stringify(response.data));
     return response.data;
-  },
+  }
 
-  async changePassword(oldPassword: string, newPassword: string): Promise<void> {
-    const data: PasswordChangeData = { oldPassword, newPassword };
-    await api.post('/auth/change-password', data);
-  },
+  getStoredUser(): User | null {
+    const userStr = localStorage.getItem('user');
+    return userStr ? JSON.parse(userStr) : null;
+  }
 
-  async refreshToken(): Promise<{ token: string; refreshToken: string }> {
-    const refreshToken = localStorage.getItem('refreshToken');
-    const response = await api.post('/auth/refresh', { refreshToken });
-    return response.data;
-  },
+  isAuthenticated(): boolean {
+    return !!localStorage.getItem('accessToken');
+  }
+}
 
-  async verifyEmail(token: string): Promise<void> {
-    await api.post('/auth/verify-email', { token });
-  },
-
-  async resendVerificationEmail(email: string): Promise<void> {
-    await api.post('/auth/resend-verification', { email });
-  },
-};
+export const authService = new AuthService();

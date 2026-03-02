@@ -6,64 +6,61 @@ import {
   AppBar,
   Toolbar,
   List,
+  Typography,
+  Divider,
+  IconButton,
   ListItem,
   ListItemButton,
   ListItemIcon,
   ListItemText,
-  IconButton,
-  Typography,
-  Divider,
   Avatar,
   Menu,
   MenuItem,
   Badge,
-  useTheme,
-  useMediaQuery,
+  Tooltip,
 } from '@mui/material';
 import {
   Menu as MenuIcon,
   Dashboard,
-  Policy,
+  Assignment,
   Inventory,
   Claim,
-  People,
+  Business,
   Receipt,
   Assessment,
   Settings,
   AccountCircle,
-  Notifications,
-  Logout,
   ChevronLeft,
+  Logout,
+  Notifications,
 } from '@mui/icons-material';
 import { useAuth } from '../../hooks/useAuth';
-import { useNotification } from '../../hooks/useNotification';
 
 const drawerWidth = 260;
 
-const menuItems = [
-  { path: '/dashboard', label: 'Dashboard', icon: Dashboard },
-  { path: '/policies', label: 'Policies', icon: Policy },
-  { path: '/assets', label: 'Assets', icon: Inventory },
-  { path: '/claims', label: 'Claims', icon: Claim },
-  { path: '/partners', label: 'Partners', icon: People },
-  { path: '/billing', label: 'Billing', icon: Receipt },
-  { path: '/reports', label: 'Reports', icon: Assessment },
-];
+interface NavItem {
+  text: string;
+  path: string;
+  icon: React.ReactElement;
+  badge?: number;
+}
 
-const bottomMenuItems = [
-  { path: '/settings', label: 'Settings', icon: Settings },
+const navItems: NavItem[] = [
+  { text: 'Dashboard', path: '/', icon: <Dashboard /> },
+  { text: 'Policies', path: '/policies', icon: <Assignment /> },
+  { text: 'Assets', path: '/assets', icon: <Inventory /> },
+  { text: 'Claims', path: '/claims', icon: <Claim /> },
+  { text: 'Partners', path: '/partners', icon: <Business /> },
+  { text: 'Billing', path: '/billing', icon: <Receipt /> },
+  { text: 'Reports', path: '/reports', icon: <Assessment /> },
 ];
 
 export const Layout: React.FC = () => {
-  const theme = useTheme();
-  const navigate = useNavigate();
-  const location = useLocation();
-  const { user, logout } = useAuth();
-  const { showSuccess } = useNotification();
-  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
-
   const [mobileOpen, setMobileOpen] = useState(false);
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
+  const { user, logout } = useAuth();
+  const navigate = useNavigate();
+  const location = useLocation();
 
   const handleDrawerToggle = () => {
     setMobileOpen(!mobileOpen);
@@ -80,75 +77,97 @@ export const Layout: React.FC = () => {
   const handleLogout = async () => {
     handleProfileMenuClose();
     await logout();
-    showSuccess('Logged out successfully');
     navigate('/login');
   };
 
   const handleNavigate = (path: string) => {
     navigate(path);
-    if (isMobile) {
-      setMobileOpen(false);
-    }
+    setMobileOpen(false);
   };
 
   const drawer = (
-    <Box>
-      <Toolbar sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <Typography variant="h6" noWrap component="div" sx={{ fontWeight: 'bold' }}>
+    <div>
+      <Toolbar
+        sx={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          py: 2,
+        }}
+      >
+        <Typography variant="h5" component="div" sx={{ fontWeight: 'bold', color: 'primary.main' }}>
           InsureX
         </Typography>
       </Toolbar>
       <Divider />
-      <List>
-        {menuItems.map((item) => {
-          const Icon = item.icon;
-          const isActive = location.pathname.startsWith(item.path);
-          return (
-            <ListItem key={item.path} disablePadding>
-              <ListItemButton
-                selected={isActive}
-                onClick={() => handleNavigate(item.path)}
-                sx={{
-                  '&.Mui-selected': {
-                    backgroundColor: theme.palette.primary.main + '20',
-                    borderRight: `3px solid ${theme.palette.primary.main}`,
+      <List sx={{ pt: 2 }}>
+        {navItems.map((item) => (
+          <ListItem key={item.text} disablePadding sx={{ px: 2, mb: 0.5 }}>
+            <ListItemButton
+              selected={location.pathname === item.path || location.pathname.startsWith(`${item.path}/`)}
+              onClick={() => handleNavigate(item.path)}
+              sx={{
+                borderRadius: 2,
+                '&.Mui-selected': {
+                  backgroundColor: 'primary.main',
+                  color: 'primary.contrastText',
+                  '&:hover': {
+                    backgroundColor: 'primary.dark',
                   },
+                  '& .MuiListItemIcon-root': {
+                    color: 'primary.contrastText',
+                  },
+                },
+              }}
+            >
+              <ListItemIcon
+                sx={{
+                  minWidth: 40,
+                  color: location.pathname === item.path ? 'inherit' : 'text.secondary',
                 }}
               >
-                <ListItemIcon>
-                  <Icon color={isActive ? 'primary' : 'inherit'} />
-                </ListItemIcon>
-                <ListItemText primary={item.label} />
-              </ListItemButton>
-            </ListItem>
-          );
-        })}
+                {item.badge ? (
+                  <Badge badgeContent={item.badge} color="error">
+                    {item.icon}
+                  </Badge>
+                ) : (
+                  item.icon
+                )}
+              </ListItemIcon>
+              <ListItemText primary={item.text} />
+            </ListItemButton>
+          </ListItem>
+        ))}
       </List>
-      <Divider />
-      <List>
-        {bottomMenuItems.map((item) => {
-          const Icon = item.icon;
-          const isActive = location.pathname === item.path;
-          return (
-            <ListItem key={item.path} disablePadding>
-              <ListItemButton
-                selected={isActive}
-                onClick={() => handleNavigate(item.path)}
-              >
-                <ListItemIcon>
-                  <Icon color={isActive ? 'primary' : 'inherit'} />
-                </ListItemIcon>
-                <ListItemText primary={item.label} />
-              </ListItemButton>
-            </ListItem>
-          );
-        })}
+      <Divider sx={{ mt: 'auto' }} />
+      <List sx={{ pt: 2 }}>
+        <ListItem disablePadding sx={{ px: 2 }}>
+          <ListItemButton
+            selected={location.pathname === '/settings'}
+            onClick={() => handleNavigate('/settings')}
+            sx={{
+              borderRadius: 2,
+              '&.Mui-selected': {
+                backgroundColor: 'primary.main',
+                color: 'primary.contrastText',
+                '& .MuiListItemIcon-root': {
+                  color: 'primary.contrastText',
+                },
+              },
+            }}
+          >
+            <ListItemIcon sx={{ minWidth: 40 }}>
+              <Settings />
+            </ListItemIcon>
+            <ListItemText primary="Settings" />
+          </ListItemButton>
+        </ListItem>
       </List>
-    </Box>
+    </div>
   );
 
   return (
-    <Box sx={{ display: 'flex' }}>
+    <Box sx={{ display: 'flex', minHeight: '100vh' }}>
       <AppBar
         position="fixed"
         sx={{
@@ -169,28 +188,86 @@ export const Layout: React.FC = () => {
           >
             <MenuIcon />
           </IconButton>
-          <Typography variant="h6" noWrap component="div" sx={{ flexGrow: 1 }}>
-            {menuItems.find((item) => location.pathname.startsWith(item.path))?.label || 'InsureX'}
-          </Typography>
-          <IconButton color="inherit">
-            <Badge badgeContent={4} color="error">
-              <Notifications />
-            </Badge>
-          </IconButton>
-          <IconButton
-            edge="end"
-            onClick={handleProfileMenuOpen}
-            color="inherit"
-            sx={{ ml: 1 }}
-          >
-            {user?.avatarUrl ? (
-              <Avatar src={user.avatarUrl} sx={{ width: 32, height: 32 }} />
-            ) : (
-              <AccountCircle />
-            )}
-          </IconButton>
+          <Box sx={{ flexGrow: 1 }} />
+          <Tooltip title="Notifications">
+            <IconButton color="inherit" sx={{ mr: 1 }}>
+              <Badge badgeContent={4} color="error">
+                <Notifications />
+              </Badge>
+            </IconButton>
+          </Tooltip>
+          <Tooltip title="Account settings">
+            <IconButton
+              onClick={handleProfileMenuOpen}
+              size="small"
+              sx={{ ml: 1 }}
+              aria-controls={Boolean(anchorEl) ? 'account-menu' : undefined}
+              aria-haspopup="true"
+              aria-expanded={Boolean(anchorEl) ? 'true' : undefined}
+            >
+              <Avatar sx={{ width: 32, height: 32, bgcolor: 'primary.main' }}>
+                {user?.firstName?.[0] || user?.email?.[0] || 'U'}
+              </Avatar>
+            </IconButton>
+          </Tooltip>
         </Toolbar>
       </AppBar>
+
+      <Menu
+        anchorEl={anchorEl}
+        id="account-menu"
+        open={Boolean(anchorEl)}
+        onClose={handleProfileMenuClose}
+        onClick={handleProfileMenuClose}
+        PaperProps={{
+          elevation: 0,
+          sx: {
+            overflow: 'visible',
+            filter: 'drop-shadow(0px 2px 8px rgba(0,0,0,0.32))',
+            mt: 1.5,
+            '& .MuiAvatar-root': {
+              width: 32,
+              height: 32,
+              ml: -0.5,
+              mr: 1,
+            },
+            '&:before': {
+              content: '""',
+              display: 'block',
+              position: 'absolute',
+              top: 0,
+              right: 14,
+              width: 10,
+              height: 10,
+              bgcolor: 'background.paper',
+              transform: 'translateY(-50%) rotate(45deg)',
+              zIndex: 0,
+            },
+          },
+        }}
+        transformOrigin={{ horizontal: 'right', vertical: 'top' }}
+        anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
+      >
+        <MenuItem onClick={() => { handleProfileMenuClose(); navigate('/profile'); }}>
+          <ListItemIcon>
+            <AccountCircle fontSize="small" />
+          </ListItemIcon>
+          Profile
+        </MenuItem>
+        <MenuItem onClick={() => { handleProfileMenuClose(); navigate('/settings'); }}>
+          <ListItemIcon>
+            <Settings fontSize="small" />
+          </ListItemIcon>
+          Settings
+        </MenuItem>
+        <Divider />
+        <MenuItem onClick={handleLogout}>
+          <ListItemIcon>
+            <Logout fontSize="small" />
+          </ListItemIcon>
+          Logout
+        </MenuItem>
+      </Menu>
 
       <Box
         component="nav"
@@ -234,47 +311,13 @@ export const Layout: React.FC = () => {
           flexGrow: 1,
           p: 3,
           width: { md: `calc(100% - ${drawerWidth}px)` },
-          minHeight: '100vh',
           backgroundColor: 'background.default',
+          minHeight: '100vh',
         }}
       >
         <Toolbar />
         <Outlet />
       </Box>
-
-      <Menu
-        anchorEl={anchorEl}
-        open={Boolean(anchorEl)}
-        onClose={handleProfileMenuClose}
-        anchorOrigin={{
-          vertical: 'bottom',
-          horizontal: 'right',
-        }}
-        transformOrigin={{
-          vertical: 'top',
-          horizontal: 'right',
-        }}
-      >
-        <MenuItem onClick={() => { handleProfileMenuClose(); navigate('/profile'); }}>
-          <ListItemIcon>
-            <AccountCircle fontSize="small" />
-          </ListItemIcon>
-          Profile
-        </MenuItem>
-        <MenuItem onClick={() => { handleProfileMenuClose(); navigate('/settings'); }}>
-          <ListItemIcon>
-            <Settings fontSize="small" />
-          </ListItemIcon>
-          Settings
-        </MenuItem>
-        <Divider />
-        <MenuItem onClick={handleLogout}>
-          <ListItemIcon>
-            <Logout fontSize="small" />
-          </ListItemIcon>
-          Logout
-        </MenuItem>
-      </Menu>
     </Box>
   );
 };

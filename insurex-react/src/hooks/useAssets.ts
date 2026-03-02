@@ -1,158 +1,155 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { assetService } from '../services/asset.service';
-import { Asset, AssetFilter, AssetStats, PaginatedResponse } from '../types/asset.types';
+import { Asset, CreateAssetData, UpdateAssetData, AssetFilters, AssetStats } from '../types/asset.types';
+import { PaginatedResponse } from '../services/policy.service';
 
 interface UseAssetsOptions {
   page?: number;
-  pageSize?: number;
-  filters?: AssetFilter;
+  limit?: number;
+  filters?: AssetFilters;
   autoFetch?: boolean;
 }
 
-interface UseAssetsReturn {
-  assets: Asset[];
-  totalItems: number;
-  totalPages: number;
-  currentPage: number;
-  isLoading: boolean;
-  error: string | null;
-  refetch: () => Promise<void>;
-  fetchAsset: (id: string) => Promise<Asset | null>;
-  createAsset: (data: any) => Promise<Asset | null>;
-  updateAsset: (id: string, data: any) => Promise<Asset | null>;
-  deleteAsset: (id: string) => Promise<boolean>;
-  getStats: () => Promise<AssetStats | null>;
-  searchAssets: (query: string) => Promise<Asset[]>;
-  bulkDelete: (ids: string[]) => Promise<boolean>;
-}
-
-export const useAssets = (options: UseAssetsOptions = {}): UseAssetsReturn => {
-  const {
-    page = 1,
-    pageSize = 10,
-    filters,
-    autoFetch = true,
-  } = options;
-
+export const useAssets = (options: UseAssetsOptions = {}) => {
+  const { page = 1, limit = 10, filters, autoFetch = true } = options;
+  
   const [assets, setAssets] = useState<Asset[]>([]);
-  const [totalItems, setTotalItems] = useState(0);
-  const [totalPages, setTotalPages] = useState(0);
-  const [currentPage, setCurrentPage] = useState(page);
+  const [pagination, setPagination] = useState({
+    page,
+    limit,
+    total: 0,
+    totalPages: 0,
+  });
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchAssets = useCallback(async () => {
+  const fetchAssets = useCallback(async (
+    fetchPage = page, 
+    fetchLimit = limit, 
+    fetchFilters = filters
+  ) => {
     setIsLoading(true);
     setError(null);
     try {
-      const response: PaginatedResponse<Asset> = await assetService.getAssets(
-        currentPage,
-        pageSize,
-        filters
+      const response: PaginatedResponse<Asset> = await assetService.getAll(
+        fetchFilters,
+        fetchPage,
+        fetchLimit
       );
-      setAssets(response.items);
-      setTotalItems(response.totalItems);
-      setTotalPages(response.totalPages);
+      setAssets(response.data);
+      setPagination({
+        page: response.page,
+        limit: response.limit,
+        total: response.total,
+        totalPages: response.totalPages,
+      });
     } catch (err: any) {
-      setError(err.message || 'Failed to fetch assets');
+      setError(err.response?.data?.message || 'Failed to fetch assets');
     } finally {
       setIsLoading(false);
     }
-  }, [currentPage, pageSize, filters]);
+  }, [page, limit, filters]);
 
   useEffect(() => {
     if (autoFetch) {
       fetchAssets();
     }
-  }, [fetchAssets, autoFetch]);
+  }, [autoFetch, fetchAssets]);
 
-  const fetchAsset = useCallback(async (id: string): Promise<Asset | null> => {
+  const createAsset = useCallback(async (data: CreateAssetData) => {
+    setIsLoading(true);
+    setError(null);
     try {
-      return await assetService.getAsset(id);
+      const newAsset = await assetService.create(data);
+      setAssets((prev) => [newAsset, ...prev]);
+      return newAsset;
     } catch (err: any) {
-      setError(err.message || 'Failed to fetch asset');
-      return null;
+      setError(err.response?.data?.message || 'Failed to create asset');
+      throw err;
+    } finally {
+      setIsLoading(false);
     }
   }, []);
 
-  const createAsset = useCallback(async (data: any): Promise<Asset | null> => {
+  const updateAsset = useCallback(async (id: string, data: UpdateAssetData) => {
+    setIsLoading(true);
+    setError(null);
     try {
-      const newAsset = await assetService.createAsset(data);
-      await fetchAssets();
-      return newAsset;
-    } catch (err: any) {
-      setError(err.message || 'Failed to create asset');
-      return null;
-    }
-  }, [fetchAssets]);
-
-  const updateAsset = useCallback(async (id: string, data: any): Promise<Asset | null> => {
-    try {
-      const updatedAsset = await assetService.updateAsset(id, data);
+      const updatedAsset = await assetService.update(id, data);
       setAssets((prev) =>
-        prev.map((a) => (a.id === id ? updatedAsset : a))
+        prev.map((asset) => (asset.id === id ? updatedAsset : asset))
       );
       return updatedAsset;
     } catch (err: any) {
-      setError(err.message || 'Failed to update asset');
-      return null;
+      setError(err.response?.data?.message || 'Failed to update asset');
+      throw err;
+    } finally {
+      setIsLoading(false);
     }
   }, []);
 
-  const deleteAsset = useCallback(async (id: string): Promise<boolean> => {
+  const deleteAsset = useCallback(async (id: string) => {
+    setIsLoading(true);
+    setError(null);
     try {
-      await assetService.deleteAsset(id);
-      setAssets((prev) => prev.filter((a) => a.id !== id));
-      return true;
+      await assetService.delete(id);
+      setAssets((prev) => prev.filter((asset) => asset.id !== id));
     } catch (err: any) {
-      setError(err.message || 'Failed to delete asset');
-      return false;
+      setError(err.response?.data?.message || 'Failed to delete asset');
+      throw err;
+    } finally {
+      setIsLoading(false);
     }
   }, []);
 
-  const getStats = useCallback(async (): Promise<AssetStats | null> => {
+  const getAsset = useCallback(async (id: string) => {
+    setIsLoading(true);
+    setError(null);
     try {
-      return await assetService.getAssetStats();
+      const asset = await assetService.getById(id);
+      return asset;
     } catch (err: any) {
-      setError(err.message || 'Failed to fetch asset stats');
-      return null;
-    }
-  }, []);
-
-  const searchAssets = useCallback(async (query: string): Promise<Asset[]> => {
-    try {
-      return await assetService.searchAssets(query);
-    } catch (err: any) {
-      setError(err.message || 'Failed to search assets');
-      return [];
-    }
-  }, []);
-
-  const bulkDelete = useCallback(async (ids: string[]): Promise<boolean> => {
-    try {
-      await assetService.bulkDelete(ids);
-      setAssets((prev) => prev.filter((a) => !ids.includes(a.id)));
-      return true;
-    } catch (err: any) {
-      setError(err.message || 'Failed to delete assets');
-      return false;
+      setError(err.response?.data?.message || 'Failed to fetch asset');
+      throw err;
+    } finally {
+      setIsLoading(false);
     }
   }, []);
 
   return {
     assets,
-    totalItems,
-    totalPages,
-    currentPage,
+    pagination,
     isLoading,
     error,
-    refetch: fetchAssets,
-    fetchAsset,
+    fetchAssets,
     createAsset,
     updateAsset,
     deleteAsset,
-    getStats,
-    searchAssets,
-    bulkDelete,
+    getAsset,
   };
+};
+
+export const useAssetStats = () => {
+  const [stats, setStats] = useState<AssetStats | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const fetchStats = useCallback(async () => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const data = await assetService.getStats();
+      setStats(data);
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Failed to fetch asset stats');
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchStats();
+  }, [fetchStats]);
+
+  return { stats, isLoading, error, refetch: fetchStats };
 };

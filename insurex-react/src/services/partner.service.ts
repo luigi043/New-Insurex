@@ -1,45 +1,80 @@
-import api from './api';
-import { Partner, PartnerFilter, PaginatedResponse } from '../types';
-export const partnerService = {
-  getPartners: (params) => api.get('/partners', { params }),
-  getPartner: (id) => api.get(`/partners/${id}`),
-  createPartner: (data) => api.post('/partners', data),
-  updatePartner: (id, data) => api.put(`/partners/${id}`, data),
-  deletePartner: (id) => api.delete(`/partners/${id}`),
-};
-export const partnerService = {
-  async getPartners(page = 1, pageSize = 10, filters?: PartnerFilter) {
-    const response = await api.get('/partners', { params: { page, pageSize, ...filters } });
-    return response.data;
-  },
+import apiClient from './api.service';
+import { 
+  Partner, 
+  CreatePartnerData, 
+  UpdatePartnerData, 
+  PartnerFilters, 
+  PartnerStats 
+} from '../types/partner.types';
+import { PaginatedResponse } from './policy.service';
 
-  async getPartner(id: string) {
-    const response = await api.get(`/partners/${id}`);
-    return response.data;
-  },
-
-  async createPartner(data: Partial<Partner>) {
-    const response = await api.post('/partners', data);
-    return response.data;
-  },
-
-  async updatePartner(id: string, data: Partial<Partner>) {
-    const response = await api.put(`/partners/${id}`, data);
-    return response.data;
-  },
-
-  async deletePartner(id: string) {
-    const response = await api.delete(`/partners/${id}`);
-    return response.data;
-  },
-
-  async approvePartner(id: string) {
-    const response = await api.post(`/partners/${id}/approve`);
-    return response.data;
-  },
-
-  async rejectPartner(id: string, reason: string) {
-    const response = await api.post(`/partners/${id}/reject`, { reason });
+class PartnerService {
+  async getAll(filters?: PartnerFilters, page = 1, limit = 10): Promise<PaginatedResponse<Partner>> {
+    const params = new URLSearchParams();
+    params.append('page', page.toString());
+    params.append('limit', limit.toString());
+    
+    if (filters) {
+      Object.entries(filters).forEach(([key, value]) => {
+        if (value !== undefined && value !== null && value !== '') {
+          params.append(key, value.toString());
+        }
+      });
+    }
+    
+    const response = await apiClient.get<PaginatedResponse<Partner>>(`/partners?${params.toString()}`);
     return response.data;
   }
-}; 
+
+  async getById(id: string): Promise<Partner> {
+    const response = await apiClient.get<Partner>(`/partners/${id}`);
+    return response.data;
+  }
+
+  async create(data: CreatePartnerData): Promise<Partner> {
+    const response = await apiClient.post<Partner>('/partners', data);
+    return response.data;
+  }
+
+  async update(id: string, data: UpdatePartnerData): Promise<Partner> {
+    const response = await apiClient.patch<Partner>(`/partners/${id}`, data);
+    return response.data;
+  }
+
+  async delete(id: string): Promise<void> {
+    await apiClient.delete(`/partners/${id}`);
+  }
+
+  async getStats(): Promise<PartnerStats> {
+    const response = await apiClient.get<PartnerStats>('/partners/stats');
+    return response.data;
+  }
+
+  async activate(id: string): Promise<Partner> {
+    const response = await apiClient.post<Partner>(`/partners/${id}/activate`);
+    return response.data;
+  }
+
+  async deactivate(id: string, reason?: string): Promise<Partner> {
+    const response = await apiClient.post<Partner>(`/partners/${id}/deactivate`, { reason });
+    return response.data;
+  }
+
+  async uploadDocument(id: string, file: File, name: string): Promise<void> {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('name', name);
+    
+    await apiClient.post(`/partners/${id}/documents`, formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+  }
+
+  async deleteDocument(id: string, documentId: string): Promise<void> {
+    await apiClient.delete(`/partners/${id}/documents/${documentId}`);
+  }
+}
+
+export const partnerService = new PartnerService();

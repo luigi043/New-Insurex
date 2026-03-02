@@ -3,66 +3,61 @@ export interface Claim {
   claimNumber: string;
   policyId: string;
   policyNumber: string;
-  claimantId: string;
-  claimantName: string;
-  type: ClaimType;
+  policyType: string;
+  holderId: string;
+  holderName: string;
+  holderEmail: string;
   status: ClaimStatus;
+  type: ClaimType;
   incidentDate: string;
   reportedDate: string;
   description: string;
-  location?: string;
-  estimatedAmount: number;
+  claimedAmount: number;
   approvedAmount?: number;
-  paidAmount?: number;
-  currency: string;
   deductible?: number;
-  causeOfLoss?: string;
-  injuries?: boolean;
-  injuriesDescription?: string;
-  policeReport?: boolean;
-  policeReportNumber?: string;
-  thirdPartyInvolved?: boolean;
-  thirdPartyDetails?: string;
+  settlementDate?: string;
+  location?: string;
+  witnesses?: Witness[];
   documents?: ClaimDocument[];
-  notes?: ClaimNote[];
-  payments?: ClaimPayment[];
+  notes?: string;
   assignedTo?: string;
   assignedToName?: string;
   createdAt: string;
   updatedAt: string;
-  submittedAt?: string;
-  reviewedAt?: string;
-  approvedAt?: string;
-  settledAt?: string;
-  rejectedAt?: string;
 }
 
-export type ClaimType =
-  | 'property_damage'
-  | 'theft'
-  | 'liability'
-  | 'bodily_injury'
-  | 'medical'
-  | 'collision'
-  | 'comprehensive'
-  | 'fire'
-  | 'flood'
-  | 'natural_disaster'
-  | 'vandalism'
-  | 'other';
+export enum ClaimStatus {
+  DRAFT = 'DRAFT',
+  SUBMITTED = 'SUBMITTED',
+  UNDER_REVIEW = 'UNDER_REVIEW',
+  PENDING_INFO = 'PENDING_INFO',
+  APPROVED = 'APPROVED',
+  PARTIALLY_APPROVED = 'PARTIALLY_APPROVED',
+  REJECTED = 'REJECTED',
+  SETTLED = 'SETTLED',
+  CLOSED = 'CLOSED',
+  APPEALED = 'APPEALED'
+}
 
-export type ClaimStatus =
-  | 'draft'
-  | 'submitted'
-  | 'under_review'
-  | 'pending_info'
-  | 'approved'
-  | 'partially_approved'
-  | 'rejected'
-  | 'in_payment'
-  | 'settled'
-  | 'closed'
-  | 'reopened';
+export enum ClaimType {
+  ACCIDENT = 'ACCIDENT',
+  THEFT = 'THEFT',
+  FIRE = 'FIRE',
+  NATURAL_DISASTER = 'NATURAL_DISASTER',
+  LIABILITY = 'LIABILITY',
+  MEDICAL = 'MEDICAL',
+  DEATH = 'DEATH',
+  DISABILITY = 'DISABILITY',
+  PROPERTY_DAMAGE = 'PROPERTY_DAMAGE',
+  OTHER = 'OTHER'
+}
+
+export interface Witness {
+  id: string;
+  name: string;
+  contactInfo: string;
+  statement?: string;
+}
 
 export interface ClaimDocument {
   id: string;
@@ -70,41 +65,18 @@ export interface ClaimDocument {
   type: string;
   url: string;
   uploadedAt: string;
-  uploadedBy: string;
 }
 
-export interface ClaimNote {
+export interface ClaimHistory {
   id: string;
-  content: string;
-  createdAt: string;
-  createdBy: string;
-  createdByName: string;
-  isInternal: boolean;
-}
-
-export interface ClaimPayment {
-  id: string;
-  amount: number;
-  currency: string;
-  paymentDate: string;
-  paymentMethod: string;
-  referenceNumber?: string;
+  claimId: string;
+  action: string;
+  statusFrom?: ClaimStatus;
+  statusTo?: ClaimStatus;
   notes?: string;
-  paidTo: string;
-  paidBy: string;
-}
-
-export interface ClaimFilter {
-  status?: ClaimStatus;
-  type?: ClaimType;
-  search?: string;
-  policyId?: string;
-  claimantId?: string;
-  assignedTo?: string;
-  dateFrom?: string;
-  dateTo?: string;
-  minAmount?: number;
-  maxAmount?: number;
+  performedBy: string;
+  performedByName: string;
+  createdAt: string;
 }
 
 export interface CreateClaimData {
@@ -112,37 +84,35 @@ export interface CreateClaimData {
   type: ClaimType;
   incidentDate: string;
   description: string;
+  claimedAmount: number;
   location?: string;
-  estimatedAmount: number;
-  currency?: string;
-  causeOfLoss?: string;
-  injuries?: boolean;
-  injuriesDescription?: string;
-  policeReport?: boolean;
-  policeReportNumber?: string;
-  thirdPartyInvolved?: boolean;
-  thirdPartyDetails?: string;
+  witnesses?: Witness[];
+  notes?: string;
 }
 
 export interface UpdateClaimData extends Partial<CreateClaimData> {
   status?: ClaimStatus;
   approvedAmount?: number;
-  paidAmount?: number;
-  deductible?: number;
+  settlementDate?: string;
+}
+
+export interface ClaimFilters {
+  search?: string;
+  status?: ClaimStatus;
+  type?: ClaimType;
+  policyId?: string;
+  holderId?: string;
+  assignedTo?: string;
+  incidentDateFrom?: string;
+  incidentDateTo?: string;
+  submittedDateFrom?: string;
+  submittedDateTo?: string;
 }
 
 export interface ClaimStats {
-  totalClaims: number;
-  claimsByStatus: Record<ClaimStatus, number>;
-  claimsByType: Record<ClaimType, number>;
-  totalEstimated: number;
+  total: number;
+  byStatus: Record<ClaimStatus, number>;
+  totalClaimed: number;
   totalApproved: number;
-  totalPaid: number;
   averageProcessingTime: number;
-}
-
-export interface ClaimWorkflowAction {
-  action: 'submit' | 'review' | 'request_info' | 'approve' | 'partial_approve' | 'reject' | 'pay' | 'settle' | 'close' | 'reopen';
-  notes?: string;
-  amount?: number;
 }

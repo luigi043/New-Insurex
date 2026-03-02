@@ -1,175 +1,253 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { claimService } from '../services/claim.service';
-import { Claim, ClaimFilter, ClaimStats, PaginatedResponse } from '../types/claim.types';
+import { Claim, CreateClaimData, UpdateClaimData, ClaimFilters, ClaimStats, ClaimHistory } from '../types/claim.types';
+import { PaginatedResponse } from '../services/policy.service';
 
 interface UseClaimsOptions {
   page?: number;
-  pageSize?: number;
-  filters?: ClaimFilter;
+  limit?: number;
+  filters?: ClaimFilters;
   autoFetch?: boolean;
 }
 
-interface UseClaimsReturn {
-  claims: Claim[];
-  totalItems: number;
-  totalPages: number;
-  currentPage: number;
-  isLoading: boolean;
-  error: string | null;
-  refetch: () => Promise<void>;
-  fetchClaim: (id: string) => Promise<Claim | null>;
-  createClaim: (data: any) => Promise<Claim | null>;
-  updateClaim: (id: string, data: any) => Promise<Claim | null>;
-  deleteClaim: (id: string) => Promise<boolean>;
-  submitClaim: (id: string) => Promise<Claim | null>;
-  getStats: () => Promise<ClaimStats | null>;
-  getPendingCount: () => Promise<number>;
-  workflowAction: (id: string, action: any) => Promise<Claim | null>;
-}
-
-export const useClaims = (options: UseClaimsOptions = {}): UseClaimsReturn => {
-  const {
-    page = 1,
-    pageSize = 10,
-    filters,
-    autoFetch = true,
-  } = options;
-
+export const useClaims = (options: UseClaimsOptions = {}) => {
+  const { page = 1, limit = 10, filters, autoFetch = true } = options;
+  
   const [claims, setClaims] = useState<Claim[]>([]);
-  const [totalItems, setTotalItems] = useState(0);
-  const [totalPages, setTotalPages] = useState(0);
-  const [currentPage, setCurrentPage] = useState(page);
+  const [pagination, setPagination] = useState({
+    page,
+    limit,
+    total: 0,
+    totalPages: 0,
+  });
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchClaims = useCallback(async () => {
+  const fetchClaims = useCallback(async (
+    fetchPage = page, 
+    fetchLimit = limit, 
+    fetchFilters = filters
+  ) => {
     setIsLoading(true);
     setError(null);
     try {
-      const response: PaginatedResponse<Claim> = await claimService.getClaims(
-        currentPage,
-        pageSize,
-        filters
+      const response: PaginatedResponse<Claim> = await claimService.getAll(
+        fetchFilters,
+        fetchPage,
+        fetchLimit
       );
-      setClaims(response.items);
-      setTotalItems(response.totalItems);
-      setTotalPages(response.totalPages);
+      setClaims(response.data);
+      setPagination({
+        page: response.page,
+        limit: response.limit,
+        total: response.total,
+        totalPages: response.totalPages,
+      });
     } catch (err: any) {
-      setError(err.message || 'Failed to fetch claims');
+      setError(err.response?.data?.message || 'Failed to fetch claims');
     } finally {
       setIsLoading(false);
     }
-  }, [currentPage, pageSize, filters]);
+  }, [page, limit, filters]);
 
   useEffect(() => {
     if (autoFetch) {
       fetchClaims();
     }
-  }, [fetchClaims, autoFetch]);
+  }, [autoFetch, fetchClaims]);
 
-  const fetchClaim = useCallback(async (id: string): Promise<Claim | null> => {
+  const createClaim = useCallback(async (data: CreateClaimData) => {
+    setIsLoading(true);
+    setError(null);
     try {
-      return await claimService.getClaim(id);
+      const newClaim = await claimService.create(data);
+      setClaims((prev) => [newClaim, ...prev]);
+      return newClaim;
     } catch (err: any) {
-      setError(err.message || 'Failed to fetch claim');
-      return null;
+      setError(err.response?.data?.message || 'Failed to create claim');
+      throw err;
+    } finally {
+      setIsLoading(false);
     }
   }, []);
 
-  const createClaim = useCallback(async (data: any): Promise<Claim | null> => {
+  const updateClaim = useCallback(async (id: string, data: UpdateClaimData) => {
+    setIsLoading(true);
+    setError(null);
     try {
-      const newClaim = await claimService.createClaim(data);
-      await fetchClaims();
-      return newClaim;
-    } catch (err: any) {
-      setError(err.message || 'Failed to create claim');
-      return null;
-    }
-  }, [fetchClaims]);
-
-  const updateClaim = useCallback(async (id: string, data: any): Promise<Claim | null> => {
-    try {
-      const updatedClaim = await claimService.updateClaim(id, data);
+      const updatedClaim = await claimService.update(id, data);
       setClaims((prev) =>
-        prev.map((c) => (c.id === id ? updatedClaim : c))
+        prev.map((claim) => (claim.id === id ? updatedClaim : claim))
       );
       return updatedClaim;
     } catch (err: any) {
-      setError(err.message || 'Failed to update claim');
-      return null;
+      setError(err.response?.data?.message || 'Failed to update claim');
+      throw err;
+    } finally {
+      setIsLoading(false);
     }
   }, []);
 
-  const deleteClaim = useCallback(async (id: string): Promise<boolean> => {
+  const deleteClaim = useCallback(async (id: string) => {
+    setIsLoading(true);
+    setError(null);
     try {
-      await claimService.deleteClaim(id);
-      setClaims((prev) => prev.filter((c) => c.id !== id));
-      return true;
+      await claimService.delete(id);
+      setClaims((prev) => prev.filter((claim) => claim.id !== id));
     } catch (err: any) {
-      setError(err.message || 'Failed to delete claim');
-      return false;
+      setError(err.response?.data?.message || 'Failed to delete claim');
+      throw err;
+    } finally {
+      setIsLoading(false);
     }
   }, []);
 
-  const submitClaim = useCallback(async (id: string): Promise<Claim | null> => {
+  const getClaim = useCallback(async (id: string) => {
+    setIsLoading(true);
+    setError(null);
     try {
-      const submittedClaim = await claimService.submitClaim(id);
+      const claim = await claimService.getById(id);
+      return claim;
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Failed to fetch claim');
+      throw err;
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  const submitClaim = useCallback(async (id: string) => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const submittedClaim = await claimService.submit(id);
       setClaims((prev) =>
-        prev.map((c) => (c.id === id ? submittedClaim : c))
+        prev.map((claim) => (claim.id === id ? submittedClaim : claim))
       );
       return submittedClaim;
     } catch (err: any) {
-      setError(err.message || 'Failed to submit claim');
-      return null;
+      setError(err.response?.data?.message || 'Failed to submit claim');
+      throw err;
+    } finally {
+      setIsLoading(false);
     }
   }, []);
 
-  const getStats = useCallback(async (): Promise<ClaimStats | null> => {
+  const approveClaim = useCallback(async (id: string, approvedAmount: number, notes?: string) => {
+    setIsLoading(true);
+    setError(null);
     try {
-      return await claimService.getClaimStats();
-    } catch (err: any) {
-      setError(err.message || 'Failed to fetch claim stats');
-      return null;
-    }
-  }, []);
-
-  const getPendingCount = useCallback(async (): Promise<number> => {
-    try {
-      return await claimService.getPendingCount();
-    } catch (err: any) {
-      setError(err.message || 'Failed to fetch pending count');
-      return 0;
-    }
-  }, []);
-
-  const workflowAction = useCallback(async (id: string, action: any): Promise<Claim | null> => {
-    try {
-      const updatedClaim = await claimService.workflowAction(id, action);
+      const approvedClaim = await claimService.approve(id, approvedAmount, notes);
       setClaims((prev) =>
-        prev.map((c) => (c.id === id ? updatedClaim : c))
+        prev.map((claim) => (claim.id === id ? approvedClaim : claim))
       );
-      return updatedClaim;
+      return approvedClaim;
     } catch (err: any) {
-      setError(err.message || 'Failed to perform workflow action');
-      return null;
+      setError(err.response?.data?.message || 'Failed to approve claim');
+      throw err;
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  const rejectClaim = useCallback(async (id: string, reason: string) => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const rejectedClaim = await claimService.reject(id, reason);
+      setClaims((prev) =>
+        prev.map((claim) => (claim.id === id ? rejectedClaim : claim))
+      );
+      return rejectedClaim;
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Failed to reject claim');
+      throw err;
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  const settleClaim = useCallback(async (id: string, settlementAmount: number, notes?: string) => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const settledClaim = await claimService.settle(id, settlementAmount, notes);
+      setClaims((prev) =>
+        prev.map((claim) => (claim.id === id ? settledClaim : claim))
+      );
+      return settledClaim;
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Failed to settle claim');
+      throw err;
+    } finally {
+      setIsLoading(false);
     }
   }, []);
 
   return {
     claims,
-    totalItems,
-    totalPages,
-    currentPage,
+    pagination,
     isLoading,
     error,
-    refetch: fetchClaims,
-    fetchClaim,
+    fetchClaims,
     createClaim,
     updateClaim,
     deleteClaim,
+    getClaim,
     submitClaim,
-    getStats,
-    getPendingCount,
-    workflowAction,
+    approveClaim,
+    rejectClaim,
+    settleClaim,
   };
+};
+
+export const useClaimStats = () => {
+  const [stats, setStats] = useState<ClaimStats | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const fetchStats = useCallback(async () => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const data = await claimService.getStats();
+      setStats(data);
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Failed to fetch claim stats');
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchStats();
+  }, [fetchStats]);
+
+  return { stats, isLoading, error, refetch: fetchStats };
+};
+
+export const useClaimHistory = (claimId: string) => {
+  const [history, setHistory] = useState<ClaimHistory[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const fetchHistory = useCallback(async () => {
+    if (!claimId) return;
+    setIsLoading(true);
+    setError(null);
+    try {
+      const data = await claimService.getHistory(claimId);
+      setHistory(data);
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Failed to fetch claim history');
+    } finally {
+      setIsLoading(false);
+    }
+  }, [claimId]);
+
+  useEffect(() => {
+    fetchHistory();
+  }, [fetchHistory]);
+
+  return { history, isLoading, error, refetch: fetchHistory };
 };

@@ -3,62 +3,45 @@ export interface Invoice {
   invoiceNumber: string;
   policyId: string;
   policyNumber: string;
-  customerId: string;
-  customerName: string;
-  customerEmail: string;
+  holderId: string;
+  holderName: string;
+  holderEmail: string;
   type: InvoiceType;
   status: InvoiceStatus;
+  amount: number;
+  taxAmount?: number;
+  discountAmount?: number;
+  totalAmount: number;
   issueDate: string;
   dueDate: string;
   paidDate?: string;
-  subtotal: number;
-  taxAmount: number;
-  discountAmount: number;
-  totalAmount: number;
-  paidAmount: number;
-  balanceDue: number;
-  currency: string;
+  description: string;
   items: InvoiceItem[];
   payments?: Payment[];
   notes?: string;
-  terms?: string;
   createdAt: string;
   updatedAt: string;
 }
-export enum BillingStatus {
-  PENDING = 'pending',
-  PAID = 'paid',
-  OVERDUE = 'overdue',
-  CANCELLED = 'cancelled',
-  PARTIAL = 'partial'
+
+export enum InvoiceType {
+  PREMIUM = 'PREMIUM',
+  RENEWAL = 'RENEWAL',
+  ADJUSTMENT = 'ADJUSTMENT',
+  CANCELLATION = 'CANCELLATION',
+  LATE_FEE = 'LATE_FEE',
+  PROCESSING_FEE = 'PROCESSING_FEE',
+  OTHER = 'OTHER'
 }
 
-export enum BillingType {
-  PREMIUM = 'premium',
-  COMMISSION = 'commission',
-  FEE = 'fee',
-  REFUND = 'refund',
-  OTHER = 'other'
+export enum InvoiceStatus {
+  DRAFT = 'DRAFT',
+  SENT = 'SENT',
+  PAID = 'PAID',
+  PARTIALLY_PAID = 'PARTIALLY_PAID',
+  OVERDUE = 'OVERDUE',
+  CANCELLED = 'CANCELLED',
+  REFUNDED = 'REFUNDED'
 }
-
-export interface Invoice {
-  id: string;
-  invoiceNumber: string;
-  type: BillingType;
-  status: BillingStatus;
-  amount: number;
-  dueDate: string;
-  paidDate?: string;
-  clientId: string;
-  clientName: string;
-  policyId?: string;
-  claimId?: string;
-  createdAt: string;
-  updatedAt: string;
-}
-export type InvoiceType = 'premium' | 'endorsement' | 'renewal' | 'fee' | 'refund';
-
-export type InvoiceStatus = 'draft' | 'sent' | 'paid' | 'partially_paid' | 'overdue' | 'cancelled' | 'refunded';
 
 export interface InvoiceItem {
   id: string;
@@ -66,95 +49,66 @@ export interface InvoiceItem {
   quantity: number;
   unitPrice: number;
   totalPrice: number;
-  taxRate?: number;
-  taxAmount?: number;
 }
 
 export interface Payment {
   id: string;
   invoiceId: string;
   amount: number;
-  currency: string;
-  paymentDate: string;
-  paymentMethod: PaymentMethod;
-  referenceNumber?: string;
-  status: PaymentStatus;
+  method: PaymentMethod;
+  reference?: string;
+  transactionId?: string;
+  paidBy: string;
+  paidAt: string;
   notes?: string;
-  processedBy?: string;
-  createdAt: string;
 }
 
-export type PaymentMethod = 
-  | 'credit_card' 
-  | 'debit_card' 
-  | 'bank_transfer' 
-  | 'check' 
-  | 'cash' 
-  | 'paypal' 
-  | 'stripe' 
-  | 'other';
-
-export type PaymentStatus = 'pending' | 'completed' | 'failed' | 'refunded';
-
-export interface PaymentPlan {
-  id: string;
-  policyId: string;
-  frequency: PaymentFrequency;
-  totalAmount: number;
-  installmentAmount: number;
-  numberOfInstallments: number;
-  startDate: string;
-  installments: Installment[];
-}
-
-export type PaymentFrequency = 'monthly' | 'quarterly' | 'semi_annual' | 'annual';
-
-export interface Installment {
-  id: string;
-  installmentNumber: number;
-  amount: number;
-  dueDate: string;
-  status: InstallmentStatus;
-  paidDate?: string;
-  paidAmount?: number;
-}
-
-export type InstallmentStatus = 'pending' | 'paid' | 'overdue' | 'waived';
-
-export interface BillingStats {
-  totalInvoices: number;
-  totalRevenue: number;
-  totalOutstanding: number;
-  totalOverdue: number;
-  invoicesByStatus: Record<InvoiceStatus, number>;
-  revenueByMonth: Record<string, number>;
-}
-
-export interface InvoiceFilter {
-  status?: InvoiceStatus;
-  type?: InvoiceType;
-  search?: string;
-  customerId?: string;
-  policyId?: string;
-  dateFrom?: string;
-  dateTo?: string;
-  minAmount?: number;
-  maxAmount?: number;
+export enum PaymentMethod {
+  CREDIT_CARD = 'CREDIT_CARD',
+  DEBIT_CARD = 'DEBIT_CARD',
+  BANK_TRANSFER = 'BANK_TRANSFER',
+  CASH = 'CASH',
+  CHECK = 'CHECK',
+  DIGITAL_WALLET = 'DIGITAL_WALLET',
+  OTHER = 'OTHER'
 }
 
 export interface CreateInvoiceData {
   policyId: string;
   type: InvoiceType;
+  amount: number;
+  taxAmount?: number;
+  discountAmount?: number;
   dueDate: string;
-  items: Omit<InvoiceItem, 'id'>[];
+  description: string;
+  items: InvoiceItem[];
   notes?: string;
-  terms?: string;
 }
 
 export interface CreatePaymentData {
   invoiceId: string;
   amount: number;
-  paymentMethod: PaymentMethod;
-  referenceNumber?: string;
+  method: PaymentMethod;
+  reference?: string;
+  transactionId?: string;
   notes?: string;
+}
+
+export interface BillingFilters {
+  search?: string;
+  status?: InvoiceStatus;
+  type?: InvoiceType;
+  policyId?: string;
+  holderId?: string;
+  dueDateFrom?: string;
+  dueDateTo?: string;
+  isOverdue?: boolean;
+}
+
+export interface BillingStats {
+  totalInvoiced: number;
+  totalPaid: number;
+  totalOutstanding: number;
+  totalOverdue: number;
+  byStatus: Record<InvoiceStatus, number>;
 }

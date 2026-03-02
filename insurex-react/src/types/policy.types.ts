@@ -6,80 +6,49 @@ export interface Policy {
   holderId: string;
   holderName: string;
   holderEmail: string;
-  insuredId?: string;
-  insuredName?: string;
+  holderPhone?: string;
+  insuredAmount: number;
+  premium: number;
   startDate: string;
   endDate: string;
-  premium: number;
-  coverageAmount: number;
-  deductible: number;
-  currency: string;
-  paymentFrequency: PaymentFrequency;
-  description?: string;
-  terms?: string;
-  exclusions?: string[];
-  benefits?: PolicyBenefit[];
-  documents?: PolicyDocument[];
-  assets?: PolicyAsset[];
+  deductible?: number;
+  coverageDetails: CoverageDetail[];
   beneficiaries?: Beneficiary[];
+  documents?: PolicyDocument[];
+  notes?: string;
   createdAt: string;
   updatedAt: string;
   createdBy: string;
-  updatedBy: string;
+  agentId?: string;
+  agentName?: string;
 }
 
-export type PolicyType = 
-  | 'life'
-  | 'health'
-  | 'auto'
-  | 'home'
-  | 'property'
-  | 'liability'
-  | 'travel'
-  | 'business'
-  | 'marine'
-  | 'agriculture'
-  | 'other';
+export enum PolicyType {
+  LIFE = 'LIFE',
+  HEALTH = 'HEALTH',
+  AUTO = 'AUTO',
+  HOME = 'HOME',
+  BUSINESS = 'BUSINESS',
+  TRAVEL = 'TRAVEL',
+  LIABILITY = 'LIABILITY',
+  PROPERTY = 'PROPERTY'
+}
 
-export type PolicyStatus = 
-  | 'draft'
-  | 'pending'
-  | 'active'
-  | 'suspended'
-  | 'expired'
-  | 'cancelled'
-  | 'renewed';
+export enum PolicyStatus {
+  DRAFT = 'DRAFT',
+  PENDING = 'PENDING',
+  ACTIVE = 'ACTIVE',
+  EXPIRED = 'EXPIRED',
+  CANCELLED = 'CANCELLED',
+  SUSPENDED = 'SUSPENDED'
+}
 
-export type PaymentFrequency = 
-  | 'monthly'
-  | 'quarterly'
-  | 'semi-annual'
-  | 'annual'
-  | 'single';
-
-export interface PolicyBenefit {
+export interface CoverageDetail {
   id: string;
   name: string;
   description: string;
-  coverageAmount: number;
-  conditions?: string;
-}
-
-export interface PolicyDocument {
-  id: string;
-  name: string;
-  type: string;
-  url: string;
-  uploadedAt: string;
-  uploadedBy: string;
-}
-
-export interface PolicyAsset {
-  id: string;
-  assetId: string;
-  assetName: string;
-  assetType: string;
-  coverageAmount: number;
+  amount: number;
+  premium: number;
 }
 
 export interface Beneficiary {
@@ -90,71 +59,53 @@ export interface Beneficiary {
   contactInfo?: string;
 }
 
-export interface PolicyFilter {
-  status?: PolicyStatus;
-  type?: PolicyType;
-  search?: string;
-  holderId?: string;
-  startDateFrom?: string;
-  startDateTo?: string;
-  endDateFrom?: string;
-  endDateTo?: string;
-  minPremium?: number;
-  maxPremium?: number;
+export interface PolicyDocument {
+  id: string;
+  name: string;
+  type: string;
+  url: string;
+  uploadedAt: string;
 }
 
 export interface CreatePolicyData {
+  policyNumber: string;
   type: PolicyType;
-  holderId: string;
-  insuredId?: string;
+  holderId?: string;
+  holderName: string;
+  holderEmail: string;
+  holderPhone?: string;
+  insuredAmount: number;
+  premium: number;
   startDate: string;
   endDate: string;
-  premium: number;
-  coverageAmount: number;
   deductible?: number;
-  currency?: string;
-  paymentFrequency: PaymentFrequency;
-  description?: string;
-  terms?: string;
-  exclusions?: string[];
-  benefits?: Omit<PolicyBenefit, 'id'>[];
-  beneficiaries?: Omit<Beneficiary, 'id'>[];
+  coverageDetails: CoverageDetail[];
+  beneficiaries?: Beneficiary[];
+  notes?: string;
 }
 
 export interface UpdatePolicyData extends Partial<CreatePolicyData> {
   status?: PolicyStatus;
 }
 
+export interface PolicyFilters {
+  search?: string;
+  type?: PolicyType;
+  status?: PolicyStatus;
+  holderId?: string;
+  agentId?: string;
+  startDateFrom?: string;
+  startDateTo?: string;
+  endDateFrom?: string;
+  endDateTo?: string;
+}
+
 export interface PolicyStats {
-  totalPolicies: number;
-  activePolicies: number;
-  pendingPolicies: number;
-  expiredPolicies: number;
-  cancelledPolicies: number;
+  total: number;
+  active: number;
+  pending: number;
+  expired: number;
+  cancelled: number;
   totalPremium: number;
-  totalCoverage: number;
-  policiesByType: Record<PolicyType, number>;
-  policiesByStatus: Record<PolicyStatus, number>;
-}
-
-export interface PaginatedResponse<T> {
-  items: T[];
-  totalItems: number;
-  page: number;
-  pageSize: number;
-  totalPages: number;
-  hasNextPage: boolean;
-  hasPreviousPage: boolean;
-}
-
-export interface PolicyRenewalData {
-  newEndDate: string;
-  newPremium?: number;
-  reason?: string;
-}
-
-export interface PolicyCancellationData {
-  reason: string;
-  cancellationDate: string;
-  refundAmount?: number;
+  totalInsured: number;
 }

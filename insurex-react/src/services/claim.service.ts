@@ -1,180 +1,106 @@
-import api from './api';
-import {
-  Claim,
-  ClaimFilter,
-  CreateClaimData,
-  UpdateClaimData,
+import apiClient from './api.service';
+import { 
+  Claim, 
+  CreateClaimData, 
+  UpdateClaimData, 
+  ClaimFilters, 
   ClaimStats,
-  ClaimWorkflowAction,
-  ClaimNote,
-  ClaimPayment,
+  ClaimHistory 
 } from '../types/claim.types';
-import { PaginatedResponse } from '../types/policy.types';
+import { PaginatedResponse } from './policy.service';
 
-export const claimService = {
-  // Get all claims with pagination and filters
-  async getClaims(
-    page: number = 1,
-    pageSize: number = 10,
-    filters?: ClaimFilter
-  ): Promise<PaginatedResponse<Claim>> {
-    const params = new URLSearchParams({
-      page: page.toString(),
-      pageSize: pageSize.toString(),
-      ...(filters?.status && { status: filters.status }),
-      ...(filters?.type && { type: filters.type }),
-      ...(filters?.search && { search: filters.search }),
-      ...(filters?.policyId && { policyId: filters.policyId }),
-      ...(filters?.claimantId && { claimantId: filters.claimantId }),
-      ...(filters?.assignedTo && { assignedTo: filters.assignedTo }),
-      ...(filters?.dateFrom && { dateFrom: filters.dateFrom }),
-      ...(filters?.dateTo && { dateTo: filters.dateTo }),
-      ...(filters?.minAmount && { minAmount: filters.minAmount.toString() }),
-      ...(filters?.maxAmount && { maxAmount: filters.maxAmount.toString() }),
-    });
-
-    const response = await api.get<PaginatedResponse<Claim>>(`/claims?${params}`);
+class ClaimService {
+  async getAll(filters?: ClaimFilters, page = 1, limit = 10): Promise<PaginatedResponse<Claim>> {
+    const params = new URLSearchParams();
+    params.append('page', page.toString());
+    params.append('limit', limit.toString());
+    
+    if (filters) {
+      Object.entries(filters).forEach(([key, value]) => {
+        if (value !== undefined && value !== null && value !== '') {
+          params.append(key, value.toString());
+        }
+      });
+    }
+    
+    const response = await apiClient.get<PaginatedResponse<Claim>>(`/claims?${params.toString()}`);
     return response.data;
-  },
+  }
 
-  // Get a single claim by ID
-  async getClaim(id: string): Promise<Claim> {
-    const response = await api.get<Claim>(`/claims/${id}`);
+  async getById(id: string): Promise<Claim> {
+    const response = await apiClient.get<Claim>(`/claims/${id}`);
     return response.data;
-  },
+  }
 
-  // Get claim by claim number
-  async getClaimByNumber(claimNumber: string): Promise<Claim> {
-    const response = await api.get<Claim>(`/claims/number/${claimNumber}`);
+  async create(data: CreateClaimData): Promise<Claim> {
+    const response = await apiClient.post<Claim>('/claims', data);
     return response.data;
-  },
+  }
 
-  // Create a new claim
-  async createClaim(data: CreateClaimData): Promise<Claim> {
-    const response = await api.post<Claim>('/claims', data);
+  async update(id: string, data: UpdateClaimData): Promise<Claim> {
+    const response = await apiClient.patch<Claim>(`/claims/${id}`, data);
     return response.data;
-  },
+  }
 
-  // Update an existing claim
-  async updateClaim(id: string, data: UpdateClaimData): Promise<Claim> {
-    const response = await api.put<Claim>(`/claims/${id}`, data);
+  async delete(id: string): Promise<void> {
+    await apiClient.delete(`/claims/${id}`);
+  }
+
+  async getStats(): Promise<ClaimStats> {
+    const response = await apiClient.get<ClaimStats>('/claims/stats');
     return response.data;
-  },
+  }
 
-  // Delete a claim
-  async deleteClaim(id: string): Promise<void> {
-    await api.delete(`/claims/${id}`);
-  },
-
-  // Get claim statistics
-  async getClaimStats(): Promise<ClaimStats> {
-    const response = await api.get<ClaimStats>('/claims/stats');
+  async getHistory(id: string): Promise<ClaimHistory[]> {
+    const response = await apiClient.get<ClaimHistory[]>(`/claims/${id}/history`);
     return response.data;
-  },
+  }
 
-  // Get claims by policy
-  async getClaimsByPolicy(policyId: string): Promise<Claim[]> {
-    const response = await api.get<Claim[]>(`/claims/policy/${policyId}`);
+  async submit(id: string): Promise<Claim> {
+    const response = await apiClient.post<Claim>(`/claims/${id}/submit`);
     return response.data;
-  },
+  }
 
-  // Get claims by claimant
-  async getClaimsByClaimant(claimantId: string): Promise<Claim[]> {
-    const response = await api.get<Claim[]>(`/claims/claimant/${claimantId}`);
+  async approve(id: string, approvedAmount: number, notes?: string): Promise<Claim> {
+    const response = await apiClient.post<Claim>(`/claims/${id}/approve`, { approvedAmount, notes });
     return response.data;
-  },
+  }
 
-  // Get claims assigned to user
-  async getAssignedClaims(userId: string): Promise<Claim[]> {
-    const response = await api.get<Claim[]>(`/claims/assigned/${userId}`);
+  async reject(id: string, reason: string): Promise<Claim> {
+    const response = await apiClient.post<Claim>(`/claims/${id}/reject`, { reason });
     return response.data;
-  },
+  }
 
-  // Submit a claim
-  async submitClaim(id: string): Promise<Claim> {
-    const response = await api.post<Claim>(`/claims/${id}/submit`);
+  async requestInfo(id: string, message: string): Promise<Claim> {
+    const response = await apiClient.post<Claim>(`/claims/${id}/request-info`, { message });
     return response.data;
-  },
+  }
 
-  // Workflow actions
-  async workflowAction(id: string, action: ClaimWorkflowAction): Promise<Claim> {
-    const response = await api.post<Claim>(`/claims/${id}/workflow`, action);
+  async settle(id: string, settlementAmount: number, notes?: string): Promise<Claim> {
+    const response = await apiClient.post<Claim>(`/claims/${id}/settle`, { settlementAmount, notes });
     return response.data;
-  },
+  }
 
-  // Assign claim to user
-  async assignClaim(id: string, userId: string): Promise<Claim> {
-    const response = await api.post<Claim>(`/claims/${id}/assign`, { userId });
+  async assign(id: string, userId: string): Promise<Claim> {
+    const response = await apiClient.post<Claim>(`/claims/${id}/assign`, { userId });
     return response.data;
-  },
+  }
 
-  // Add note to claim
-  async addNote(id: string, content: string, isInternal: boolean = false): Promise<ClaimNote> {
-    const response = await api.post<ClaimNote>(`/claims/${id}/notes`, { content, isInternal });
-    return response.data;
-  },
-
-  // Get claim notes
-  async getNotes(id: string): Promise<ClaimNote[]> {
-    const response = await api.get<ClaimNote[]>(`/claims/${id}/notes`);
-    return response.data;
-  },
-
-  // Add payment to claim
-  async addPayment(id: string, data: Omit<ClaimPayment, 'id'>): Promise<ClaimPayment> {
-    const response = await api.post<ClaimPayment>(`/claims/${id}/payments`, data);
-    return response.data;
-  },
-
-  // Get claim payments
-  async getPayments(id: string): Promise<ClaimPayment[]> {
-    const response = await api.get<ClaimPayment[]>(`/claims/${id}/payments`);
-    return response.data;
-  },
-
-  // Upload claim document
-  async uploadDocument(id: string, file: File, name?: string): Promise<void> {
+  async uploadDocument(id: string, file: File, name: string): Promise<void> {
     const formData = new FormData();
     formData.append('file', file);
-    if (name) {
-      formData.append('name', name);
-    }
-
-    await api.post(`/claims/${id}/documents`, formData, {
+    formData.append('name', name);
+    
+    await apiClient.post(`/claims/${id}/documents`, formData, {
       headers: {
         'Content-Type': 'multipart/form-data',
       },
     });
-  },
+  }
 
-  // Delete claim document
-  async deleteDocument(claimId: string, documentId: string): Promise<void> {
-    await api.delete(`/claims/${claimId}/documents/${documentId}`);
-  },
+  async deleteDocument(id: string, documentId: string): Promise<void> {
+    await apiClient.delete(`/claims/${id}/documents/${documentId}`);
+  }
+}
 
-  // Search claims
-  async searchClaims(query: string): Promise<Claim[]> {
-    const response = await api.get<Claim[]>(`/claims/search?q=${encodeURIComponent(query)}`);
-    return response.data;
-  },
-
-  // Get pending claims count
-  async getPendingCount(): Promise<number> {
-    const response = await api.get<{ count: number }>('/claims/pending-count');
-    return response.data.count;
-  },
-
-  // Export claims
-  async exportClaims(format: 'csv' | 'excel' | 'pdf', filters?: ClaimFilter): Promise<Blob> {
-    const params = new URLSearchParams({
-      format,
-      ...(filters?.status && { status: filters.status }),
-      ...(filters?.type && { type: filters.type }),
-    });
-
-    const response = await api.get(`/claims/export?${params}`, {
-      responseType: 'blob',
-    });
-    return response.data;
-  },
-};
+export const claimService = new ClaimService();

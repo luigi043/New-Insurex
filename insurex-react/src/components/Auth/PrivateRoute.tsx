@@ -1,7 +1,7 @@
 import React from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
-import { CircularProgress, Box } from '@mui/material';
 import { useAuth } from '../../hooks/useAuth';
+import { CircularProgress, Box } from '@mui/material';
 
 interface PrivateRouteProps {
   children: React.ReactNode;
@@ -12,7 +12,7 @@ export const PrivateRoute: React.FC<PrivateRouteProps> = ({
   children, 
   requiredRoles 
 }) => {
-  const { isAuthenticated, isLoading, hasRole } = useAuth();
+  const { isAuthenticated, isLoading, user } = useAuth();
   const location = useLocation();
 
   if (isLoading) {
@@ -22,7 +22,7 @@ export const PrivateRoute: React.FC<PrivateRouteProps> = ({
           display: 'flex',
           justifyContent: 'center',
           alignItems: 'center',
-          height: '100vh',
+          minHeight: '100vh',
         }}
       >
         <CircularProgress />
@@ -34,7 +34,7 @@ export const PrivateRoute: React.FC<PrivateRouteProps> = ({
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
-  if (requiredRoles && !hasRole(requiredRoles)) {
+  if (requiredRoles && user && !requiredRoles.includes(user.role)) {
     return <Navigate to="/unauthorized" replace />;
   }
 
