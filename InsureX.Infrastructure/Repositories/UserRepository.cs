@@ -20,6 +20,9 @@ namespace InsureX.Infrastructure.Repositories
         public async Task<User?> GetByEmailAsync(string email)
             => await _context.Users.FirstOrDefaultAsync(u => u.Email == email);
 
+        public async Task<User?> GetByRefreshTokenAsync(string refreshToken)
+            => await _context.Users.FirstOrDefaultAsync(u => u.RefreshToken == refreshToken);
+
         public async Task<IEnumerable<User>> GetAllAsync()
             => await _context.Users.ToListAsync();
 
@@ -47,6 +50,9 @@ namespace InsureX.Infrastructure.Repositories
         }
 
         public async Task<bool> ExistsAsync(string email)
+            => await _context.Users.AnyAsync(u => u.Email == email);
+
+        public async Task<bool> ExistsByEmailAsync(string email)
             => await _context.Users.AnyAsync(u => u.Email == email);
 
         public async Task<int> CountAsync()

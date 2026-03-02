@@ -1,63 +1,29 @@
-// Controllers/AssetsController.cs
-using Insurex.Api.Features.Assets.CreateAsset;
-using Insurex.Api.Features.Assets.GetAssetById;
-using Insurex.Api.Features.Assets.GetAssets;
-using Insurex.Api.Features.Assets.UpdateAsset;
-using Insurex.Api.Features.Assets.DeleteAsset;
 using MediatR;
-using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Mvc;
+using InsureX.Application.Interfaces;
 
-namespace Insurex.Api.Controllers;
+namespace InsureX.API.Features.Reports.GenerateReport;
 
-[ApiController]
-[Route("api/[controller]")]
-[Authorize]
-public class AssetsController : ControllerBase
+public record GenerateReportQuery(string Period = "month") : IRequest<object>;
+
+public class GenerateReportHandler : IRequestHandler<GenerateReportQuery, object>
 {
-    private readonly IMediator _mediator;
+    private readonly IReportService _reportService;
 
-    public AssetsController(IMediator mediator)
+    public GenerateReportHandler(IReportService reportService)
     {
-        _mediator = mediator;
+        _reportService = reportService;
     }
 
-    [HttpGet]
-    public async Task<ActionResult<PagedList<AssetListResponse>>> GetAssets(
-        [FromQuery] GetAssetsQuery query)
+    public async Task<object> Handle(GenerateReportQuery request, CancellationToken cancellationToken)
     {
-        var result = await _mediator.Send(query);
-        return Ok(result);
-    }
-
-    [HttpGet("{id:guid}")]
-    public async Task<ActionResult<AssetDetailResponse>> GetAsset(Guid id)
-    {
-        var result = await _mediator.Send(new GetAssetByIdQuery(id));
-        return Ok(result);
-    }
-
-    [HttpPost]
-    [Authorize(Roles = "Admin,Insurer,Client")]
-    public async Task<ActionResult<AssetResponse>> CreateAsset(CreateAssetCommand command)
-    {
-        var result = await _mediator.Send(command);
-        return CreatedAtAction(nameof(GetAsset), new { id = result.Id }, result);
-    }
-
-    [HttpPut("{id:guid}")]
-    [Authorize(Roles = "Admin,Insurer")]
-    public async Task<ActionResult<AssetResponse>> UpdateAsset(Guid id, UpdateAssetCommand command)
-    {
-        var result = await _mediator.Send(command with { AssetId = id });
-        return Ok(result);
-    }
-
-    [HttpDelete("{id:guid}")]
-    [Authorize(Roles = "Admin")]
-    public async Task<ActionResult> DeleteAsset(Guid id)
-    {
-        await _mediator.Send(new DeleteAssetCommand(id));
-        return NoContent();
+        var to = DateTime.UtcNow;
+        var from = request.Period switch
+        {
+            "week" => to.AddDays(-7),
+            "quarter" => to.AddMonths(-3),
+            "year" => to.AddYears(-1),
+            _ => to.AddMonths(-1)
+        };
+        return await _reportService.GetOverviewAsync(from, to);
     }
 }

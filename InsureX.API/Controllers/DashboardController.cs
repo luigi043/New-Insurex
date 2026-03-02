@@ -1,6 +1,6 @@
-﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
-using InsureX.Application.Services.Dashboard;
+using InsureX.Application.Interfaces;
 
 namespace InsureX.API.Controllers;
 
@@ -21,75 +21,53 @@ public class DashboardController : ControllerBase
     [HttpGet("summary")]
     public async Task<ActionResult> GetSummary()
     {
-        try
-        {
-            var summary = await _dashboardService.GetDashboardSummaryAsync();
-            return Ok(summary);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error getting dashboard summary");
-            return StatusCode(500, new { message = "Error retrieving dashboard data" });
-        }
+        try { return Ok(await _dashboardService.GetDashboardStatsAsync()); }
+        catch (Exception ex) { _logger.LogError(ex, "Error getting dashboard summary"); return StatusCode(500, new { message = "Error retrieving dashboard data" }); }
     }
 
     [HttpGet("charts/policy-status")]
     public async Task<ActionResult> GetPolicyChartData()
     {
-        try
-        {
-            var chartData = await _dashboardService.GetPolicyChartDataAsync();
-            return Ok(chartData);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error getting policy chart data");
-            return StatusCode(500, new { message = "Error retrieving chart data" });
-        }
+        try { return Ok(await _dashboardService.GetPolicyTypeStatsAsync()); }
+        catch (Exception ex) { _logger.LogError(ex, "Error getting chart data"); return StatusCode(500, new { message = "Error retrieving chart data" }); }
     }
 
-    [HttpGet("recent-activity")]
-    public async Task<ActionResult> GetRecentActivity([FromQuery] int count = 10)
+    [HttpGet("charts/claim-status")]
+    public async Task<ActionResult> GetClaimChartData()
+    {
+        try { return Ok(await _dashboardService.GetClaimStatusStatsAsync()); }
+        catch (Exception ex) { _logger.LogError(ex, "Error getting claim chart data"); return StatusCode(500, new { message = "Error retrieving chart data" }); }
+    }
+
+    [HttpGet("charts/asset-types")]
+    public async Task<ActionResult> GetAssetChartData()
+    {
+        try { return Ok(await _dashboardService.GetAssetTypeStatsAsync()); }
+        catch (Exception ex) { _logger.LogError(ex, "Error getting asset chart data"); return StatusCode(500, new { message = "Error retrieving chart data" }); }
+    }
+
+    [HttpGet("financial")]
+    public async Task<ActionResult> GetFinancialSummary(
+        [FromQuery] DateTime? startDate,
+        [FromQuery] DateTime? endDate)
     {
         try
         {
-            var activities = await _dashboardService.GetRecentActivityAsync(count);
-            return Ok(activities);
+            var from = startDate ?? DateTime.UtcNow.AddMonths(-1);
+            var to = endDate ?? DateTime.UtcNow;
+            return Ok(await _dashboardService.GetFinancialSummaryAsync(from, to));
         }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error getting recent activity");
-            return StatusCode(500, new { message = "Error retrieving activity data" });
-        }
+        catch (Exception ex) { _logger.LogError(ex, "Error getting financial summary"); return StatusCode(500, new { message = "Error retrieving financial data" }); }
     }
 
-    [HttpGet("premium-trend")]
-    public async Task<ActionResult> GetPremiumTrend([FromQuery] int months = 6)
+    [HttpGet("monthly-stats")]
+    public async Task<ActionResult> GetMonthlyStats([FromQuery] int year = 0)
     {
         try
         {
-            var trend = await _dashboardService.GetMonthlyPremiumTrendAsync(months);
-            return Ok(trend);
+            if (year == 0) year = DateTime.UtcNow.Year;
+            return Ok(await _dashboardService.GetMonthlyStatsAsync(year));
         }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error getting premium trend");
-            return StatusCode(500, new { message = "Error retrieving premium data" });
-        }
-    }
-
-    [HttpGet("expiring-chart")]
-    public async Task<ActionResult> GetExpiringChart()
-    {
-        try
-        {
-            var chartData = await _dashboardService.GetExpiringPoliciesChartAsync();
-            return Ok(chartData);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error getting expiring chart");
-            return StatusCode(500, new { message = "Error retrieving expiring policies data" });
-        }
+        catch (Exception ex) { _logger.LogError(ex, "Error getting monthly stats"); return StatusCode(500, new { message = "Error retrieving monthly data" }); }
     }
 }

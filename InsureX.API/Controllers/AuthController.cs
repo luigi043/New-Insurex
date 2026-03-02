@@ -1,6 +1,6 @@
-﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
-using InsureX.Application.Services;
+using InsureX.Application.Interfaces;
 using InsureX.Application.DTOs.Auth;
 
 namespace InsureX.API.Controllers;
@@ -19,17 +19,14 @@ public class AuthController : ControllerBase
     }
 
     [HttpPost("login")]
-    public async Task<ActionResult<AuthResponseDto>> Login(LoginDto loginDto)
+    public async Task<ActionResult<AuthResponseDto>> Login([FromBody] LoginRequestDto loginDto)
     {
         try
         {
             var result = await _authService.LoginAsync(loginDto);
             return Ok(result);
         }
-        catch (UnauthorizedAccessException ex)
-        {
-            return Unauthorized(new { message = ex.Message });
-        }
+        catch (UnauthorizedAccessException ex) { return Unauthorized(new { message = ex.Message }); }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error during login");
@@ -38,17 +35,14 @@ public class AuthController : ControllerBase
     }
 
     [HttpPost("register")]
-    public async Task<ActionResult<AuthResponseDto>> Register(RegisterDto registerDto)
+    public async Task<ActionResult<AuthResponseDto>> Register([FromBody] RegisterRequestDto registerDto)
     {
         try
         {
             var result = await _authService.RegisterAsync(registerDto);
             return Ok(result);
         }
-        catch (InvalidOperationException ex)
-        {
-            return BadRequest(new { message = ex.Message });
-        }
+        catch (InvalidOperationException ex) { return BadRequest(new { message = ex.Message }); }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error during registration");
@@ -70,30 +64,11 @@ public class AuthController : ControllerBase
     }
 
     [HttpGet("test")]
-    public IActionResult Test()
-    {
-        return Ok(new { message = "API is working!", timestamp = DateTime.UtcNow });
-    }
+    public IActionResult Test() => Ok(new { message = "API is working!", timestamp = DateTime.UtcNow });
 
     [HttpGet("health")]
-    public IActionResult Health()
-    {
-        return Ok(new
-        {
-            status = "Healthy",
-            environment = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") ?? "Development",
-            timestamp = DateTime.UtcNow
-        });
-    }
+    public IActionResult Health() => Ok(new { status = "Healthy", timestamp = DateTime.UtcNow });
 
     [HttpGet("info")]
-    public IActionResult Info()
-    {
-        return Ok(new
-        {
-            application = "InsureX API",
-            version = "1.0.0",
-            framework = ".NET 8.0"
-        });
-    }
+    public IActionResult Info() => Ok(new { application = "InsureX API", version = "1.0.0", framework = ".NET 8.0" });
 }

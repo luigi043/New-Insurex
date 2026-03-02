@@ -1,4 +1,4 @@
-﻿using System.IdentityModel.Tokens.Jwt;
+using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
@@ -21,25 +21,24 @@ public class JwtSettings
 public class JwtService : IJwtService
 {
     private readonly JwtSettings _settings;
+    private readonly JwtSecurityTokenHandler _tokenHandler = new();
 
     public JwtService(IOptions<JwtSettings> settings)
     {
         _settings = settings.Value;
     }
 
-    public string GenerateJwtToken(User user)
+    public string GenerateToken(User user)
     {
-        var tokenHandler = new JwtSecurityTokenHandler();
         var key = Encoding.ASCII.GetBytes(_settings.Key);
 
-        // Use fully qualified name to avoid ambiguity with Domain.Entities.Claim
         var claims = new List<System.Security.Claims.Claim>
         {
-            new System.Security.Claims.Claim(JwtRegisteredClaimNames.Sub, user.Id.ToString()),
-            new System.Security.Claims.Claim(JwtRegisteredClaimNames.Email, user.Email),
-            new System.Security.Claims.Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
-            new System.Security.Claims.Claim("tenant_id", user.TenantId.ToString()),
-            new System.Security.Claims.Claim(ClaimTypes.Role, user.Role.ToString())
+            new(JwtRegisteredClaimNames.Sub, user.Id.ToString()),
+            new(JwtRegisteredClaimNames.Email, user.Email),
+            new(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
+            new("tenant_id", user.TenantId?.ToString() ?? string.Empty),
+            new(ClaimTypes.Role, user.Role.ToString())
         };
 
         var tokenDescriptor = new SecurityTokenDescriptor
@@ -53,8 +52,8 @@ public class JwtService : IJwtService
                 SecurityAlgorithms.HmacSha256Signature)
         };
 
-        var token = tokenHandler.CreateToken(tokenDescriptor);
-        return tokenHandler.WriteToken(token);
+        var token = _tokenHandler.CreateToken(tokenDescriptor);
+        return _tokenHandler.WriteToken(token);
     }
 
     public string GenerateRefreshToken()
@@ -65,14 +64,12 @@ public class JwtService : IJwtService
         return Convert.ToBase64String(randomNumber);
     }
 
-    public ClaimsPrincipal? ValidateJwtToken(string token)
+    public bool ValidateToken(string token)
     {
-        var tokenHandler = new JwtSecurityTokenHandler();
         var key = Encoding.ASCII.GetBytes(_settings.Key);
-
         try
         {
-            var principal = tokenHandler.ValidateToken(token, new TokenValidationParameters
+            _tokenHandler.ValidateToken(token, new TokenValidationParameters
             {
                 ValidateIssuerSigningKey = true,
                 IssuerSigningKey = new SymmetricSecurityKey(key),
@@ -83,12 +80,28 @@ public class JwtService : IJwtService
                 ValidateLifetime = true,
                 ClockSkew = TimeSpan.Zero
             }, out _);
+            return true;
+        }
+        catch { return false; }
+    }
 
-            return principal;
-        }
-        catch
+    public Guid? GetUserIdFromToken(string token)
+    {
+        var key = Encoding.ASCII.GetBytes(_settings.Key);
+        try
         {
-            return null;
+            var principal = _tokenHandler.ValidateToken(token, new TokenValidationParameters
+            {
+                ValidateIssuerSigningKey = true,
+                IssuerSigningKey = new SymmetricSecurityKey(key),
+                ValidateIssuer = false,
+                ValidateAudience = false,
+                ValidateLifetime = false
+            }, out _);
+
+            var sub = principal.FindFirst(JwtRegisteredClaimNames.Sub)?.Value;
+            return Guid.TryParse(sub, out var id) ? id : null;
         }
+        catch { return null; }
     }
 }

@@ -1,148 +1,101 @@
-﻿using InsureX.Application.DTOs.Dashboard;
+using InsureX.Application.DTOs.Dashboard;
 using InsureX.Application.Interfaces;
 using InsureX.Domain.Entities;
 using InsureX.Domain.Interfaces;
-namespace InsureX.Application.Services.Dashboard
+
+namespace InsureX.Application.Services.Dashboard;
+
+public class DashboardService : IDashboardService
 {
-    public class DashboardService : IDashboardService
+    private readonly IPolicyRepository _policyRepository;
+    private readonly IClaimRepository _claimRepository;
+    private readonly IAssetRepository _assetRepository;
+    private readonly IUserRepository _userRepository;
+
+    public DashboardService(
+        IPolicyRepository policyRepository,
+        IClaimRepository claimRepository,
+        IAssetRepository assetRepository,
+        IUserRepository userRepository)
     {
-        private readonly IPolicyRepository _policyRepository;
-        private readonly IClaimRepository _claimRepository;
-        private readonly IAssetRepository _assetRepository;
-        private readonly IUserRepository _userRepository;
+        _policyRepository = policyRepository;
+        _claimRepository = claimRepository;
+        _assetRepository = assetRepository;
+        _userRepository = userRepository;
+    }
 
-        public DashboardService(
-            IPolicyRepository policyRepository,
-            IClaimRepository claimRepository,
-            IAssetRepository assetRepository,
-            IUserRepository userRepository)
+    public async Task<DashboardStatsDto> GetDashboardStatsAsync()
+    {
+        var totalPolicies = await _policyRepository.CountAsync();
+        var totalClaims = await _claimRepository.CountAsync();
+        var totalAssets = await _assetRepository.CountAsync();
+        var totalUsers = await _userRepository.CountAsync();
+        var activeClaims = await _claimRepository.CountByStatusAsync(ClaimStatus.UnderReview);
+        var totalClaimedAmount = await _claimRepository.GetTotalClaimedAmountAsync();
+        var totalAssetValue = await _assetRepository.GetTotalValueAsync();
+
+        return new DashboardStatsDto
         {
-            _policyRepository = policyRepository;
-            _claimRepository = claimRepository;
-            _assetRepository = assetRepository;
-            _userRepository = userRepository;
-        }
+            TotalPolicies = totalPolicies,
+            TotalClaims = totalClaims,
+            TotalAssets = totalAssets,
+            TotalUsers = totalUsers,
+            ActiveClaims = activeClaims,
+            TotalClaimedAmount = totalClaimedAmount,
+            TotalAssetValue = totalAssetValue
+        };
+    }
 
-        // NEW METHOD: GetDashboardStatsAsync
-        public async Task<DashboardStatsDto> GetDashboardStatsAsync()
+    public async Task<FinancialSummaryDto> GetFinancialSummaryAsync(DateTime startDate, DateTime endDate)
+    {
+        var totalClaimedAmount = await _claimRepository.GetTotalClaimedAmountAsync();
+        var totalApprovedAmount = await _claimRepository.GetTotalApprovedAmountAsync();
+        var totalAssetValue = await _assetRepository.GetTotalValueAsync();
+
+        return new FinancialSummaryDto
         {
-            var totalPolicies = await _policyRepository.CountAsync();
-            var activePolicies = await _policyRepository.CountActiveAsync();
-            var totalClaims = await _claimRepository.CountAsync();
-            var pendingClaims = await _claimRepository.CountByStatusAsync(ClaimStatus.Submitted) 
-                + await _claimRepository.CountByStatusAsync(ClaimStatus.UnderReview);
-            var totalAssets = await _assetRepository.CountAsync();
-            var totalPremium = await _policyRepository.GetTotalPremiumAsync();
+            StartDate = startDate,
+            EndDate = endDate,
+            TotalClaimedAmount = totalClaimedAmount,
+            TotalApprovedAmount = totalApprovedAmount,
+            TotalAssetValue = totalAssetValue
+        };
+    }
 
-            return new DashboardStatsDto
-            {
-                TotalPolicies = totalPolicies,
-                ActivePolicies = activePolicies,
-                TotalClaims = totalClaims,
-                PendingClaims = pendingClaims,
-                TotalAssets = totalAssets,
-                TotalPremium = totalPremium,
-                MonthlyStats = await GetMonthlyStatsAsync(DateTime.UtcNow.Year),
-                PolicyTypeStats = await GetPolicyTypeStatsAsync(),
-                ClaimStatusStats = await GetClaimStatusStatsAsync(),
-                AssetTypeStats = await GetAssetTypeStatsAsync()
-            };
-        }
-
-        // NEW METHOD: GetFinancialSummaryAsync
-        public async Task<FinancialSummaryDto> GetFinancialSummaryAsync(DateTime startDate, DateTime endDate)
+    public async Task<List<MonthlyStatsDto>> GetMonthlyStatsAsync(int year)
+    {
+        var stats = new List<MonthlyStatsDto>();
+        for (int month = 1; month <= 12; month++)
         {
-            var totalPremiums = await _policyRepository.GetTotalPremiumAsync();
-            var totalClaimsPaid = await _claimRepository.GetTotalApprovedAmountAsync();
-            
-            var lossRatio = totalPremiums > 0 ? totalClaimsPaid / totalPremiums : 0;
-            var profitMargin = totalPremiums - totalClaimsPaid;
-
-            return new FinancialSummaryDto
-            {
-                TotalPremiums = totalPremiums,
-                TotalClaimsPaid = totalClaimsPaid,
-                LossRatio = lossRatio,
-                ProfitMargin = profitMargin
-            };
+            stats.Add(new MonthlyStatsDto { Month = month, Year = year });
         }
+        return await Task.FromResult(stats);
+    }
 
-        public async Task<List<MonthlyStatsDto>> GetMonthlyStatsAsync(int year)
+    public async Task<List<PolicyTypeStatsDto>> GetPolicyTypeStatsAsync()
+    {
+        return await Task.FromResult(new List<PolicyTypeStatsDto>());
+    }
+
+    public async Task<List<ClaimStatusStatsDto>> GetClaimStatusStatsAsync()
+    {
+        var stats = new List<ClaimStatusStatsDto>();
+        foreach (ClaimStatus status in Enum.GetValues<ClaimStatus>())
         {
-            // Implementation for monthly statistics
-            var months = new[] { "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec" };
-            var stats = new List<MonthlyStatsDto>();
-
-            for (int i = 0; i < 12; i++)
-            {
-                stats.Add(new MonthlyStatsDto
-                {
-                    Month = months[i],
-                    Policies = 0, // TODO: Implement actual query
-                    Claims = 0,   // TODO: Implement actual query
-                    Premium = 0   // TODO: Implement actual query
-                });
-            }
-
-            return stats;
+            var count = await _claimRepository.CountByStatusAsync(status);
+            if (count > 0)
+                stats.Add(new ClaimStatusStatsDto { Status = status.ToString(), Count = count });
         }
+        return stats;
+    }
 
-        public async Task<List<PolicyTypeStatsDto>> GetPolicyTypeStatsAsync()
+    public async Task<List<AssetTypeStatsDto>> GetAssetTypeStatsAsync()
+    {
+        var countByType = await _assetRepository.GetCountByTypeAsync();
+        return countByType.Select(kvp => new AssetTypeStatsDto
         {
-            // Implementation for policy type statistics
-            var types = Enum.GetValues<PolicyType>();
-            var stats = new List<PolicyTypeStatsDto>();
-
-            foreach (var type in types)
-            {
-                stats.Add(new PolicyTypeStatsDto
-                {
-                    Type = type.ToString(),
-                    Count = 0,     // TODO: Implement actual query
-                    Coverage = 0   // TODO: Implement actual query
-                });
-            }
-
-            return stats;
-        }
-
-        public async Task<List<ClaimStatusStatsDto>> GetClaimStatusStatsAsync()
-        {
-            // Implementation for claim status statistics
-            var statuses = Enum.GetValues<ClaimStatus>();
-            var stats = new List<ClaimStatusStatsDto>();
-
-            foreach (var status in statuses)
-            {
-                var count = await _claimRepository.CountByStatusAsync(status);
-                stats.Add(new ClaimStatusStatsDto
-                {
-                    Status = status.ToString(),
-                    Count = count,
-                    Amount = 0 // TODO: Implement actual amount query
-                });
-            }
-
-            return stats;
-        }
-
-        public async Task<List<AssetTypeStatsDto>> GetAssetTypeStatsAsync()
-        {
-            // Implementation for asset type statistics
-            var countByType = await _assetRepository.GetCountByTypeAsync();
-            var stats = new List<AssetTypeStatsDto>();
-
-            foreach (var kvp in countByType)
-            {
-                stats.Add(new AssetTypeStatsDto
-                {
-                    Type = kvp.Key.ToString(),
-                    Count = kvp.Value,
-                    Value = 0 // TODO: Implement actual value query
-                });
-            }
-
-            return stats;
-        }
+            AssetType = kvp.Key.ToString(),
+            Count = kvp.Value
+        }).ToList();
     }
 }

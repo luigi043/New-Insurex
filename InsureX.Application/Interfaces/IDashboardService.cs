@@ -1,14 +1,13 @@
 using InsureX.Application.DTOs.Dashboard;
 
-namespace InsureX.Application.Interfaces
+namespace InsureX.Application.Interfaces;
+
+public interface IDashboardService
 {
-    public interface IDashboardService
-    {
-        Task<DashboardStatsDto> GetDashboardStatsAsync();
-        Task<FinancialSummaryDto> GetFinancialSummaryAsync(DateTime startDate, DateTime endDate);
-        Task<List<MonthlyStatsDto>> GetMonthlyStatsAsync(int year);
-        Task<List<PolicyTypeStatsDto>> GetPolicyTypeStatsAsync();
-        Task<List<ClaimStatusStatsDto>> GetClaimStatusStatsAsync();
-        Task<List<AssetTypeStatsDto>> GetAssetTypeStatsAsync();
-    }
+    Task<DashboardStatsDto> GetDashboardStatsAsync();
+    Task<FinancialSummaryDto> GetFinancialSummaryAsync(DateTime startDate, DateTime endDate);
+    Task<List<MonthlyStatsDto>> GetMonthlyStatsAsync(int year);
+    Task<List<PolicyTypeStatsDto>> GetPolicyTypeStatsAsync();
+    Task<List<ClaimStatusStatsDto>> GetClaimStatusStatsAsync();
+    Task<List<AssetTypeStatsDto>> GetAssetTypeStatsAsync();
 }

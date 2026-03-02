@@ -66,7 +66,7 @@ namespace InsureX.Infrastructure.Repositories
 
         public async Task<decimal> GetTotalApprovedAmountAsync()
             => await _context.Claims
-                .Where(c => c.Status == ClaimStatus.Approved || c.Status == ClaimStatus.Paid)
+                .Where(c => c.Status == ClaimStatus.Approved)
                 .SumAsync(c => c.ApprovedAmount ?? 0);
     }
 }
