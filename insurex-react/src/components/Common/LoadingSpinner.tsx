@@ -4,41 +4,37 @@ import { Box, CircularProgress, Typography } from '@mui/material';
 interface LoadingSpinnerProps {
   message?: string;
   fullScreen?: boolean;
+  size?: number;
 }
 
-export const LoadingSpinner: React.FC<LoadingSpinnerProps> = ({ 
-  message = 'Loading...', 
-  fullScreen = false 
+export const LoadingSpinner: React.FC<LoadingSpinnerProps> = ({
+  message,
+  fullScreen = false,
+  size = 40,
 }) => {
-  if (fullScreen) {
-    return (
-      <Box
-        sx={{
+  const content = (
+    <Box
+      sx={{
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 2,
+        ...(fullScreen && {
           position: 'fixed',
           top: 0,
           left: 0,
           right: 0,
           bottom: 0,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          backgroundColor: 'rgba(255, 255, 255, 0.8)',
+          bgcolor: 'rgba(255, 255, 255, 0.8)',
           zIndex: 9999,
-        }}
-      >
-        <Box textAlign="center">
-          <CircularProgress size={60} />
-          <Typography variant="h6" sx={{ mt: 2 }}>
-            {message}
-          </Typography>
-        </Box>
-      </Box>
-    );
-  }
-
-  return (
-    <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
-      <CircularProgress />
+        }),
+      }}
+    >
+      <CircularProgress size={size} />
+      {message && <Typography color="text.secondary">{message}</Typography>}
     </Box>
   );
+
+  return fullScreen ? content : <Box sx={{ py: 4 }}>{content}</Box>;
 };

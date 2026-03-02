@@ -8,9 +8,6 @@ import { LocalizationProvider } from '@mui/x-date-pickers';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFnsV3';
 import { ptBR } from 'date-fns/locale';
 import { store } from './store/store';
-import { SnackbarProvider } from './components/Common/SnackbarProvider';
-import { LoadingProvider } from './components/Common/LoadingProvider';
-import { AuthProvider } from './components/Auth/AuthProvider';
 import App from './App';
 import './index.css';
 
