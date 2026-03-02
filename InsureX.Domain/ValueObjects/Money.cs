@@ -1,0 +1,30 @@
+namespace InsureX.Domain.ValueObjects;
+
+public record Money
+{
+    public decimal Amount { get; }
+    public string Currency { get; }
+
+    private Money() { } // EF Core protected constructor
+
+    public Money(decimal amount, string currency = "USD")
+    {
+        if (amount < 0) throw new ArgumentException("Amount cannot be negative");
+        if (string.IsNullOrWhiteSpace(currency)) throw new ArgumentException("Currency is required");
+        
+        Amount = amount;
+        Currency = currency.ToUpper();
+    }
+
+    public static Money Zero(string currency = "USD") => new(0, currency);
+
+    public Money Add(Money other)
+    {
+        if (Currency != other.Currency)
+            throw new InvalidOperationException("Cannot add money with different currencies");
+        
+        return new Money(Amount + other.Amount, Currency);
+    }
+
+    public override string ToString() => $"{Amount:C} {Currency}";
+}

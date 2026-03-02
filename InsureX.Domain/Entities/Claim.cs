@@ -1,100 +1,83 @@
-namespace InsureX.Domain.Entities
+using InsureX.Domain.Events;
+
+namespace InsureX.Domain.Entities;
+
+public class Claim : BaseEntity
 {
-    public class Claim : BaseEntity
+    public string ClaimNumber { get; private set; } = string.Empty;
+    public int PolicyId { get; private set; }
+    public decimal Amount { get; private set; }
+    public string Description { get; private set; } = string.Empty;
+    public string Status { get; private set; } = "Submitted";
+    public DateTime IncidentDate { get; private set; }
+    public string? ResolutionNotes { get; private set; }
+    public DateTime? ResolvedAt { get; private set; }
+    
+    public Policy Policy { get; private set; } = null!;
+
+    public static Claim Create(
+        string claimNumber,
+        int policyId,
+        decimal amount,
+        string description,
+        DateTime incidentDate)
     {
-        public string ClaimNumber { get; set; } = string.Empty;
-        public Guid PolicyId { get; set; }
-        public Policy Policy { get; set; } = null!;
-        public Guid ClientId { get; set; }
-        public User Client { get; set; } = null!;
-        public DateTime IncidentDate { get; set; }
-        public DateTime ReportedDate { get; set; } = DateTime.UtcNow;
-        public string Description { get; set; } = string.Empty;
-        public string? IncidentLocation { get; set; }
-        public decimal ClaimedAmount { get; set; }
-        public decimal? ApprovedAmount { get; set; }
-        public ClaimStatus Status { get; set; } = ClaimStatus.Submitted;
-        public ClaimType Type { get; set; }
-        
-        public DateTime? ReviewedAt { get; set; }
-        public string? ReviewedBy { get; set; }
-        public DateTime? ApprovedAt { get; set; }
-        public string? ApprovedBy { get; set; }
-        public DateTime? PaidAt { get; set; }
-        public string? PaymentReference { get; set; }
-        public string? RejectionReason { get; set; }
-        
-        public ICollection<ClaimDocument> Documents { get; set; } = new List<ClaimDocument>();
-        public ICollection<ClaimNote> Notes { get; set; } = new List<ClaimNote>();
-        public ICollection<ClaimStatusHistory> StatusHistory { get; set; } = new List<ClaimStatusHistory>();
+        if (amount <= 0)
+            throw new ArgumentException("Claim amount must be positive");
+
+        var claim = new Claim
+        {
+            ClaimNumber = claimNumber,
+            PolicyId = policyId,
+            Amount = amount,
+            Description = description,
+            IncidentDate = incidentDate,
+            Status = "Submitted"
+        };
+
+        claim.SetCreated("system");
+        return claim;
     }
 
-    public enum ClaimStatus
+    public void Approve(string? notes = null)
     {
-        Submitted,
-        UnderReview,
-        AdditionalInfoRequired,
-        Approved,
-        Rejected,
-        Paid,
-        Closed,
-        Withdrawn
+        if (Status != "Submitted" && Status != "UnderReview")
+            throw new InvalidOperationException($"Cannot approve claim with status {Status}");
+
+        Status = "Approved";
+        ResolutionNotes = notes;
+        ResolvedAt = DateTime.UtcNow;
+        SetUpdated("system");
     }
 
-    public enum ClaimType
+    public void Reject(string reason)
     {
-        PropertyDamage,
-        Theft,
-        Liability,
-        PersonalInjury,
-        BusinessInterruption,
-        VehicleAccident,
-        NaturalDisaster,
-        Fire,
-        Other
+        if (Status != "Submitted" && Status != "UnderReview")
+            throw new InvalidOperationException($"Cannot reject claim with status {Status}");
+
+        if (string.IsNullOrWhiteSpace(reason))
+            throw new ArgumentException("Rejection reason is required");
+
+        Status = "Rejected";
+        ResolutionNotes = reason;
+        ResolvedAt = DateTime.UtcNow;
+        SetUpdated("system");
     }
 
-    public class ClaimDocument : BaseEntity
+    public void Review()
     {
-        public Guid ClaimId { get; set; }
-        public Claim Claim { get; set; } = null!;
-        public string FileName { get; set; } = string.Empty;
-        public string FilePath { get; set; } = string.Empty;
-        public string FileType { get; set; } = string.Empty;
-        public long FileSize { get; set; }
-        public string? Description { get; set; }
-        public DocumentCategory Category { get; set; }
-        public string UploadedBy { get; set; } = string.Empty;
+        if (Status != "Submitted")
+            throw new InvalidOperationException("Only submitted claims can be put under review");
+
+        Status = "UnderReview";
+        SetUpdated("system");
     }
 
-    public enum DocumentCategory
+    public void SubmitToPolicy(Policy policy)
     {
-        PoliceReport,
-        MedicalReport,
-        RepairEstimate,
-        PhotoEvidence,
-        Receipt,
-        LegalDocument,
-        Correspondence,
-        Other
-    }
+        if (!policy.IsActive())
+            throw new InvalidOperationException("Cannot submit claim to inactive policy");
 
-    public class ClaimNote : BaseEntity
-    {
-        public Guid ClaimId { get; set; }
-        public Claim Claim { get; set; } = null!;
-        public string Content { get; set; } = string.Empty;
-        public string Author { get; set; } = string.Empty;
-        public bool IsInternal { get; set; }
-    }
-
-    public class ClaimStatusHistory : BaseEntity
-    {
-        public Guid ClaimId { get; set; }
-        public Claim Claim { get; set; } = null!;
-        public ClaimStatus OldStatus { get; set; }
-        public ClaimStatus NewStatus { get; set; }
-        public string ChangedBy { get; set; } = string.Empty;
-        public string? Reason { get; set; }
+        AddDomainEvent(new ClaimSubmittedEvent(this, policy));
     }
 }

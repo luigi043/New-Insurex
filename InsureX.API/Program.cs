@@ -4,6 +4,8 @@ using InsureX.Infrastructure.Repositories;
 using InsureX.Infrastructure.Security;
 using Microsoft.EntityFrameworkCore;
 using InsureX.Infrastructure.Services;
+using InsureX.Application.Behaviors;
+using FluentValidation;
 using System.Reflection;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -26,9 +28,8 @@ builder.Services.AddScoped<IAssetRepository, AssetRepository>();
 builder.Services.AddScoped<IClaimRepository, ClaimRepository>();
 builder.Services.AddScoped<ITenantRepository, TenantRepository>();
 
-// Register services
+// Register services (keep for backward compatibility during migration)
 builder.Services.AddScoped<IAuthService, AuthService>();
-builder.Services.AddScoped<IPolicyService, PolicyService>();
 builder.Services.AddScoped<IJwtService, JwtService>();
 builder.Services.AddScoped<IPasswordHasher, PasswordHasher>();
 builder.Services.AddScoped<ITenantContext, TenantContext>();
@@ -46,9 +47,18 @@ builder.Services.AddCors(options =>
     });
 });
 
-// FIXED: MediatR registration from Application layer
+// FIXED: MediatR with behaviors
 builder.Services.AddMediatR(cfg =>
-    cfg.RegisterServicesFromAssembly(typeof(IAuthService).Assembly));
+{
+    cfg.RegisterServicesFromAssembly(typeof(IAuthService).Assembly);
+    
+    // Add pipeline behaviors
+    cfg.AddBehavior(typeof(IPipelineBehavior<,>), typeof(LoggingBehavior<,>));
+    cfg.AddBehavior(typeof(IPipelineBehavior<,>), typeof(ValidationBehavior<,>));
+});
+
+// Add FluentValidation
+builder.Services.AddValidatorsFromAssembly(typeof(IAuthService).Assembly);
 
 var app = builder.Build();
 
@@ -70,7 +80,6 @@ using (var scope = app.Services.CreateScope())
     var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
     await context.Database.MigrateAsync();
 
-    // Run validation for each tenant
     var validationService = scope.ServiceProvider.GetRequiredService<ITenantValidationService>();
     var tenants = await context.Tenants.ToListAsync();
 

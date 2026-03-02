@@ -26,7 +26,10 @@ public class AuthController : ControllerBase
             var result = await _authService.LoginAsync(loginDto);
             return Ok(result);
         }
-        catch (UnauthorizedAccessException ex) { return Unauthorized(new { message = ex.Message }); }
+        catch (UnauthorizedAccessException ex)
+        {
+            return Unauthorized(new { message = ex.Message });
+        }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error during login");
@@ -42,11 +45,66 @@ public class AuthController : ControllerBase
             var result = await _authService.RegisterAsync(registerDto);
             return Ok(result);
         }
-        catch (InvalidOperationException ex) { return BadRequest(new { message = ex.Message }); }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error during registration");
             return StatusCode(500, new { message = "An error occurred during registration" });
+        }
+    }
+
+    [HttpPost("refresh")]
+    public async Task<ActionResult<AuthResponseDto>> RefreshToken([FromBody] RefreshTokenRequestDto request)
+    {
+        try
+        {
+            var result = await _authService.RefreshTokenAsync(request.RefreshToken);
+            return Ok(result);
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            return Unauthorized(new { message = ex.Message });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error refreshing token");
+            return StatusCode(500, new { message = "An error occurred while refreshing token" });
+        }
+    }
+
+    [Authorize]
+    [HttpPost("logout")]
+    public async Task<IActionResult> Logout([FromBody] RefreshTokenRequestDto request)
+    {
+        try
+        {
+            await _authService.LogoutAsync(request.RefreshToken);
+            return Ok(new { message = "Logged out successfully" });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error during logout");
+            return StatusCode(500, new { message = "An error occurred during logout" });
+        }
+    }
+
+    [Authorize]
+    [HttpPost("logout-all")]
+    public async Task<IActionResult> LogoutAllDevices()
+    {
+        try
+        {
+            var userId = int.Parse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value!);
+            await _authService.LogoutAllDevicesAsync(userId);
+            return Ok(new { message = "Logged out from all devices" });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error during logout all");
+            return StatusCode(500, new { message = "An error occurred" });
         }
     }
 
@@ -68,7 +126,4 @@ public class AuthController : ControllerBase
 
     [HttpGet("health")]
     public IActionResult Health() => Ok(new { status = "Healthy", timestamp = DateTime.UtcNow });
-
-    [HttpGet("info")]
-    public IActionResult Info() => Ok(new { application = "InsureX API", version = "1.0.0", framework = ".NET 8.0" });
 }
