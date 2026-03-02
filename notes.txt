@@ -1,3 +1,10 @@
+# Clean and rebuild
+dotnet clean
+dotnet restore
+dotnet build
+
+# If build succeeds, run tests
+dotnet test
 dotnet build 2>&1 | Select-String "error"
 
 

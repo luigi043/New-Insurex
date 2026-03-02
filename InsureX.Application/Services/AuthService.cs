@@ -6,6 +6,7 @@ using BCrypt.Net;
 using System;
 using System.Threading.Tasks;
 using System.Linq;
+
 namespace InsureX.Application.Services;
 
 public class AuthService : IAuthService
@@ -37,7 +38,6 @@ public class AuthService : IAuthService
             throw new UnauthorizedAccessException("Account is not active");
         }
 
-        // Use correct method name: GenerateToken (not GenerateJwtToken)
         var token = _jwtService.GenerateToken(user);
         var refreshToken = _jwtService.GenerateRefreshToken();
 
@@ -54,13 +54,11 @@ public class AuthService : IAuthService
             {
                 Id = user.Id,
                 Email = user.Email,
-                // Use Username property (not user.Tenant?.Name)
                 Username = user.Username,
                 FirstName = user.FirstName,
                 LastName = user.LastName,
                 Role = user.Role.ToString(),
                 TenantId = user.TenantId,
-                // Use Tenant.Code if tenant exists
                 TenantCode = user.Tenant?.Code
             }
         };
@@ -73,15 +71,12 @@ public class AuthService : IAuthService
             throw new InvalidOperationException("Email already registered");
         }
 
-        // Resolve UserRole ambiguity by using fully qualified name or ensuring single enum
-        // Assuming UserRole is in InsureX.Domain.Entities (remove using for Enums if conflicting)
         var userRole = Enum.Parse<UserRole>(request.Role, true);
 
         var user = new User
         {
             Id = Guid.NewGuid(),
             Email = request.Email,
-            // Set Username from request or generate from email
             Username = request.Username ?? request.Email.Split('@')[0],
             PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.Password),
             FirstName = request.FirstName,
@@ -89,7 +84,6 @@ public class AuthService : IAuthService
             PhoneNumber = request.PhoneNumber ?? string.Empty,
             Role = userRole,
             Status = UserStatus.Active,
-            // Set TenantId if provided
             TenantId = request.TenantId,
             CreatedAt = DateTime.UtcNow,
             UpdatedAt = DateTime.UtcNow
@@ -117,7 +111,8 @@ public class AuthService : IAuthService
                 FirstName = user.FirstName,
                 LastName = user.LastName,
                 Role = user.Role.ToString(),
-                TenantId = user.TenantId
+                TenantId = user.TenantId,
+                TenantCode = user.Tenant?.Code
             }
         };
     }
@@ -150,7 +145,8 @@ public class AuthService : IAuthService
                 FirstName = user.FirstName,
                 LastName = user.LastName,
                 Role = user.Role.ToString(),
-                TenantId = user.TenantId
+                TenantId = user.TenantId,
+                TenantCode = user.Tenant?.Code
             }
         };
     }
@@ -168,7 +164,6 @@ public class AuthService : IAuthService
 
     public async Task<bool> ValidateTokenAsync(string token)
     {
-        // Use correct method name: ValidateToken (not ValidateJwtToken)
         return _jwtService.ValidateToken(token);
     }
 }
