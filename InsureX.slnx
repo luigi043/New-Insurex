@@ -1,5 +1,6 @@
-﻿<Solution>
+<Solution>
   <Project Path="InsureX.Domain/InsureX.Domain.csproj" />
+  <Project Path="InsureX.SeedTool/InsureX.SeedTool.csproj" />
   <Project Path="InsureX.Shared/InsureX.Shared.csproj" />
   <Project Path="InsureX.Application/InsureX.Application.csproj" />
   <Project Path="InsureX.Infrastructure/InsureX.Infrastructure.csproj" />
