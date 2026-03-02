@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Data;
 using System.IO;
@@ -10,7 +10,7 @@ using Dapper;
 using CsvHelper;
 using System.Globalization;
 using InsureX.Domain.Interfaces;
-using InsureX.Application.DTOs.Reports;
+using InsureX.Shared.DTOs;
 
 namespace InsureX.Infrastructure.Reporting;
 
@@ -21,8 +21,8 @@ public class ReportQueries : IReportQueries
 
     public ReportQueries(IConfiguration configuration, ITenantContext tenantContext)
     {
-        _connectionString = configuration.GetConnectionString("DefaultConnection") 
-            ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
+        _connectionString = configuration.GetConnectionString(""DefaultConnection"") 
+            ?? throw new InvalidOperationException(""Connection string 'DefaultConnection' not found."");
         _tenantContext = tenantContext;
     }
 
@@ -60,12 +60,14 @@ public class ReportQueries : IReportQueries
             FROM ComplianceStats
             ORDER BY ComplianceRate";
         
-        return await connection.QueryAsync<ComplianceDashboardDto>(sql, new
+        var result = await connection.QueryAsync<ComplianceDashboardDto>(sql, new
         {
             TenantId = _tenantContext.TenantId,
             StartDate = startDate,
             EndDate = endDate
         });
+        
+        return result.ToList();
     }
 
     public async Task<byte[]> ExportComplianceReportAsync(
@@ -78,9 +80,9 @@ public class ReportQueries : IReportQueries
         return format switch
         {
             ExportFormat.Csv => await ExportToCsvAsync(data),
-            ExportFormat.Excel => throw new NotImplementedException("Excel export not implemented yet"),
-            ExportFormat.Pdf => throw new NotImplementedException("PDF export not implemented yet"),
-            _ => throw new NotSupportedException($"Format {format} not supported")
+            ExportFormat.Excel => throw new NotImplementedException(""Excel export not implemented yet""),
+            ExportFormat.Pdf => throw new NotImplementedException(""PDF export not implemented yet""),
+            _ => throw new NotSupportedException($""Format {format} not supported"")
         };
     }
 
