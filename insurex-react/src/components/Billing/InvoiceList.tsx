@@ -12,15 +12,9 @@ import {
   TablePagination,
   Button,
   IconButton,
-  Chip,
   Typography,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
-  Grid,
 } from '@mui/material';
-import { Add, Visibility, Send, Payment, GetApp } from '@mui/icons-material';
+import { Visibility, GetApp } from '@mui/icons-material';
 import { billingService } from '../../services/billing.service';
 
 export const InvoiceList: React.FC = () => {
@@ -30,16 +24,15 @@ export const InvoiceList: React.FC = () => {
   const [page, setPage] = useState(0);
   const [pageSize, setPageSize] = useState(10);
   const [totalItems, setTotalItems] = useState(0);
-  const [status, setStatus] = useState('');
 
   useEffect(() => {
     loadInvoices();
-  }, [page, pageSize, status]);
+  }, [page, pageSize]);
 
   const loadInvoices = async () => {
     setLoading(true);
     try {
-      const response = await billingService.getInvoices(page + 1, pageSize, status);
+      const response = await billingService.getInvoices(page + 1, pageSize);
       setInvoices(response.data.items || []);
       setTotalItems(response.data.totalItems || 0);
     } catch (error) {
@@ -49,23 +42,13 @@ export const InvoiceList: React.FC = () => {
     }
   };
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'Paid': return 'success';
-      case 'Sent': return 'info';
-      case 'Overdue': return 'error';
-      case 'Draft': return 'default';
-      default: return 'default';
-    }
-  };
-
   const handleExport = async () => {
     try {
-      const response = await billingService.exportInvoices({ status });
+      const response = await billingService.exportInvoices();
       const url = window.URL.createObjectURL(new Blob([response.data]));
       const link = document.createElement('a');
       link.href = url;
-      link.setAttribute('download', \invoices_\.csv\);
+      link.setAttribute('download', `invoices_${new Date().toISOString().split('T')[0]}.csv`);
       document.body.appendChild(link);
       link.click();
     } catch (error) {
@@ -77,45 +60,10 @@ export const InvoiceList: React.FC = () => {
     <Box>
       <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
         <Typography variant="h4">Invoices</Typography>
-        <Box>
-          <Button
-            variant="outlined"
-            startIcon={<GetApp />}
-            onClick={handleExport}
-            sx={{ mr: 1 }}
-          >
-            Export
-          </Button>
-          <Button
-            variant="contained"
-            startIcon={<Add />}
-            onClick={() => navigate('/billing/invoices/new')}
-          >
-            New Invoice
-          </Button>
-        </Box>
+        <Button variant="contained" startIcon={<GetApp />} onClick={handleExport}>
+          Export
+        </Button>
       </Box>
-
-      <Paper sx={{ p: 2, mb: 2 }}>
-        <Grid container spacing={2}>
-          <Grid item xs={12} md={3}>
-            <FormControl fullWidth size="small">
-              <InputLabel>Status</InputLabel>
-              <Select
-                value={status}
-                label="Status"
-                onChange={(e) => setStatus(e.target.value)}
-              >
-                <MenuItem value="">All</MenuItem>
-                <MenuItem value="Draft">Draft</MenuItem>
-                <MenuItem value="Sent">Sent</MenuItem>
-                <MenuItem value="Paid">Paid</MenuItem>
-                <MenuItem value="Overdue">Overdue</MenuItem>
-              </Select>
-            </FormControl>
-          </Grid>
-        </Grid>
-      </Paper>
 
       <TableContainer component={Paper}>
         <Table>
@@ -126,15 +74,14 @@ export const InvoiceList: React.FC = () => {
               <TableCell>Issue Date</TableCell>
               <TableCell>Due Date</TableCell>
               <TableCell>Total</TableCell>
-              <TableCell>Status</TableCell>
               <TableCell>Actions</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
             {loading ? (
-              <TableRow><TableCell colSpan={7} align="center">Loading...</TableCell></TableRow>
+              <TableRow><TableCell colSpan={6} align="center">Loading...</TableCell></TableRow>
             ) : invoices.length === 0 ? (
-              <TableRow><TableCell colSpan={7} align="center">No invoices found</TableCell></TableRow>
+              <TableRow><TableCell colSpan={6} align="center">No invoices found</TableCell></TableRow>
             ) : (
               invoices.map((invoice) => (
                 <TableRow key={invoice.id}>
@@ -142,24 +89,11 @@ export const InvoiceList: React.FC = () => {
                   <TableCell>{invoice.client?.firstName} {invoice.client?.lastName}</TableCell>
                   <TableCell>{new Date(invoice.issueDate).toLocaleDateString()}</TableCell>
                   <TableCell>{new Date(invoice.dueDate).toLocaleDateString()}</TableCell>
-                  <TableCell>\</TableCell>
+                  <TableCell>${invoice.totalAmount?.toLocaleString()}</TableCell>
                   <TableCell>
-                    <Chip label={invoice.status} color={getStatusColor(invoice.status) as any} size="small" />
-                  </TableCell>
-                  <TableCell>
-                    <IconButton size="small" onClick={() => navigate(\/billing/invoices/\\)}>
+                    <IconButton size="small" onClick={() => navigate(`/billing/invoices/${invoice.id}`)}>
                       <Visibility />
                     </IconButton>
-                    {invoice.status === 'Draft' && (
-                      <IconButton size="small" onClick={() => billingService.sendInvoice(invoice.id)}>
-                        <Send />
-                      </IconButton>
-                    )}
-                    {invoice.status === 'Sent' && (
-                      <IconButton size="small">
-                        <Payment />
-                      </IconButton>
-                    )}
                   </TableCell>
                 </TableRow>
               ))
