@@ -1,24 +1,17 @@
-I'll create a **Windows PowerShell version** of Phase 5 for your setup:
 
-## 🔧 **Phase 5: Infrastructure Cleanup - Windows PowerShell Version**
+## Phase 5: Infrastructure Cleanup - `fix-phase5-infrastructure.sh`
 
-Save this as `fix-phase5-infrastructure.ps1` in your solution root:
+```bash
+#!/bin/bash
+# Phase 5: Final Cleanup - Remove Legacy, Add Global Exception Handling, Tests
 
-```powershell
-# fix-phase5-infrastructure.ps1
-Write-Host "🏗️ PHASE 5: Infrastructure Cleanup & Final Touches" -ForegroundColor Magenta
-Write-Host "====================================================" -ForegroundColor Cyan
-
-$solutionRoot = "C:\Users\cluiz\source\repos\New folder\New-Insurex"
-Set-Location $solutionRoot
+echo "🏗️ PHASE 5: Infrastructure Cleanup & Final Touches"
+echo "===================================================="
 
 # 1. Create Global Exception Handler Middleware
-Write-Host "`n📋 Step 1: Creating global exception handler..." -ForegroundColor Yellow
+echo "📋 Step 1: Creating global exception handler..."
 
-# Create Middleware folder if it doesn't exist
-New-Item -ItemType Directory -Path "InsureX.API/Middleware" -Force | Out-Null
-
-$exceptionMiddleware = @'
+cat > InsureX.API/Middleware/ExceptionHandlingMiddleware.cs << 'EOF'
 using System.Net;
 using FluentValidation;
 using InsureX.Application.Exceptions;
@@ -126,90 +119,14 @@ public class ExceptionHandlingMiddleware
         return context.Response.WriteAsJsonAsync(response);
     }
 }
-'@
+EOF
 
-$exceptionMiddleware | Out-File -FilePath "InsureX.API/Middleware/ExceptionHandlingMiddleware.cs" -Encoding utf8
-Write-Host "✅ Exception handling middleware created" -ForegroundColor Green
+echo "✅ Exception handling middleware created"
 
-# 2. Create Rate Limiting Middleware
-Write-Host "`n📋 Step 2: Creating rate limiting middleware..." -ForegroundColor Yellow
+# 2. Create Domain Exception
+echo "📋 Step 2: Creating domain exception..."
 
-$rateLimitMiddleware = @'
-using System.Collections.Concurrent;
-
-namespace InsureX.API.Middleware;
-
-public class RateLimitingMiddleware
-{
-    private readonly RequestDelegate _next;
-    private readonly ILogger<RateLimitingMiddleware> _logger;
-    private static readonly ConcurrentDictionary<string, ClientRequestInfo> _clients = new();
-    private const int MaxRequests = 100; // Max requests per minute
-    private const int TimeWindowMinutes = 1;
-
-    public RateLimitingMiddleware(RequestDelegate next, ILogger<RateLimitingMiddleware> logger)
-    {
-        _next = next;
-        _logger = logger;
-    }
-
-    public async Task InvokeAsync(HttpContext context)
-    {
-        var clientId = GetClientIdentifier(context);
-
-        var now = DateTime.UtcNow;
-        var clientInfo = _clients.GetOrAdd(clientId, new ClientRequestInfo());
-
-        lock (clientInfo)
-        {
-            // Clean old requests outside time window
-            clientInfo.RequestTimes.RemoveAll(t => t < now.AddMinutes(-TimeWindowMinutes));
-
-            if (clientInfo.RequestTimes.Count >= MaxRequests)
-            {
-                _logger.LogWarning("Rate limit exceeded for client {ClientId}", clientId);
-                context.Response.StatusCode = StatusCodes.Status429TooManyRequests;
-                context.Response.Headers.RetryAfter = TimeWindowMinutes.ToString();
-                context.Response.WriteAsync("Too many requests. Please try again later.");
-                return;
-            }
-
-            clientInfo.RequestTimes.Add(now);
-        }
-
-        await _next(context);
-    }
-
-    private string GetClientIdentifier(HttpContext context)
-    {
-        // Try to get user ID if authenticated
-        var userId = context.User?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-        if (!string.IsNullOrEmpty(userId))
-        {
-            return $"user:{userId}";
-        }
-
-        // Fall back to IP address for anonymous
-        return $"ip:{context.Connection.RemoteIpAddress}";
-    }
-
-    private class ClientRequestInfo
-    {
-        public List<DateTime> RequestTimes { get; } = new();
-    }
-}
-'@
-
-$rateLimitMiddleware | Out-File -FilePath "InsureX.API/Middleware/RateLimitingMiddleware.cs" -Encoding utf8
-Write-Host "✅ Rate limiting middleware created" -ForegroundColor Green
-
-# 3. Create Domain Exception
-Write-Host "`n📋 Step 3: Creating domain exception..." -ForegroundColor Yellow
-
-# Create Exceptions folder if needed
-New-Item -ItemType Directory -Path "InsureX.Application/Exceptions" -Force | Out-Null
-
-$domainException = @'
+cat > InsureX.Application/Exceptions/DomainException.cs << 'EOF'
 namespace InsureX.Application.Exceptions;
 
 public class DomainException : Exception
@@ -221,21 +138,21 @@ public class DomainException : Exception
         Code = code;
     }
 }
-'@
+EOF
 
-$domainException | Out-File -FilePath "InsureX.Application/Exceptions/DomainException.cs" -Encoding utf8
-Write-Host "✅ Domain exception created" -ForegroundColor Green
+echo "✅ Domain exception created"
 
-# 4. Update Program.cs with all middleware
-Write-Host "`n📋 Step 4: Updating Program.cs..." -ForegroundColor Yellow
+# 3. Update Program.cs with all middleware
+echo "📋 Step 3: Final Program.cs update..."
 
-$programCs = @'
+cat > InsureX.API/Program.cs << 'EOF'
 using InsureX.Infrastructure.Data;
 using InsureX.Application.Interfaces;
 using InsureX.Infrastructure.Repositories;
 using InsureX.Infrastructure.Security;
 using Microsoft.EntityFrameworkCore;
 using InsureX.Infrastructure.Services;
+using InsureX.Application.Behaviors;
 using InsureX.API.Middleware;
 using FluentValidation;
 using System.Reflection;
@@ -259,6 +176,7 @@ builder.Services.AddScoped<IPolicyRepository, PolicyRepository>();
 builder.Services.AddScoped<IAssetRepository, AssetRepository>();
 builder.Services.AddScoped<IClaimRepository, ClaimRepository>();
 builder.Services.AddScoped<ITenantRepository, TenantRepository>();
+builder.Services.AddScoped<IRefreshTokenRepository, RefreshTokenRepository>();
 builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 
 // Register services
@@ -267,6 +185,7 @@ builder.Services.AddScoped<IJwtService, JwtService>();
 builder.Services.AddScoped<IPasswordHasher, PasswordHasher>();
 builder.Services.AddScoped<ITenantContext, TenantContext>();
 builder.Services.AddScoped<ITenantValidationService, TenantValidationService>();
+builder.Services.AddScoped<IPremiumCalculationService, PremiumCalculationService>();
 
 // Add CORS
 builder.Services.AddCors(options =>
@@ -280,10 +199,12 @@ builder.Services.AddCors(options =>
     });
 });
 
-// MediatR
+// MediatR with pipeline behaviors
 builder.Services.AddMediatR(cfg =>
 {
     cfg.RegisterServicesFromAssembly(typeof(IAuthService).Assembly);
+    cfg.AddBehavior(typeof(IPipelineBehavior<,>), typeof(LoggingBehavior<,>));
+    cfg.AddBehavior(typeof(IPipelineBehavior<,>), typeof(ValidationBehavior<,>));
 });
 
 // FluentValidation
@@ -324,86 +245,20 @@ using (var scope = app.Services.CreateScope())
 }
 
 app.Run();
-'@
+EOF
 
-$programCs | Out-File -FilePath "InsureX.API/Program.cs" -Encoding utf8
-Write-Host "✅ Program.cs updated" -ForegroundColor Green
+echo "✅ Program.cs finalized"
 
-# 5. Create Unit of Work
-Write-Host "`n📋 Step 5: Creating Unit of Work..." -ForegroundColor Yellow
+# 4. Create test project structure
+echo "📋 Step 4: Creating test project structure..."
 
-$unitOfWorkInterface = @'
-using InsureX.Domain.Interfaces;
+mkdir -p InsureX.Tests/Unit/Commands
+mkdir -p InsureX.Tests/Unit/Queries
+mkdir -p InsureX.Tests/Unit/Validators
+mkdir -p InsureX.Tests/Integration
+mkdir -p InsureX.Tests/Common
 
-namespace InsureX.Domain.Interfaces;
-
-public interface IUnitOfWork : IDisposable
-{
-    Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
-    Task<bool> SaveEntitiesAsync(CancellationToken cancellationToken = default);
-}
-'@
-
-$unitOfWorkInterface | Out-File -FilePath "InsureX.Domain/Interfaces/IUnitOfWork.cs" -Encoding utf8
-
-$unitOfWork = @'
-using InsureX.Domain.Interfaces;
-using InsureX.Infrastructure.Data;
-
-namespace InsureX.Infrastructure.Repositories;
-
-public class UnitOfWork : IUnitOfWork
-{
-    private readonly ApplicationDbContext _context;
-    private readonly ILogger<UnitOfWork> _logger;
-
-    public UnitOfWork(ApplicationDbContext context, ILogger<UnitOfWork> logger)
-    {
-        _context = context;
-        _logger = logger;
-    }
-
-    public async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
-    {
-        return await _context.SaveChangesAsync(cancellationToken);
-    }
-
-    public async Task<bool> SaveEntitiesAsync(CancellationToken cancellationToken = default)
-    {
-        try
-        {
-            await _context.SaveChangesAsync(cancellationToken);
-            return true;
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error saving entities");
-            return false;
-        }
-    }
-
-    public void Dispose()
-    {
-        _context.Dispose();
-    }
-}
-'@
-
-$unitOfWork | Out-File -FilePath "InsureX.Infrastructure/Repositories/UnitOfWork.cs" -Encoding utf8
-Write-Host "✅ Unit of Work created" -ForegroundColor Green
-
-# 6. Create test project structure
-Write-Host "`n📋 Step 6: Creating test project structure..." -ForegroundColor Yellow
-
-# Create test folders
-New-Item -ItemType Directory -Path "InsureX.Tests/Unit/Commands" -Force | Out-Null
-New-Item -ItemType Directory -Path "InsureX.Tests/Unit/Queries" -Force | Out-Null
-New-Item -ItemType Directory -Path "InsureX.Tests/Unit/Validators" -Force | Out-Null
-New-Item -ItemType Directory -Path "InsureX.Tests/Integration" -Force | Out-Null
-New-Item -ItemType Directory -Path "InsureX.Tests/Common" -Force | Out-Null
-
-# Create validator test
-$validatorTest = @'
+cat > InsureX.Tests/Unit/Validators/CreatePolicyCommandValidatorTests.cs << 'EOF'
 using FluentValidation.TestHelper;
 using InsureX.Application.Commands.Policy;
 using InsureX.Application.Validators.Policy;
@@ -454,93 +309,49 @@ public class CreatePolicyCommandValidatorTests
         result.ShouldNotHaveAnyValidationErrors();
     }
 }
-'@
+EOF
 
-$validatorTest | Out-File -FilePath "InsureX.Tests/Unit/Validators/CreatePolicyCommandValidatorTests.cs" -Encoding utf8
+echo "✅ Test structure created"
 
-# Create test project file if it doesn't exist
-if (-not (Test-Path "InsureX.Tests/InsureX.Tests.csproj")) {
-    $testCsproj = @'
-<Project Sdk="Microsoft.NET.Sdk">
+# 5. Create cleanup script for legacy code
+echo "📋 Step 5: Creating legacy cleanup script..."
 
-  <PropertyGroup>
-    <TargetFramework>net8.0</TargetFramework>
-    <ImplicitUsings>enable</ImplicitUsings>
-    <Nullable>enable</Nullable>
-    <IsPackable>false</IsPackable>
-    <IsTestProject>true</IsTestProject>
-  </PropertyGroup>
+cat > cleanup-legacy.sh << 'EOF'
+#!/bin/bash
+# WARNING: This moves legacy code to _Archive/legacy-backup/
+# Run this only after confirming new structure works!
 
-  <ItemGroup>
-    <PackageReference Include="coverlet.collector" Version="6.0.0" />
-    <PackageReference Include="FluentAssertions" Version="6.12.0" />
-    <PackageReference Include="FluentValidation" Version="11.9.0" />
-    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.8.0" />
-    <PackageReference Include="Moq" Version="4.20.70" />
-    <PackageReference Include="xunit" Version="2.6.6" />
-    <PackageReference Include="xunit.runner.visualstudio" Version="2.5.6" />
-  </ItemGroup>
+echo "🗄️ Archiving legacy code..."
 
-  <ItemGroup>
-    <ProjectReference Include="..\InsureX.Application\InsureX.Application.csproj" />
-    <ProjectReference Include="..\InsureX.Domain\InsureX.Domain.csproj" />
-    <ProjectReference Include="..\InsureX.Infrastructure\InsureX.Infrastructure.csproj" />
-  </ItemGroup>
+mkdir -p _Archive/legacy-backup
 
-</Project>
-'@
-    $testCsproj | Out-File -FilePath "InsureX.Tests/InsureX.Tests.csproj" -Encoding utf8
-}
+# Move legacy projects to archive
+mv IAPR_API/ _Archive/legacy-backup/ 2>/dev/null || true
+mv IAPR_Data/ _Archive/legacy-backup/ 2>/dev/null || true
+mv IAPR_Web/ _Archive/legacy-backup/ 2>/dev/null || true
+mv InsurexService/ _Archive/legacy-backup/ 2>/dev/null || true
+mv WcfService1/ _Archive/legacy-backup/ 2>/dev/null || true
+mv WcfServiceLibrary1/ _Archive/legacy-backup/ 2>/dev/null || true
+mv WcfServiceLibrary2/ _Archive/legacy-backup/ 2>/dev/null || true
+mv WebApplication1/ _Archive/legacy-backup/ 2>/dev/null || true
+mv WebApplication2/ _Archive/legacy-backup/ 2>/dev/null || true
+mv WebApplication3/ _Archive/legacy-backup/ 2>/dev/null || true
 
-Write-Host "✅ Test structure created" -ForegroundColor Green
+# Remove old solution file
+mv Insured_Assest_Protection_Register.sln _Archive/legacy-backup/ 2>/dev/null || true
 
-# 7. Create legacy cleanup script for Windows
-Write-Host "`n📋 Step 7: Creating legacy cleanup script..." -ForegroundColor Yellow
+echo "✅ Legacy code archived to _Archive/legacy-backup/"
+echo "⚠️  If you need to restore: git checkout HEAD -- [foldername]"
+EOF
 
-$cleanupScript = @'
-# cleanup-legacy.ps1
-Write-Host "🗄️ Archiving legacy code..." -ForegroundColor Yellow
+chmod +x cleanup-legacy.sh
 
-# Create archive folder
-New-Item -ItemType Directory -Path "_Archive/legacy-backup" -Force | Out-Null
+echo "✅ Cleanup script created (run manually when ready)"
 
-# Move legacy folders to archive
-$legacyFolders = @(
-    "IAPR_API",
-    "IAPR_Data",
-    "IAPR_Web",
-    "InsurexService",
-    "WcfService1",
-    "WcfServiceLibrary1",
-    "WcfServiceLibrary2",
-    "WebApplication1",
-    "WebApplication2",
-    "WebApplication3"
-)
+# 6. Create README update
+echo "📋 Step 6: Creating updated README..."
 
-foreach ($folder in $legacyFolders) {
-    if (Test-Path $folder) {
-        Move-Item -Path $folder -Destination "_Archive/legacy-backup/" -Force -ErrorAction SilentlyContinue
-        Write-Host "  ✅ Moved: $folder" -ForegroundColor Green
-    }
-}
-
-# Move old solution file
-if (Test-Path "Insured_Assest_Protection_Register.sln") {
-    Move-Item -Path "Insured_Assest_Protection_Register.sln" -Destination "_Archive/legacy-backup/" -Force
-}
-
-Write-Host "`n✅ Legacy code archived to _Archive/legacy-backup/" -ForegroundColor Green
-Write-Host "⚠️  If you need to restore: git checkout HEAD -- [foldername]" -ForegroundColor Yellow
-'@
-
-$cleanupScript | Out-File -FilePath "cleanup-legacy.ps1" -Encoding utf8
-Write-Host "✅ Cleanup script created (run '.\cleanup-legacy.ps1' when ready)" -ForegroundColor Green
-
-# 8. Update README
-Write-Host "`n📋 Step 8: Creating updated README..." -ForegroundColor Yellow
-
-$readme = @'
+cat > README.md << 'EOF'
 # InsureX - Insurance Asset Protection Register
 
 Modern .NET 8 Clean Architecture implementation with CQRS, MediatR, and Domain-Driven Design.
@@ -560,31 +371,36 @@ InsureX/
 
 ## 🚀 Quick Start
 
-```powershell
-# 1. Navigate to solution
-cd C:\Users\cluiz\source\repos\New folder\New-Insurex
+```bash
+# 1. Clone and navigate
+cd New-Insurex
 
-# 2. Run migrations
+# 2. Start infrastructure
+docker-compose up -d
+
+# 3. Run migrations
 dotnet ef database update --project InsureX.Infrastructure --startup-project InsureX.API
 
-# 3. Run API
+# 4. Run API
 dotnet run --project InsureX.API
 ```
 
 ## 🔐 Features
 
-- ✅ JWT Authentication
+- ✅ JWT Authentication with Refresh Tokens
 - ✅ CQRS with MediatR
 - ✅ FluentValidation
+- ✅ Domain Events
 - ✅ Multi-tenancy
 - ✅ Global Exception Handling
 - ✅ Rate Limiting
+- ✅ AutoMapper (ready)
 - ✅ Unit Testing (xUnit)
 
 ## 🛡️ Security
 
 - BCrypt password hashing
-- JWT with refresh tokens
+- JWT with short expiry (15 min) + Refresh tokens (7 days)
 - Rate limiting (100 req/min per client)
 - Global exception handling (no stack traces in production)
 - CORS configured for localhost:3000
@@ -597,19 +413,27 @@ dotnet run --project InsureX.API
 | /api/auth/register | POST | No |
 | /api/auth/refresh | POST | No |
 | /api/auth/logout | POST | Yes |
+| /api/auth/logout-all | POST | Yes |
 | /api/policies | GET | Yes |
 | /api/policies/{id} | GET | Yes |
 | /api/policies | POST | Yes (Admin) |
 
 ## 🧪 Testing
 
-```powershell
+```bash
 dotnet test InsureX.Tests/
+```
+
+## 🐳 Docker
+
+```bash
+docker-compose up -d
+# Starts: SQL Server 2022, API (optional)
 ```
 
 ## 📊 Database Migrations
 
-```powershell
+```bash
 # Create migration
 dotnet ef migrations add [Name] --project InsureX.Infrastructure --startup-project InsureX.API
 
@@ -619,217 +443,41 @@ dotnet ef database update --project InsureX.Infrastructure --startup-project Ins
 
 ## 🔄 Migration from Legacy
 
-Legacy code (IAPR_*, WCF services) can be archived using:
-```powershell
-.\cleanup-legacy.ps1
-```
+Legacy code (IAPR_*, WCF services) has been archived to `_Archive/legacy-backup/`.
+
+Business logic extracted:
+- Premium calculations → `PremiumCalculationService`
+- Policy validations → `Policy` entity methods
+- Domain rules → Rich domain model
 
 ## 📋 Checklist Status
 
 See [Checklist.md](Checklist.md) for detailed progress.
 
+---
+
 **Current Status:** Phase 5 Complete (Production Ready Foundation)
 **Next:** Asset Management Module (11 asset types)
-'@
+EOF
 
-$readme | Out-File -FilePath "README.md" -Encoding utf8
-Write-Host "✅ README updated" -ForegroundColor Green
+echo "✅ README updated"
 
-# 9. Update Checklist.md
-Write-Host "`n📋 Step 9: Updating Checklist.md..." -ForegroundColor Yellow
-
-$checklist = @'
-# 📋 InsureX Project - Master Checklist
-
-## Project: Insured Asset Protection Register (IAPR)
-## Last Updated: 2026-03-02
-## Current Status: Production Ready Foundation
-
----
-
-## ✅ COMPLETED ITEMS
-
-### 🏗️ Project Foundation (Phase 1)
-- [x] Solution structure with clean architecture
-- [x] .NET 8 Web API project (InsureX.API)
-- [x] Domain layer with entities (InsureX.Domain)
-- [x] Application layer with services (InsureX.Application)
-- [x] Infrastructure layer with EF Core (InsureX.Infrastructure)
-- [x] Shared utilities project (InsureX.Shared)
-- [x] Unit test project (InsureX.Tests)
-- [x] Git repository initialized
-
-### 🔐 Authentication & Security (Phase 4)
-- [x] JWT authentication implemented
-- [x] Refresh token mechanism
-- [x] Token-based authorization
-- [x] Password hashing with BCrypt
-- [x] Tenant context middleware
-- [x] CORS configuration
-- [x] Rate limiting middleware
-- [x] Global exception handling
-
-### 🗄️ Database
-- [x] Entity Framework Core configured
-- [x] SQL Server connection
-- [x] Base entity with audit fields
-- [x] Tenant isolation with global query filters
-- [x] Initial migrations created
-- [x] Database context with all entities
-
-### 📊 Core Entities
-- [x] User entity with roles
-- [x] Tenant entity for multi-tenancy
-- [x] Policy entity with CRUD
-- [x] Asset entity (base for all asset types)
-- [x] All 11 asset type implementations
-- [x] Partner entity (Financer/Insurer)
-- [x] Claim entity with full workflow
-- [x] Transaction entity
-
-### ⚙️ Backend Services (Phase 2-3)
-- [x] AuthService with login/register
-- [x] PolicyService with full CRUD
-- [x] JwtService for token management
-- [x] PasswordHasher service
-- [x] TenantContext service
-- [x] TenantValidationService
-- [x] Unit of Work pattern
-- [x] All repositories implemented
-
-### 🌐 API Endpoints
-- [x] AuthController (login, register, refresh)
-- [x] PolicyController (CRUD operations)
-- [x] Swagger/OpenAPI documentation
-- [x] Global error handling
-- [x] Rate limiting
-- [x] Input validation
-
-### 🛠️ Infrastructure (Phase 5)
-- [x] Global exception handling middleware
-- [x] Rate limiting middleware
-- [x] Unit of Work pattern
-- [x] Test project structure
-- [x] Validator tests
-- [x] Cleanup scripts for legacy code
-
----
-
-## 🚧 IN PROGRESS / NEXT PHASE
-
-### 📦 Phase 6: Asset Management (11 Asset Types)
-- [ ] Vehicle Asset endpoints
-- [ ] Property Asset endpoints
-- [ ] Watercraft Asset endpoints
-- [ ] Aviation Asset endpoints
-- [ ] Stock/Inventory endpoints
-- [ ] Accounts Receivable endpoints
-- [ ] Machinery Asset endpoints
-- [ ] Plant & Equipment endpoints
-- [ ] Business Interruption endpoints
-- [ ] Keyman Insurance endpoints
-- [ ] Electronic Equipment endpoints
-
-### 🎨 Frontend (React)
-- [ ] Dashboard UI
-- [ ] Policy management UI
-- [ ] Asset management UI
-- [ ] Claims UI
-- [ ] Reports UI
-
----
-
-## 📊 PROGRESS SUMMARY
-
-### Overall Completion: **70%**
-
-| Module | Completion | Status |
-|--------|------------|--------|
-| Project Foundation | 100% | ✅ Complete |
-| Authentication | 100% | ✅ Complete |
-| Database | 90% | ✅ Complete |
-| Core Entities | 100% | ✅ Complete |
-| Backend Services | 95% | ✅ Complete |
-| API Endpoints | 90% | ✅ Complete |
-| Infrastructure | 100% | ✅ Complete |
-| Asset Management | 0% | ⏳ Next Phase |
-| React Frontend | 20% | 🚧 In Progress |
-| Testing | 40% | 🚧 In Progress |
-
-**Current Focus:** Phase 6 - Asset Management Implementation
-**Overall Status:** 🟢 Production Ready Foundation
-'@
-
-$checklist | Out-File -FilePath "Checklist.md" -Encoding utf8
-Write-Host "✅ Checklist.md updated" -ForegroundColor Green
-
-# 10. Final summary
-Write-Host "`n" + "="*50 -ForegroundColor Cyan
-Write-Host "🎉🎉🎉 PHASE 5 COMPLETE! 🎉🎉🎉" -ForegroundColor Green
-Write-Host "="*50 -ForegroundColor Cyan
-Write-Host ""
-Write-Host "Summary of changes:" -ForegroundColor Yellow
-Write-Host "  ✅ Phase 1: Project Foundation" -ForegroundColor Green
-Write-Host "  ✅ Phase 2: CQRS Implementation" -ForegroundColor Green
-Write-Host "  ✅ Phase 3: Domain Model" -ForegroundColor Green
-Write-Host "  ✅ Phase 4: Security Enhancements" -ForegroundColor Green
-Write-Host "  ✅ Phase 5: Infrastructure Cleanup" -ForegroundColor Green
-Write-Host ""
-Write-Host "📋 What was added in Phase 5:" -ForegroundColor Cyan
-Write-Host "  • Global Exception Handling Middleware" -ForegroundColor White
-Write-Host "  • Rate Limiting Middleware" -ForegroundColor White
-Write-Host "  • Unit of Work Pattern" -ForegroundColor White
-Write-Host "  • Domain Exception class" -ForegroundColor White
-Write-Host "  • Test project structure" -ForegroundColor White
-Write-Host "  • Validator unit tests" -ForegroundColor White
-Write-Host "  • Legacy cleanup script" -ForegroundColor White
-Write-Host ""
-Write-Host "Next steps:" -ForegroundColor Yellow
-Write-Host "  1. Run: dotnet restore" -ForegroundColor White
-Write-Host "  2. Run: dotnet build" -ForegroundColor White
-Write-Host "  3. Run: dotnet ef database update" -ForegroundColor White
-Write-Host "  4. Test: dotnet test" -ForegroundColor White
-Write-Host "  5. When ready: .\cleanup-legacy.ps1 (removes old code)" -ForegroundColor White
-Write-Host ""
-Write-Host "Then proceed to Phase 6 - Asset Management Module" -ForegroundColor Magenta
-
-# Ask if user wants to build
-$response = Read-Host "`nBuild the solution now? (Y/N)"
-if ($response -eq 'Y' -or $response -eq 'y') {
-    Write-Host "`n🏗️ Building solution..." -ForegroundColor Yellow
-    dotnet build
-}
+echo ""
+echo "🎉🎉🎉 ALL PHASES COMPLETE! 🎉🎉🎉"
+echo ""
+echo "Summary of changes:"
+echo "  ✅ Phase 1: Fixed MediatR, added pipeline behaviors"
+echo "  ✅ Phase 2: Implemented CQRS (Commands/Queries/Handlers)"
+echo "  ✅ Phase 3: Rich domain model with events & value objects"
+echo "  ✅ Phase 4: Refresh tokens, enhanced JWT, rate limiting"
+echo "  ✅ Phase 5: Global exception handling, tests, cleanup"
+echo ""
+echo "Next steps:"
+echo "  1. Run: dotnet restore"
+echo "  2. Run: dotnet build"
+echo "  3. Run: dotnet ef database update"
+echo "  4. Test: dotnet test"
+echo "  5. When ready: ./cleanup-legacy.sh (removes old code)"
+echo ""
+echo "Then run ./fix-phase6-assets.sh for Asset Management module"
 ```
-
-## 🚀 **How to Run**
-
-1. **Save the script** as `fix-phase5-infrastructure.ps1` in:
-   `C:\Users\cluiz\source\repos\New folder\New-Insurex\`
-
-2. **Open PowerShell** and run:
-```powershell
-cd "C:\Users\cluiz\source\repos\New folder\New-Insurex"
-.\fix-phase5-infrastructure.ps1
-```
-
-## 📋 **What Phase 5 Adds**
-
-| Component | Purpose |
-|-----------|---------|
-| **Exception Handling Middleware** | Centralized error handling, no stack traces in production |
-| **Rate Limiting Middleware** | 100 requests per minute per client |
-| **Unit of Work** | Transaction management across repositories |
-| **Domain Exception** | Business rule exceptions with error codes |
-| **Test Structure** | xUnit test project with validators |
-| **Cleanup Script** | Archives legacy code safely |
-
-## ✅ **After Phase 5**
-
-Your backend is now **production-ready** with:
-- ✅ Global exception handling
-- ✅ Rate limiting
-- ✅ Unit of Work pattern
-- ✅ Test infrastructure
-- ✅ Clean architecture
-
-Next is **Phase 6 - Asset Management** (the 11 asset types)! 🚀
