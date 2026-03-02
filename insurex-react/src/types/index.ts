@@ -1,43 +1,17 @@
-// Asset Types
-export enum AssetType {
-  Vehicle = 'Vehicle',
-  Property = 'Property',
-  Watercraft = 'Watercraft',
-  Aviation = 'Aviation',
-  StockInventory = 'StockInventory',
-  AccountsReceivable = 'AccountsReceivable',
-  Machinery = 'Machinery',
-  PlantEquipment = 'PlantEquipment',
-  BusinessInterruption = 'BusinessInterruption',
-  KeymanInsurance = 'KeymanInsurance',
-  ElectronicEquipment = 'ElectronicEquipment'
-}
+// Auth types
+export * from './auth.types';
 
-export enum AssetStatus {
-  Active = 'Active',
-  Inactive = 'Inactive',
-  UnderMaintenance = 'UnderMaintenance',
-  Disposed = 'Disposed',
-  Claimed = 'Claimed'
-}
+// Policy types
+export * from './policy.types';
 
-// Claim Types
-export enum ClaimStatus {
-  Submitted = 'Submitted',
-  UnderReview = 'UnderReview',
-  AdditionalInfoRequired = 'AdditionalInfoRequired',
-  Approved = 'Approved',
-  Rejected = 'Rejected',
-  Paid = 'Paid',
-  Closed = 'Closed',
-  Withdrawn = 'Withdrawn'
-}
+// Asset types
+export * from './asset.types';
 
-// User Types
-export enum UserRole {
-  Client = 'Client',
-  Financer = 'Financer',
-  Insurer = 'Insurer',
-  Admin = 'Admin',
-  Broker = 'Broker'
-}
+// Claim types
+export * from './claim.types';
+
+// User types
+export * from './user.types';
+
+// Billing types
+export * from './billing.types';

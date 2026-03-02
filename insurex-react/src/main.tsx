@@ -1,40 +1,13 @@
-﻿import React from 'react';
+import React from 'react';
 import ReactDOM from 'react-dom/client';
-import { Provider } from 'react-redux';
 import { BrowserRouter } from 'react-router-dom';
-import { ThemeProvider, createTheme } from '@mui/material/styles';
-import CssBaseline from '@mui/material/CssBaseline';
-import { store } from './store/store';
-import { SnackbarProvider } from './components/Common/SnackbarProvider';
-import { LoadingProvider } from './components/Common/LoadingProvider';
-import { AuthProvider } from './components/Auth/AuthProvider';
 import App from './App';
 import './index.css';
 
-// Nota: LocalizationProvider foi removido temporariamente até instalar os pacotes necessários
-
-const theme = createTheme({
-  palette: {
-    primary: {
-      main: '#1976d2',
-    },
-  },
-});
-
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
-    <Provider store={store}>
-      <BrowserRouter>
-        <ThemeProvider theme={theme}>
-          <CssBaseline />
-          <LoadingProvider>
-            <AuthProvider>
-              <SnackbarProvider />
-              <App />
-            </AuthProvider>
-          </LoadingProvider>
-        </ThemeProvider>
-      </BrowserRouter>
-    </Provider>
+    <BrowserRouter>
+      <App />
+    </BrowserRouter>
   </React.StrictMode>
 );

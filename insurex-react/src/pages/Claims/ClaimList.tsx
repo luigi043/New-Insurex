@@ -1,70 +1,155 @@
-﻿import React, { useState, useEffect } from 'react';
-import { Box, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Button, Chip, Typography, IconButton, Dialog, DialogTitle, DialogContent, DialogActions, TextField, MenuItem, Grid, Card, CardContent } from '@mui/material';
-import { Add, CheckCircle, Cancel } from '@mui/icons-material';
-import { claimService } from '../services/claim.service';
-import { ClaimStatus, ClaimType } from '../types/claim.types';
+import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import {
+  Box, Typography, Button, Paper, Table, TableBody, TableCell, TableContainer,
+  TableHead, TableRow, TablePagination, IconButton, Chip, TextField, MenuItem,
+  Grid, Tooltip, CircularProgress, Alert, InputAdornment,
+} from '@mui/material';
+import { Add, Edit, Delete, Visibility, Search, Refresh } from '@mui/icons-material';
+import { useClaims } from '../../hooks/useClaims';
+import { ClaimStatus, ClaimType } from '../../types/claim.types';
+import { formatCurrency, formatDate } from '../../utils/formatters';
+import { ConfirmDialog } from '../../components/Common/ConfirmDialog';
+import { useNotification } from '../../hooks/useNotification';
+
+const claimStatuses: { value: ClaimStatus | ''; label: string; color: any }[] = [
+  { value: '', label: 'All Statuses', color: 'default' },
+  { value: 'draft', label: 'Draft', color: 'default' },
+  { value: 'submitted', label: 'Submitted', color: 'info' },
+  { value: 'under_review', label: 'Under Review', color: 'warning' },
+  { value: 'pending_info', label: 'Pending Info', color: 'warning' },
+  { value: 'approved', label: 'Approved', color: 'success' },
+  { value: 'partially_approved', label: 'Partially Approved', color: 'success' },
+  { value: 'rejected', label: 'Rejected', color: 'error' },
+  { value: 'in_payment', label: 'In Payment', color: 'info' },
+  { value: 'settled', label: 'Settled', color: 'success' },
+  { value: 'closed', label: 'Closed', color: 'default' },
+];
+
+const claimTypes: { value: ClaimType | ''; label: string }[] = [
+  { value: '', label: 'All Types' },
+  { value: 'property_damage', label: 'Property Damage' },
+  { value: 'theft', label: 'Theft' },
+  { value: 'liability', label: 'Liability' },
+  { value: 'bodily_injury', label: 'Bodily Injury' },
+  { value: 'medical', label: 'Medical' },
+  { value: 'collision', label: 'Collision' },
+  { value: 'comprehensive', label: 'Comprehensive' },
+  { value: 'fire', label: 'Fire' },
+  { value: 'flood', label: 'Flood' },
+  { value: 'natural_disaster', label: 'Natural Disaster' },
+  { value: 'vandalism', label: 'Vandalism' },
+  { value: 'other', label: 'Other' },
+];
 
 export const ClaimList: React.FC = () => {
-  const [claims, setClaims] = useState<any[]>([]);
-  const [openDialog, setOpenDialog] = useState(false);
-  const [selectedClaim, setSelectedClaim] = useState<any>(null);
-  const [processData, setProcessData] = useState({ approvedAmount: 0, rejectionReason: '' });
+  const navigate = useNavigate();
+  const { showSuccess, showError } = useNotification();
+  const [page, setPage] = useState(0);
+  const [pageSize, setPageSize] = useState(10);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState<ClaimStatus | ''>('');
+  const [typeFilter, setTypeFilter] = useState<ClaimType | ''>('');
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [claimToDelete, setClaimToDelete] = useState<string | null>(null);
 
-  useEffect(() => { loadClaims(); }, []);
+  const { claims, totalItems, isLoading, error, refetch, deleteClaim } = useClaims({
+    page: page + 1, pageSize,
+    filters: { search: searchQuery || undefined, status: statusFilter || undefined, type: typeFilter || undefined },
+  });
 
-  const loadClaims = async () => {
-    const data = await claimService.getClaims();
-    setClaims(data.items);
+  const handleChangePage = (_: unknown, newPage: number) => setPage(newPage);
+  const handleChangeRowsPerPage = (event: React.ChangeEvent<HTMLInputElement>) => {
+    setPageSize(parseInt(event.target.value, 10));
+    setPage(0);
   };
-
-  const handleProcess = async (id: string, action: 'approve' | 'reject') => {
-    if (action === 'approve') await claimService.processClaim(id, { status: 'Approved', approvedAmount: processData.approvedAmount });
-    else await claimService.processClaim(id, { status: 'Rejected', rejectionReason: processData.rejectionReason });
-    setOpenDialog(false);
-    loadClaims();
+  const handleSearch = (event: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchQuery(event.target.value);
+    setPage(0);
   };
-
-  const stats = {
-    total: claims.length,
-    pending: claims.filter(c => c.status === 'Submitted').length,
-    approved: claims.filter(c => c.status === 'Approved').length
+  const handleDeleteClick = (id: string) => { setClaimToDelete(id); setDeleteDialogOpen(true); };
+  const handleConfirmDelete = async () => {
+    if (claimToDelete) {
+      const success = await deleteClaim(claimToDelete);
+      success ? showSuccess('Claim deleted successfully') : showError('Failed to delete claim');
+    }
+    setDeleteDialogOpen(false);
+    setClaimToDelete(null);
   };
+  const getStatusColor = (status: ClaimStatus) => claimStatuses.find((s) => s.value === status)?.color || 'default';
 
   return (
     <Box>
-      <Typography variant="h4" gutterBottom>Claims</Typography>
-      <Grid container spacing={2} sx={{ mb: 3 }}>
-        <Grid item xs={4}><Card><CardContent><Typography color="textSecondary">Total</Typography><Typography variant="h5">{stats.total}</Typography></CardContent></Card></Grid>
-        <Grid item xs={4}><Card><CardContent><Typography color="textSecondary">Pending</Typography><Typography variant="h5" color="warning.main">{stats.pending}</Typography></CardContent></Card></Grid>
-        <Grid item xs={4}><Card><CardContent><Typography color="textSecondary">Approved</Typography><Typography variant="h5" color="success.main">{stats.approved}</Typography></CardContent></Card></Grid>
-      </Grid>
-      <Button variant="contained" startIcon={<Add />} onClick={() => setOpenDialog(true)} sx={{ mb: 2 }}>New Claim</Button>
-      <TableContainer component={Paper}>
-        <Table><TableHead><TableRow><TableCell>Claim #</TableCell><TableCell>Type</TableCell><TableCell>Amount</TableCell><TableCell>Status</TableCell><TableCell>Actions</TableCell></TableRow></TableHead>
-        <TableBody>{claims.map(c => (
-          <TableRow key={c.id}>
-            <TableCell>{c.claimNumber}</TableCell><TableCell>{c.type}</TableCell><TableCell>${c.claimedAmount}</TableCell>
-            <TableCell><Chip label={c.status} color={c.status === 'Approved' ? 'success' : c.status === 'Rejected' ? 'error' : 'warning'} size="small" /></TableCell>
-            <TableCell>
-              {c.status === 'Submitted' && (<><IconButton size="small" color="success" onClick={() => { setSelectedClaim(c); setOpenDialog(true); }}><CheckCircle /></IconButton>
-              <IconButton size="small" color="error" onClick={() => { setSelectedClaim(c); setOpenDialog(true); }}><Cancel /></IconButton></>)}
-            </TableCell>
-          </TableRow>
-        ))}</TableBody></Table>
-      </TableContainer>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+        <Typography variant="h4">Claims</Typography>
+        <Button variant="contained" startIcon={<Add />} onClick={() => navigate('/claims/new')}>New Claim</Button>
+      </Box>
 
-      <Dialog open={openDialog} onClose={() => setOpenDialog(false)}>
-        <DialogTitle>Process Claim</DialogTitle>
-        <DialogContent>
-          <TextField fullWidth type="number" label="Approved Amount" value={processData.approvedAmount} onChange={(e) => setProcessData({...processData, approvedAmount: Number(e.target.value)})} sx={{ mt: 2, mb: 2 }} />
-          <TextField fullWidth multiline rows={3} label="Rejection Reason" value={processData.rejectionReason} onChange={(e) => setProcessData({...processData, rejectionReason: e.target.value})} />
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setOpenDialog(false)}>Cancel</Button>
-          <Button color="success" onClick={() => handleProcess(selectedClaim?.id, 'approve')}>Approve</Button>
-          <Button color="error" onClick={() => handleProcess(selectedClaim?.id, 'reject')}>Reject</Button>
-        </DialogActions>
-      </Dialog>
+      <Paper sx={{ p: 2, mb: 2 }}>
+        <Grid container spacing={2} alignItems="center">
+          <Grid item xs={12} sm={4}>
+            <TextField fullWidth placeholder="Search claims..." value={searchQuery} onChange={handleSearch}
+              InputProps={{ startAdornment: (<InputAdornment position="start"><Search /></InputAdornment>) }} />
+          </Grid>
+          <Grid item xs={12} sm={3}>
+            <TextField select fullWidth label="Status" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value as ClaimStatus | '')}>
+              {claimStatuses.map((status) => (<MenuItem key={status.value} value={status.value}>{status.label}</MenuItem>))}
+            </TextField>
+          </Grid>
+          <Grid item xs={12} sm={3}>
+            <TextField select fullWidth label="Type" value={typeFilter} onChange={(e) => setTypeFilter(e.target.value as ClaimType | '')}>
+              {claimTypes.map((type) => (<MenuItem key={type.value} value={type.value}>{type.label}</MenuItem>))}
+            </TextField>
+          </Grid>
+          <Grid item xs={12} sm={2}>
+            <Tooltip title="Refresh"><IconButton onClick={() => refetch()}><Refresh /></IconButton></Tooltip>
+          </Grid>
+        </Grid>
+      </Paper>
+
+      {error && (<Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>)}
+
+      <Paper>
+        <TableContainer>
+          <Table>
+            <TableHead>
+              <TableRow>
+                <TableCell>Claim Number</TableCell>
+                <TableCell>Type</TableCell>
+                <TableCell>Claimant</TableCell>
+                <TableCell>Status</TableCell>
+                <TableCell>Incident Date</TableCell>
+                <TableCell align="right">Estimated</TableCell>
+                <TableCell align="center">Actions</TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {isLoading ? (<TableRow><TableCell colSpan={7} align="center" sx={{ py: 4 }}><CircularProgress /></TableCell></TableRow>) :
+               claims.length === 0 ? (<TableRow><TableCell colSpan={7} align="center" sx={{ py: 4 }}><Typography color="textSecondary">No claims found</Typography></TableCell></TableRow>) :
+               (claims.map((claim) => (
+                <TableRow key={claim.id} hover>
+                  <TableCell>{claim.claimNumber}</TableCell>
+                  <TableCell>{claimTypes.find((t) => t.value === claim.type)?.label || claim.type}</TableCell>
+                  <TableCell>{claim.claimantName}</TableCell>
+                  <TableCell><Chip label={claimStatuses.find((s) => s.value === claim.status)?.label || claim.status} color={getStatusColor(claim.status)} size="small" /></TableCell>
+                  <TableCell>{formatDate(claim.incidentDate)}</TableCell>
+                  <TableCell align="right">{formatCurrency(claim.estimatedAmount, claim.currency)}</TableCell>
+                  <TableCell align="center">
+                    <Tooltip title="View"><IconButton size="small" onClick={() => navigate(`/claims/${claim.id}`)}><Visibility /></IconButton></Tooltip>
+                    <Tooltip title="Edit"><IconButton size="small" onClick={() => navigate(`/claims/edit/${claim.id}`)}><Edit /></IconButton></Tooltip>
+                    <Tooltip title="Delete"><IconButton size="small" color="error" onClick={() => handleDeleteClick(claim.id)}><Delete /></IconButton></Tooltip>
+                  </TableCell>
+                </TableRow>
+              )))}
+            </TableBody>
+          </Table>
+        </TableContainer>
+        <TablePagination component="div" count={totalItems} page={page} onPageChange={handleChangePage}
+          rowsPerPage={pageSize} onRowsPerPageChange={handleChangeRowsPerPage} rowsPerPageOptions={[5, 10, 25, 50]} />
+      </Paper>
+
+      <ConfirmDialog open={deleteDialogOpen} title="Delete Claim" message="Are you sure you want to delete this claim? This action cannot be undone."
+        onConfirm={handleConfirmDelete} onCancel={() => { setDeleteDialogOpen(false); setClaimToDelete(null); }} />
     </Box>
   );
 };

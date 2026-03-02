@@ -1,92 +1,214 @@
-﻿import React, { useState } from 'react';
-import { Outlet, Link, useNavigate } from 'react-router-dom';
+import React, { useState } from 'react';
+import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import {
-  AppBar, Box, Drawer, IconButton, List, ListItem, ListItemButton,
-  ListItemIcon, ListItemText, Toolbar, Typography, Avatar, Menu, MenuItem
+  Box,
+  Drawer,
+  AppBar,
+  Toolbar,
+  List,
+  ListItem,
+  ListItemButton,
+  ListItemIcon,
+  ListItemText,
+  IconButton,
+  Typography,
+  Divider,
+  Avatar,
+  Menu,
+  MenuItem,
+  Badge,
+  useTheme,
+  useMediaQuery,
 } from '@mui/material';
 import {
-  Menu as MenuIcon, Dashboard, Policy, Inventory, Description,
-  Assessment, Receipt, Person
+  Menu as MenuIcon,
+  Dashboard,
+  Policy,
+  Inventory,
+  Claim,
+  People,
+  Receipt,
+  Assessment,
+  Settings,
+  AccountCircle,
+  Notifications,
+  Logout,
+  ChevronLeft,
 } from '@mui/icons-material';
-import { useAuth } from '../hooks/useAuth';
+import { useAuth } from '../../hooks/useAuth';
+import { useNotification } from '../../hooks/useNotification';
 
 const drawerWidth = 260;
 
+const menuItems = [
+  { path: '/dashboard', label: 'Dashboard', icon: Dashboard },
+  { path: '/policies', label: 'Policies', icon: Policy },
+  { path: '/assets', label: 'Assets', icon: Inventory },
+  { path: '/claims', label: 'Claims', icon: Claim },
+  { path: '/partners', label: 'Partners', icon: People },
+  { path: '/billing', label: 'Billing', icon: Receipt },
+  { path: '/reports', label: 'Reports', icon: Assessment },
+];
+
+const bottomMenuItems = [
+  { path: '/settings', label: 'Settings', icon: Settings },
+];
+
 export const Layout: React.FC = () => {
+  const theme = useTheme();
+  const navigate = useNavigate();
+  const location = useLocation();
+  const { user, logout } = useAuth();
+  const { showSuccess } = useNotification();
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+
   const [mobileOpen, setMobileOpen] = useState(false);
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
-  const navigate = useNavigate();
-  const { user, logout } = useAuth();
 
-  const menuItems = [
-    { text: 'Dashboard', icon: <Dashboard />, path: '/dashboard' },
-    { text: 'Policies', icon: <Policy />, path: '/policies' },
-    { text: 'Assets', icon: <Inventory />, path: '/assets' },
-    { text: 'Claims', icon: <Description />, path: '/claims' },
-    { text: 'Reports', icon: <Assessment />, path: '/reports' },
-    { text: 'Billing', icon: <Receipt />, path: '/billing' },
-  ];
+  const handleDrawerToggle = () => {
+    setMobileOpen(!mobileOpen);
+  };
+
+  const handleProfileMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
+    setAnchorEl(event.currentTarget);
+  };
+
+  const handleProfileMenuClose = () => {
+    setAnchorEl(null);
+  };
+
+  const handleLogout = async () => {
+    handleProfileMenuClose();
+    await logout();
+    showSuccess('Logged out successfully');
+    navigate('/login');
+  };
+
+  const handleNavigate = (path: string) => {
+    navigate(path);
+    if (isMobile) {
+      setMobileOpen(false);
+    }
+  };
 
   const drawer = (
     <Box>
-      <Toolbar>
-        <Typography variant="h6" sx={{ fontWeight: 'bold', color: 'primary.main' }}>
+      <Toolbar sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <Typography variant="h6" noWrap component="div" sx={{ fontWeight: 'bold' }}>
           InsureX
         </Typography>
       </Toolbar>
+      <Divider />
       <List>
-        {menuItems.map((item) => (
-          <ListItem key={item.text} disablePadding>
-            <ListItemButton component={Link} to={item.path}>
-              <ListItemIcon>{item.icon}</ListItemIcon>
-              <ListItemText primary={item.text} />
-            </ListItemButton>
-          </ListItem>
-        ))}
+        {menuItems.map((item) => {
+          const Icon = item.icon;
+          const isActive = location.pathname.startsWith(item.path);
+          return (
+            <ListItem key={item.path} disablePadding>
+              <ListItemButton
+                selected={isActive}
+                onClick={() => handleNavigate(item.path)}
+                sx={{
+                  '&.Mui-selected': {
+                    backgroundColor: theme.palette.primary.main + '20',
+                    borderRight: `3px solid ${theme.palette.primary.main}`,
+                  },
+                }}
+              >
+                <ListItemIcon>
+                  <Icon color={isActive ? 'primary' : 'inherit'} />
+                </ListItemIcon>
+                <ListItemText primary={item.label} />
+              </ListItemButton>
+            </ListItem>
+          );
+        })}
+      </List>
+      <Divider />
+      <List>
+        {bottomMenuItems.map((item) => {
+          const Icon = item.icon;
+          const isActive = location.pathname === item.path;
+          return (
+            <ListItem key={item.path} disablePadding>
+              <ListItemButton
+                selected={isActive}
+                onClick={() => handleNavigate(item.path)}
+              >
+                <ListItemIcon>
+                  <Icon color={isActive ? 'primary' : 'inherit'} />
+                </ListItemIcon>
+                <ListItemText primary={item.label} />
+              </ListItemButton>
+            </ListItem>
+          );
+        })}
       </List>
     </Box>
   );
 
   return (
     <Box sx={{ display: 'flex' }}>
-      <AppBar position="fixed" sx={{ zIndex: (theme) => theme.zIndex.drawer + 1 }}>
+      <AppBar
+        position="fixed"
+        sx={{
+          width: { md: `calc(100% - ${drawerWidth}px)` },
+          ml: { md: `${drawerWidth}px` },
+          backgroundColor: 'background.paper',
+          color: 'text.primary',
+          boxShadow: 1,
+        }}
+      >
         <Toolbar>
           <IconButton
             color="inherit"
+            aria-label="open drawer"
             edge="start"
-            onClick={() => setMobileOpen(!mobileOpen)}
-            sx={{ mr: 2, display: { sm: 'none' } }}
+            onClick={handleDrawerToggle}
+            sx={{ mr: 2, display: { md: 'none' } }}
           >
             <MenuIcon />
           </IconButton>
-          <Typography variant="h6" sx={{ flexGrow: 1 }}>
-            InsureX Platform
+          <Typography variant="h6" noWrap component="div" sx={{ flexGrow: 1 }}>
+            {menuItems.find((item) => location.pathname.startsWith(item.path))?.label || 'InsureX'}
           </Typography>
-          <IconButton onClick={(e) => setAnchorEl(e.currentTarget)} color="inherit">
-            <Avatar sx={{ width: 32, height: 32 }}>
-              {user?.firstName?.charAt(0) || <Person />}
-            </Avatar>
+          <IconButton color="inherit">
+            <Badge badgeContent={4} color="error">
+              <Notifications />
+            </Badge>
           </IconButton>
-          <Menu anchorEl={anchorEl} open={Boolean(anchorEl)} onClose={() => setAnchorEl(null)}>
-            <MenuItem onClick={() => { setAnchorEl(null); navigate('/profile'); }}>
-              Profile
-            </MenuItem>
-            <MenuItem onClick={() => { setAnchorEl(null); logout(); }}>
-              Logout
-            </MenuItem>
-          </Menu>
+          <IconButton
+            edge="end"
+            onClick={handleProfileMenuOpen}
+            color="inherit"
+            sx={{ ml: 1 }}
+          >
+            {user?.avatarUrl ? (
+              <Avatar src={user.avatarUrl} sx={{ width: 32, height: 32 }} />
+            ) : (
+              <AccountCircle />
+            )}
+          </IconButton>
         </Toolbar>
       </AppBar>
 
-      <Box component="nav" sx={{ width: { sm: drawerWidth }, flexShrink: { sm: 0 } }}>
+      <Box
+        component="nav"
+        sx={{ width: { md: drawerWidth }, flexShrink: { md: 0 } }}
+      >
         <Drawer
           variant="temporary"
           open={mobileOpen}
-          onClose={() => setMobileOpen(false)}
-          ModalProps={{ keepMounted: true }}
+          onClose={handleDrawerToggle}
+          ModalProps={{
+            keepMounted: true,
+          }}
           sx={{
-            display: { xs: 'block', sm: 'none' },
-            '& .MuiDrawer-paper': { width: drawerWidth }
+            display: { xs: 'block', md: 'none' },
+            '& .MuiDrawer-paper': {
+              boxSizing: 'border-box',
+              width: drawerWidth,
+            },
           }}
         >
           {drawer}
@@ -94,8 +216,11 @@ export const Layout: React.FC = () => {
         <Drawer
           variant="permanent"
           sx={{
-            display: { xs: 'none', sm: 'block' },
-            '& .MuiDrawer-paper': { width: drawerWidth }
+            display: { xs: 'none', md: 'block' },
+            '& .MuiDrawer-paper': {
+              boxSizing: 'border-box',
+              width: drawerWidth,
+            },
           }}
           open
         >
@@ -103,10 +228,53 @@ export const Layout: React.FC = () => {
         </Drawer>
       </Box>
 
-      <Box component="main" sx={{ flexGrow: 1, p: 3, width: { sm: `calc(100% - ${drawerWidth}px)` } }}>
+      <Box
+        component="main"
+        sx={{
+          flexGrow: 1,
+          p: 3,
+          width: { md: `calc(100% - ${drawerWidth}px)` },
+          minHeight: '100vh',
+          backgroundColor: 'background.default',
+        }}
+      >
         <Toolbar />
         <Outlet />
       </Box>
+
+      <Menu
+        anchorEl={anchorEl}
+        open={Boolean(anchorEl)}
+        onClose={handleProfileMenuClose}
+        anchorOrigin={{
+          vertical: 'bottom',
+          horizontal: 'right',
+        }}
+        transformOrigin={{
+          vertical: 'top',
+          horizontal: 'right',
+        }}
+      >
+        <MenuItem onClick={() => { handleProfileMenuClose(); navigate('/profile'); }}>
+          <ListItemIcon>
+            <AccountCircle fontSize="small" />
+          </ListItemIcon>
+          Profile
+        </MenuItem>
+        <MenuItem onClick={() => { handleProfileMenuClose(); navigate('/settings'); }}>
+          <ListItemIcon>
+            <Settings fontSize="small" />
+          </ListItemIcon>
+          Settings
+        </MenuItem>
+        <Divider />
+        <MenuItem onClick={handleLogout}>
+          <ListItemIcon>
+            <Logout fontSize="small" />
+          </ListItemIcon>
+          Logout
+        </MenuItem>
+      </Menu>
     </Box>
   );
 };

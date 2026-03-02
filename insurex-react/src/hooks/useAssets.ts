@@ -1,107 +1,158 @@
-﻿import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { assetService } from '../services/asset.service';
-import { Asset, AssetType } from '../types/asset.types';
+import { Asset, AssetFilter, AssetStats, PaginatedResponse } from '../types/asset.types';
+
+interface UseAssetsOptions {
+  page?: number;
+  pageSize?: number;
+  filters?: AssetFilter;
+  autoFetch?: boolean;
+}
 
 interface UseAssetsReturn {
   assets: Asset[];
-  loading: boolean;
-  error: string | null;
   totalItems: number;
-  page: number;
-  pageSize: number;
-  setPage: (page: number) => void;
-  setPageSize: (size: number) => void;
-  setTypeFilter: (type?: AssetType) => void;
-  refresh: () => Promise<void>;
-  getAsset: (id: string) => Promise<Asset | null>;
+  totalPages: number;
+  currentPage: number;
+  isLoading: boolean;
+  error: string | null;
+  refetch: () => Promise<void>;
+  fetchAsset: (id: string) => Promise<Asset | null>;
   createAsset: (data: any) => Promise<Asset | null>;
   updateAsset: (id: string, data: any) => Promise<Asset | null>;
   deleteAsset: (id: string) => Promise<boolean>;
+  getStats: () => Promise<AssetStats | null>;
+  searchAssets: (query: string) => Promise<Asset[]>;
+  bulkDelete: (ids: string[]) => Promise<boolean>;
 }
 
-export const useAssets = () => {
-  const [assets, setAssets] = useState<Asset[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [totalItems, setTotalItems] = useState(0);
-  const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(10);
-  const [typeFilter, setTypeFilter] = useState<AssetType | undefined>();
+export const useAssets = (options: UseAssetsOptions = {}): UseAssetsReturn => {
+  const {
+    page = 1,
+    pageSize = 10,
+    filters,
+    autoFetch = true,
+  } = options;
 
-  const loadAssets = useCallback(async () => {
-    setLoading(true);
+  const [assets, setAssets] = useState<Asset[]>([]);
+  const [totalItems, setTotalItems] = useState(0);
+  const [totalPages, setTotalPages] = useState(0);
+  const [currentPage, setCurrentPage] = useState(page);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const fetchAssets = useCallback(async () => {
+    setIsLoading(true);
     setError(null);
     try {
-      const response = await assetService.getAssets(page, pageSize, typeFilter);
+      const response: PaginatedResponse<Asset> = await assetService.getAssets(
+        currentPage,
+        pageSize,
+        filters
+      );
       setAssets(response.items);
       setTotalItems(response.totalItems);
+      setTotalPages(response.totalPages);
     } catch (err: any) {
-      setError(err.message || 'Failed to load assets');
+      setError(err.message || 'Failed to fetch assets');
     } finally {
-      setLoading(false);
+      setIsLoading(false);
     }
-  }, [page, pageSize, typeFilter]);
+  }, [currentPage, pageSize, filters]);
 
   useEffect(() => {
-    loadAssets();
-  }, [loadAssets]);
+    if (autoFetch) {
+      fetchAssets();
+    }
+  }, [fetchAssets, autoFetch]);
 
-  const getAsset = useCallback(async (id: string) => {
+  const fetchAsset = useCallback(async (id: string): Promise<Asset | null> => {
     try {
       return await assetService.getAsset(id);
-    } catch (err) {
-      setError('Failed to load asset');
+    } catch (err: any) {
+      setError(err.message || 'Failed to fetch asset');
       return null;
     }
   }, []);
 
-  const createAsset = useCallback(async (data: any) => {
+  const createAsset = useCallback(async (data: any): Promise<Asset | null> => {
     try {
       const newAsset = await assetService.createAsset(data);
-      await loadAssets();
+      await fetchAssets();
       return newAsset;
     } catch (err: any) {
       setError(err.message || 'Failed to create asset');
       return null;
     }
-  }, [loadAssets]);
+  }, [fetchAssets]);
 
-  const updateAsset = useCallback(async (id: string, data: any) => {
+  const updateAsset = useCallback(async (id: string, data: any): Promise<Asset | null> => {
     try {
-      const updated = await assetService.updateAsset(id, data);
-      await loadAssets();
-      return updated;
+      const updatedAsset = await assetService.updateAsset(id, data);
+      setAssets((prev) =>
+        prev.map((a) => (a.id === id ? updatedAsset : a))
+      );
+      return updatedAsset;
     } catch (err: any) {
       setError(err.message || 'Failed to update asset');
       return null;
     }
-  }, [loadAssets]);
+  }, []);
 
-  const deleteAsset = useCallback(async (id: string) => {
+  const deleteAsset = useCallback(async (id: string): Promise<boolean> => {
     try {
       await assetService.deleteAsset(id);
-      await loadAssets();
+      setAssets((prev) => prev.filter((a) => a.id !== id));
       return true;
-    } catch (err) {
-      setError('Failed to delete asset');
+    } catch (err: any) {
+      setError(err.message || 'Failed to delete asset');
       return false;
     }
-  }, [loadAssets]);
+  }, []);
+
+  const getStats = useCallback(async (): Promise<AssetStats | null> => {
+    try {
+      return await assetService.getAssetStats();
+    } catch (err: any) {
+      setError(err.message || 'Failed to fetch asset stats');
+      return null;
+    }
+  }, []);
+
+  const searchAssets = useCallback(async (query: string): Promise<Asset[]> => {
+    try {
+      return await assetService.searchAssets(query);
+    } catch (err: any) {
+      setError(err.message || 'Failed to search assets');
+      return [];
+    }
+  }, []);
+
+  const bulkDelete = useCallback(async (ids: string[]): Promise<boolean> => {
+    try {
+      await assetService.bulkDelete(ids);
+      setAssets((prev) => prev.filter((a) => !ids.includes(a.id)));
+      return true;
+    } catch (err: any) {
+      setError(err.message || 'Failed to delete assets');
+      return false;
+    }
+  }, []);
 
   return {
     assets,
-    loading,
-    error,
     totalItems,
-    page,
-    pageSize,
-    setPage,
-    setPageSize,
-    setTypeFilter,
-    refresh: loadAssets,
-    getAsset,
+    totalPages,
+    currentPage,
+    isLoading,
+    error,
+    refetch: fetchAssets,
+    fetchAsset,
     createAsset,
     updateAsset,
     deleteAsset,
+    getStats,
+    searchAssets,
+    bulkDelete,
   };
 };

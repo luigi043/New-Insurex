@@ -1,141 +1,84 @@
-﻿import axios, { AxiosInstance, InternalAxiosRequestConfig, AxiosError } from 'axios';
+import axios, { AxiosInstance, AxiosError, AxiosRequestConfig } from 'axios';
 
-interface QueueItem {
-  resolve: (value: string | null) => void;
-  reject: (reason?: any) => void;
-}
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
-class ApiService {
-  private api: AxiosInstance;
-  private isRefreshing = false;
-  private failedQueue: QueueItem[] = [];
+// Create axios instance
+const api: AxiosInstance = axios.create({
+  baseURL: API_BASE_URL,
+  headers: {
+    'Content-Type': 'application/json',
+  },
+  timeout: 30000,
+});
 
-  constructor() {
-    this.api = axios.create({
-      baseURL: import.meta.env.VITE_API_URL,
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      timeout: parseInt(import.meta.env.VITE_API_TIMEOUT) || 30000,
-    });
-
-    this.setupInterceptors();
+// Request interceptor - add auth token
+api.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem('token');
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => {
+    return Promise.reject(error);
   }
+);
 
-  private setupInterceptors(): void {
-    // Request interceptor
-    this.api.interceptors.request.use(
-      (config: InternalAxiosRequestConfig) => {
-        const token = localStorage.getItem('token');
-        if (token) {
-          config.headers.Authorization = `Bearer ${token}`;
+// Response interceptor - handle errors and token refresh
+api.interceptors.response.use(
+  (response) => response,
+  async (error: AxiosError) => {
+    const originalRequest = error.config as AxiosRequestConfig & { _retry?: boolean };
+
+    // Handle 401 Unauthorized
+    if (error.response?.status === 401 && !originalRequest._retry) {
+      originalRequest._retry = true;
+
+      try {
+        const refreshToken = localStorage.getItem('refreshToken');
+        if (!refreshToken) {
+          throw new Error('No refresh token available');
         }
+
+        // Try to refresh the token
+        const response = await axios.post(`${API_BASE_URL}/auth/refresh`, {
+          refreshToken,
+        });
+
+        const { token, refreshToken: newRefreshToken } = response.data;
         
-        if (import.meta.env.VITE_ENABLE_DEBUG === 'true') {
-          console.log(`🚀 API Request: ${config.method?.toUpperCase()} ${config.url}`, config);
+        localStorage.setItem('token', token);
+        localStorage.setItem('refreshToken', newRefreshToken);
+
+        // Retry the original request
+        if (originalRequest.headers) {
+          originalRequest.headers.Authorization = `Bearer ${token}`;
         }
-        
-        return config;
-      },
-      (error) => Promise.reject(error)
-    );
-
-    // Response interceptor
-    this.api.interceptors.response.use(
-      (response) => {
-        if (import.meta.env.VITE_ENABLE_DEBUG === 'true') {
-          console.log(`✅ API Response: ${response.config.method?.toUpperCase()} ${response.config.url}`, response.data);
-        }
-        return response;
-      },
-      async (error: AxiosError) => {
-        const originalRequest = error.config as InternalAxiosRequestConfig & { _retry?: boolean };
-        
-        if (import.meta.env.VITE_ENABLE_DEBUG === 'true') {
-          console.error('❌ API Error:', error.response?.data || error.message);
-        }
-
-        if (error.response?.status === 401 && !originalRequest._retry) {
-          if (this.isRefreshing) {
-            return new Promise((resolve, reject) => {
-              this.failedQueue.push({ resolve, reject });
-            })
-              .then((token) => {
-                originalRequest.headers.Authorization = `Bearer ${token}`;
-                return this.api(originalRequest);
-              })
-              .catch((err) => Promise.reject(err));
-          }
-
-          originalRequest._retry = true;
-          this.isRefreshing = true;
-
-          return new Promise((resolve, reject) => {
-            this.refreshToken()
-              .then((token) => {
-                originalRequest.headers.Authorization = `Bearer ${token}`;
-                this.processQueue(null, token);
-                resolve(this.api(originalRequest));
-              })
-              .catch((err) => {
-                this.processQueue(err, null);
-                reject(err);
-              })
-              .finally(() => {
-                this.isRefreshing = false;
-              });
-          });
-        }
-
-        return Promise.reject(error);
+        return api(originalRequest);
+      } catch (refreshError) {
+        // Refresh failed, logout user
+        localStorage.removeItem('token');
+        localStorage.removeItem('refreshToken');
+        window.location.href = '/login';
+        return Promise.reject(refreshError);
       }
-    );
-  }
+    }
 
-  private async refreshToken(): Promise<string> {
-    try {
-      const refreshToken = localStorage.getItem('refreshToken');
-      if (!refreshToken) {
-        throw new Error('No refresh token');
-      }
-
-      const response = await axios.post(`${import.meta.env.VITE_API_URL}/auth/refresh`, {
-        refreshToken,
-      });
-
-      const { token, refreshToken: newRefreshToken } = response.data;
-      
-      localStorage.setItem('token', token);
-      localStorage.setItem('refreshToken', newRefreshToken);
-      
-      return token;
-    } catch (error) {
-      this.logout();
-      throw error;
+    // Handle other errors
+    if (error.response) {
+      // Server responded with error
+      const errorData = error.response.data as any;
+      const errorMessage = errorData.message || errorData.error || 'An error occurred';
+      return Promise.reject(new Error(errorMessage));
+    } else if (error.request) {
+      // Request made but no response
+      return Promise.reject(new Error('Network error. Please check your connection.'));
+    } else {
+      // Something else happened
+      return Promise.reject(new Error(error.message || 'An unexpected error occurred'));
     }
   }
+);
 
-  private processQueue(error: Error | null, token: string | null): void {
-    this.failedQueue.forEach((promise) => {
-      if (error) {
-        promise.reject(error);
-      } else {
-        promise.resolve(token);
-      }
-    });
-    this.failedQueue = [];
-  }
-
-  private logout(): void {
-    localStorage.removeItem('token');
-    localStorage.removeItem('refreshToken');
-    localStorage.removeItem('user');
-    window.location.href = '/login';
-  }
-
-  public getClient(): AxiosInstance {
-    return this.api;
-  }
-}
-
-export const api = new ApiService().getClient();
+export default api;
