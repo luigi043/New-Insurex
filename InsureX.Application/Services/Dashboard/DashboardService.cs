@@ -6,7 +6,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
-
+using InsureX.Application.Interfaces;
 namespace InsureX.Application.Services.Dashboard;
 
 public class DashboardService : IDashboardService

@@ -1,6 +1,4 @@
-﻿
-using Insurex.Domain.Entities;
-using InsureX.Domain.Entities;
+﻿using InsureX.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 
 namespace InsureX.Infrastructure.Data;

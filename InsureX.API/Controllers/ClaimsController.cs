@@ -1,5 +1,3 @@
-
-using Insurex.Domain.Entities;
 using InsureX.Domain.Entities;
 using InsureX.Infrastructure.Data;
 using Microsoft.AspNetCore.Authorization;
