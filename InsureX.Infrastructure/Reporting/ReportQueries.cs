@@ -21,8 +21,8 @@ public class ReportQueries : IReportQueries
 
     public ReportQueries(IConfiguration configuration, ITenantContext tenantContext)
     {
-        _connectionString = configuration.GetConnectionString(""DefaultConnection"") 
-            ?? throw new InvalidOperationException(""Connection string 'DefaultConnection' not found."");
+        _connectionString = configuration.GetConnectionString("DefaultConnection") 
+            ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
         _tenantContext = tenantContext;
     }
 
@@ -80,9 +80,9 @@ public class ReportQueries : IReportQueries
         return format switch
         {
             ExportFormat.Csv => await ExportToCsvAsync(data),
-            ExportFormat.Excel => throw new NotImplementedException(""Excel export not implemented yet""),
-            ExportFormat.Pdf => throw new NotImplementedException(""PDF export not implemented yet""),
-            _ => throw new NotSupportedException($""Format {format} not supported"")
+            ExportFormat.Excel => throw new NotImplementedException("Excel export not implemented yet"),
+            ExportFormat.Pdf => throw new NotImplementedException("PDF export not implemented yet"),
+            _ => throw new NotSupportedException($"Format {format} not supported")
         };
     }
 
