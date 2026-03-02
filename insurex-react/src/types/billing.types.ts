@@ -15,5 +15,4 @@ export interface Invoice {
   dueDate: string;
   amount: number;
   status: InvoiceStatus;
-  items: any[];
 }

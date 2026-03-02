@@ -1,9 +1,10 @@
 ﻿import api from './api';
+import { Claim } from '../types/claim.types';
 
-const mockClaims = [
+const mockClaims: Claim[] = [
   {
     id: '1',
-    claimNumber: 'CLM-001',
+    claimNumber: 'CLM-2024-001',
     policyId: '1',
     clientId: '1',
     incidentDate: '2024-02-15',
@@ -15,7 +16,7 @@ const mockClaims = [
   },
   {
     id: '2',
-    claimNumber: 'CLM-002',
+    claimNumber: 'CLM-2024-002',
     policyId: '1',
     clientId: '1',
     incidentDate: '2024-02-10',
@@ -28,7 +29,7 @@ const mockClaims = [
   },
   {
     id: '3',
-    claimNumber: 'CLM-003',
+    claimNumber: 'CLM-2024-003',
     policyId: '2',
     clientId: '2',
     incidentDate: '2024-02-05',
@@ -43,41 +44,37 @@ const mockClaims = [
 export const claimService = {
   async getClaims(page = 1, pageSize = 10, status?: string) {
     let filtered = mockClaims;
-    if (status) {
-      filtered = mockClaims.filter(c => c.status === status);
-    }
+    if (status) filtered = mockClaims.filter(c => c.status === status);
     return {
-      data: {
-        items: filtered,
-        totalItems: filtered.length,
-        page,
-        pageSize
-      }
+      items: filtered,
+      totalItems: filtered.length,
+      page,
+      pageSize
     };
   },
 
-  async getClaim(id: string) {
+  async getClaim(id: string): Promise<Claim> {
     const claim = mockClaims.find(c => c.id === id);
-    return { data: claim };
+    if (!claim) throw new Error('Claim not found');
+    return claim;
   },
 
-  async createClaim(data: any) {
+  async createClaim(data: any): Promise<Claim> {
     const newClaim = {
       id: String(mockClaims.length + 1),
-      claimNumber: `CLM-${String(mockClaims.length + 1).padStart(3, '0')}`,
+      claimNumber: `CLM-2024-${String(mockClaims.length + 1).padStart(3, '0')}`,
       reportedDate: new Date().toISOString().split('T')[0],
       status: 'Submitted',
       ...data
     };
     mockClaims.push(newClaim);
-    return { data: newClaim };
+    return newClaim;
   },
 
-  async processClaim(id: string, data: any) {
+  async processClaim(id: string, data: any): Promise<Claim> {
     const index = mockClaims.findIndex(c => c.id === id);
-    if (index >= 0) {
-      mockClaims[index] = { ...mockClaims[index], ...data };
-    }
-    return { data: mockClaims[index] };
+    if (index === -1) throw new Error('Claim not found');
+    mockClaims[index] = { ...mockClaims[index], ...data };
+    return mockClaims[index];
   }
 };

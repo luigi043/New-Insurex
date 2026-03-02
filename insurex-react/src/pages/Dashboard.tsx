@@ -1,112 +1,41 @@
 ﻿import React, { useState, useEffect } from 'react';
-import { 
-  Grid, Paper, Typography, Box, Card, CardContent,
-  CircularProgress 
-} from '@mui/material';
-import { 
-  TrendingUp, Assignment, CheckCircle, Warning,
-  AttachMoney, People 
-} from '@mui/icons-material';
-import { dashboardApi } from '../services/dashboardApi';
+import { Grid, Paper, Typography, Box, Card, CardContent } from '@mui/material';
+import { TrendingUp, Assignment, CheckCircle, Warning, AttachMoney, Inventory } from '@mui/icons-material';
+import { policyService } from '../services/policy.service';
 
 export const Dashboard: React.FC = () => {
-  const [stats, setStats] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
+  const [stats, setStats] = useState({ totalPolicies: 0, activePolicies: 0, totalAssets: 0, totalValue: 0 });
 
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const response = await dashboardApi.getSummary();
-        setStats(response.data);
-      } catch (error) {
-        console.error('Error loading dashboard:', error);
-      } finally {
-        setLoading(false);
-      }
+    const loadStats = async () => {
+      const policies = await policyService.getPolicies();
+      setStats({
+        totalPolicies: policies.totalItems,
+        activePolicies: policies.items.filter(p => p.status === 'Active').length,
+        totalAssets: 12,
+        totalValue: 1500000
+      });
     };
-    fetchData();
+    loadStats();
   }, []);
 
-  if (loading) {
-    return (
-      <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
-        <CircularProgress />
-      </Box>
-    );
-  }
-
   const StatCard = ({ title, value, icon, color }: any) => (
-    <Card sx={{ height: '100%' }}>
-      <CardContent>
-        <Box display="flex" alignItems="center" justifyContent="space-between">
-          <Box>
-            <Typography color="textSecondary" gutterBottom variant="body2">
-              {title}
-            </Typography>
-            <Typography variant="h5" component="h2">
-              {value}
-            </Typography>
-          </Box>
-          <Box sx={{ color, fontSize: 40 }}>{icon}</Box>
-        </Box>
-      </CardContent>
-    </Card>
+    <Card><CardContent>
+      <Box display="flex" justifyContent="space-between">
+        <Box><Typography color="textSecondary">{title}</Typography><Typography variant="h5">{value}</Typography></Box>
+        <Box sx={{ color, fontSize: 40 }}>{icon}</Box>
+      </Box>
+    </CardContent></Card>
   );
 
   return (
     <Box>
-      <Typography variant="h4" gutterBottom>
-        Dashboard
-      </Typography>
+      <Typography variant="h4" gutterBottom>Dashboard</Typography>
       <Grid container spacing={3}>
-        <Grid item xs={12} sm={6} md={4}>
-          <StatCard
-            title="Total Policies"
-            value={stats?.totalPolicies || 0}
-            icon={<Assignment />}
-            color="#1976d2"
-          />
-        </Grid>
-        <Grid item xs={12} sm={6} md={4}>
-          <StatCard
-            title="Active Policies"
-            value={stats?.activePolicies || 0}
-            icon={<CheckCircle />}
-            color="#2e7d32"
-          />
-        </Grid>
-        <Grid item xs={12} sm={6} md={4}>
-          <StatCard
-            title="Total Assets"
-            value={stats?.totalAssets || 0}
-            icon={<Inventory />}
-            color="#9c27b0"
-          />
-        </Grid>
-        <Grid item xs={12} sm={6} md={4}>
-          <StatCard
-            title="Pending Claims"
-            value={stats?.pendingClaims || 0}
-            icon={<Warning />}
-            color="#ed6c02"
-          />
-        </Grid>
-        <Grid item xs={12} sm={6} md={4}>
-          <StatCard
-            title="Total Value"
-            value={`$${stats?.totalValue?.toLocaleString() || 0}`}
-            icon={<AttachMoney />}
-            color="#2e7d32"
-          />
-        </Grid>
-        <Grid item xs={12} sm={6} md={4}>
-          <StatCard
-            title="Active Clients"
-            value={stats?.activeClients || 0}
-            icon={<People />}
-            color="#1976d2"
-          />
-        </Grid>
+        <Grid item xs={12} sm={6} md={3}><StatCard title="Total Policies" value={stats.totalPolicies} icon={<Assignment />} color="#1976d2" /></Grid>
+        <Grid item xs={12} sm={6} md={3}><StatCard title="Active Policies" value={stats.activePolicies} icon={<CheckCircle />} color="#2e7d32" /></Grid>
+        <Grid item xs={12} sm={6} md={3}><StatCard title="Total Assets" value={stats.totalAssets} icon={<Inventory />} color="#9c27b0" /></Grid>
+        <Grid item xs={12} sm={6} md={3}><StatCard title="Total Value" value={`$${stats.totalValue.toLocaleString()}`} icon={<AttachMoney />} color="#2e7d32" /></Grid>
       </Grid>
     </Box>
   );

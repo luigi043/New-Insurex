@@ -1,13 +1,11 @@
 ﻿import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { 
-  Container, Box, TextField, Button, Typography, 
-  Paper, Alert, CircularProgress 
-} from '@mui/material';
-import { authService } from '../services/auth.service';
+import { Container, Box, TextField, Button, Typography, Paper, Alert } from '@mui/material';
+import { useAuth } from '../hooks/useAuth';
 
 export const Login: React.FC = () => {
   const navigate = useNavigate();
+  const { login } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -17,12 +15,11 @@ export const Login: React.FC = () => {
     e.preventDefault();
     setError('');
     setLoading(true);
-
     try {
-      await authService.login({ email, password });
+      await login(email, password);
       navigate('/dashboard');
-    } catch (err: any) {
-      setError(err.response?.data?.message || 'Login failed');
+    } catch (err) {
+      setError('Invalid credentials');
     } finally {
       setLoading(false);
     }
@@ -30,58 +27,19 @@ export const Login: React.FC = () => {
 
   return (
     <Container component="main" maxWidth="xs">
-      <Box sx={{ 
-        marginTop: 8, 
-        display: 'flex', 
-        flexDirection: 'column', 
-        alignItems: 'center' 
-      }}>
-        <Paper elevation={3} sx={{ p: 4, width: '100%' }}>
-          <Typography component="h1" variant="h5" align="center" gutterBottom>
-            InsureX Platform
-          </Typography>
-          <Typography component="h2" variant="h6" align="center" sx={{ mb: 3 }}>
-            Sign In
-          </Typography>
-
+      <Box sx={{ mt: 8 }}>
+        <Paper sx={{ p: 4 }}>
+          <Typography variant="h5" align="center" gutterBottom>InsureX</Typography>
           {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
-
-          <Box component="form" onSubmit={handleSubmit}>
-            <TextField
-              margin="normal"
-              required
-              fullWidth
-              label="Email Address"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              disabled={loading}
-            />
-            <TextField
-              margin="normal"
-              required
-              fullWidth
-              label="Password"
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              disabled={loading}
-            />
-            <Button
-              type="submit"
-              fullWidth
-              variant="contained"
-              sx={{ mt: 3, mb: 2 }}
-              disabled={loading}
-            >
-              {loading ? <CircularProgress size={24} /> : 'Sign In'}
+          <form onSubmit={handleSubmit}>
+            <TextField fullWidth margin="normal" label="Email" value={email} onChange={(e) => setEmail(e.target.value)} disabled={loading} />
+            <TextField fullWidth margin="normal" type="password" label="Password" value={password} onChange={(e) => setPassword(e.target.value)} disabled={loading} />
+            <Button fullWidth variant="contained" type="submit" sx={{ mt: 2 }} disabled={loading}>
+              {loading ? 'Loading...' : 'Sign In'}
             </Button>
-            <Box sx={{ textAlign: 'center' }}>
-              <Link to="/register" style={{ textDecoration: 'none' }}>
-                <Typography variant="body2" color="primary">
-                  Don't have an account? Sign Up
-                </Typography>
-              </Link>
-            </Box>
+          </form>
+          <Box sx={{ mt: 2, textAlign: 'center' }}>
+            <Link to="/register">Don't have an account? Sign Up</Link>
           </Box>
         </Paper>
       </Box>

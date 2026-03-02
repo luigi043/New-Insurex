@@ -18,36 +18,14 @@ export const AppRoutes: React.FC = () => {
     <Routes>
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
-      
-      <Route path="/" element={
-        <PrivateRoute>
-          <Layout />
-        </PrivateRoute>
-      }>
-        <Route index element={<Navigate to="/dashboard" replace />} />
+      <Route path="/" element={<PrivateRoute><Layout /></PrivateRoute>}>
+        <Route index element={<Navigate to="/dashboard" />} />
         <Route path="dashboard" element={<Dashboard />} />
-        
-        <Route path="policies">
-          <Route index element={<PolicyList />} />
-          <Route path="new" element={<PolicyForm />} />
-          <Route path=":id" element={<PolicyDetails />} />
-          <Route path="edit/:id" element={<PolicyForm />} />
-        </Route>
-        
-        <Route path="assets">
-          <Route index element={<AssetList />} />
-          <Route path="new" element={<div>New Asset - Coming Soon</div>} />
-        </Route>
-        
-        <Route path="claims">
-          <Route index element={<ClaimList />} />
-        </Route>
-        
+        <Route path="policies"><Route index element={<PolicyList />} /><Route path="new" element={<PolicyForm />} /><Route path=":id" element={<PolicyDetails />} /><Route path="edit/:id" element={<PolicyForm />} /></Route>
+        <Route path="assets"><Route index element={<AssetList />} /></Route>
+        <Route path="claims"><Route index element={<ClaimList />} /></Route>
         <Route path="reports" element={<Reports />} />
-        
-        <Route path="billing">
-          <Route index element={<InvoiceList />} />
-        </Route>
+        <Route path="billing"><Route index element={<InvoiceList />} /></Route>
       </Route>
     </Routes>
   );

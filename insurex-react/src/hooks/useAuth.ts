@@ -1,49 +1,27 @@
 ﻿import { useState, useEffect } from 'react';
-
-interface User {
-  id: string;
-  email: string;
-  firstName: string;
-  lastName: string;
-  role: string;
-}
+import { User } from '../types/auth.types';
+import { authService } from '../services/auth.service';
 
 export const useAuth = () => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const loadUser = () => {
-      const userStr = localStorage.getItem('user');
-      if (userStr) {
-        try {
-          setUser(JSON.parse(userStr));
-        } catch (e) {
-          console.error('Error parsing user', e);
-        }
-      }
-      setLoading(false);
-    };
-    loadUser();
+    const user = authService.getCurrentUser();
+    setUser(user);
+    setLoading(false);
   }, []);
 
   const login = async (email: string, password: string) => {
-    const mockUser = {
-      id: '1',
-      email,
-      firstName: 'Admin',
-      lastName: 'User',
-      role: 'Admin'
-    };
-    localStorage.setItem('token', 'mock-token');
-    localStorage.setItem('user', JSON.stringify(mockUser));
-    setUser(mockUser);
-    return { user: mockUser };
+    const response = await authService.login({ email, password });
+    localStorage.setItem('token', response.token);
+    localStorage.setItem('user', JSON.stringify(response.user));
+    setUser(response.user);
+    return response;
   };
 
   const logout = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
+    authService.logout();
     setUser(null);
   };
 

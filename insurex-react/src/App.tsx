@@ -1,24 +1,15 @@
 ﻿import React from 'react';
-import { BrowserRouter } from 'react-router-dom';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
 import { AppRoutes } from './routes';
 
-const theme = createTheme({
-  palette: {
-    primary: {
-      main: '#1976d2',
-    },
-  },
-});
+const theme = createTheme({ palette: { primary: { main: '#1976d2' } } });
 
 function App() {
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
-      <BrowserRouter>
-        <AppRoutes />
-      </BrowserRouter>
+      <AppRoutes />
     </ThemeProvider>
   );
 }

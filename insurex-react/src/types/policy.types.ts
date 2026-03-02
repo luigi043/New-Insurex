@@ -1,12 +1,9 @@
-﻿import { User } from './auth.types';
-
-export enum PolicyStatus {
+﻿export enum PolicyStatus {
   Draft = 'Draft',
   PendingApproval = 'PendingApproval',
   Active = 'Active',
   Expired = 'Expired',
-  Cancelled = 'Cancelled',
-  Suspended = 'Suspended'
+  Cancelled = 'Cancelled'
 }
 
 export enum PolicyType {
@@ -39,54 +36,13 @@ export interface Policy {
   client?: User;
   insurerId?: string;
   insurer?: User;
-  assets?: any[];
-  claims?: any[];
-  documents?: PolicyDocument[];
   createdAt: string;
-  updatedAt: string;
 }
-
-export interface PolicyDocument {
-  id: string;
-  fileName: string;
-  filePath: string;
-  fileType: string;
-  fileSize: number;
-  description?: string;
-  uploadedAt: string;
-}
-
-export interface PolicyFilter {
-  status?: PolicyStatus;
-  type?: PolicyType;
-  clientId?: string;
-  search?: string;
-  startDateFrom?: string;
-  startDateTo?: string;
-  endDateFrom?: string;
-  endDateTo?: string;
-}
-
-export interface CreatePolicyRequest {
-  policyNumber: string;
-  name: string;
-  description?: string;
-  type: PolicyType;
-  coverageAmount: number;
-  premium: number;
-  startDate: string;
-  endDate: string;
-  clientId: string;
-  insurerId?: string;
-}
-
-export interface UpdatePolicyRequest extends Partial<CreatePolicyRequest> {}
 
 export interface PaginatedResponse<T> {
   items: T[];
+  totalItems: number;
   page: number;
   pageSize: number;
-  totalItems: number;
   totalPages: number;
-  hasNext: boolean;
 }

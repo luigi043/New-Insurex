@@ -1,38 +1,20 @@
-﻿import React from 'react';
+﻿import React, { useState } from 'react';
 import { Outlet, Link, useNavigate } from 'react-router-dom';
 import {
-  AppBar,
-  Box,
-  Drawer,
-  IconButton,
-  List,
-  ListItem,
-  ListItemButton,
-  ListItemIcon,
-  ListItemText,
-  Toolbar,
-  Typography,
-  Avatar,
-  Menu,
-  MenuItem
+  AppBar, Box, Drawer, IconButton, List, ListItem, ListItemButton,
+  ListItemIcon, ListItemText, Toolbar, Typography, Avatar, Menu, MenuItem
 } from '@mui/material';
 import {
-  Menu as MenuIcon,
-  Dashboard,
-  Policy,
-  Inventory,
-  Description,
-  Assessment,
-  Receipt,
-  Person
+  Menu as MenuIcon, Dashboard, Policy, Inventory, Description,
+  Assessment, Receipt, Person
 } from '@mui/icons-material';
 import { useAuth } from '../hooks/useAuth';
 
 const drawerWidth = 260;
 
 export const Layout: React.FC = () => {
-  const [mobileOpen, setMobileOpen] = React.useState(false);
-  const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null);
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const navigate = useNavigate();
   const { user, logout } = useAuth();
 
@@ -104,7 +86,7 @@ export const Layout: React.FC = () => {
           ModalProps={{ keepMounted: true }}
           sx={{
             display: { xs: 'block', sm: 'none' },
-            '& .MuiDrawer-paper': { boxSizing: 'border-box', width: drawerWidth },
+            '& .MuiDrawer-paper': { width: drawerWidth }
           }}
         >
           {drawer}
@@ -113,7 +95,7 @@ export const Layout: React.FC = () => {
           variant="permanent"
           sx={{
             display: { xs: 'none', sm: 'block' },
-            '& .MuiDrawer-paper': { boxSizing: 'border-box', width: drawerWidth },
+            '& .MuiDrawer-paper': { width: drawerWidth }
           }}
           open
         >

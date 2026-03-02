@@ -1,18 +1,4 @@
-﻿export interface User {
-  id: string;
-  email: string;
-  username: string;
-  firstName: string;
-  lastName: string;
-  role: UserRole;
-  tenantId?: string;
-  tenantCode?: string;
-  phoneNumber?: string;
-  status: UserStatus;
-  createdAt: string;
-}
-
-export enum UserRole {
+﻿export enum UserRole {
   Admin = 'Admin',
   Client = 'Client',
   Financer = 'Financer',
@@ -27,6 +13,17 @@ export enum UserStatus {
   PendingVerification = 'PendingVerification'
 }
 
+export interface User {
+  id: string;
+  email: string;
+  firstName: string;
+  lastName: string;
+  role: UserRole;
+  phoneNumber?: string;
+  status: UserStatus;
+  tenantId?: string;
+}
+
 export interface LoginRequest {
   email: string;
   password: string;
@@ -39,7 +36,6 @@ export interface RegisterRequest {
   lastName: string;
   role: UserRole;
   phoneNumber?: string;
-  tenantId?: string;
 }
 
 export interface AuthResponse {
