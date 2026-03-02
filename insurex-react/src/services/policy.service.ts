@@ -1,76 +1,44 @@
 ﻿import api from './api';
-import { Policy, PaginatedResponse } from '../types/policy.types';
-
-const mockPolicies: Policy[] = [
-  {
-    id: '1',
-    policyNumber: 'POL-2024-001',
-    name: 'Commercial Vehicle Insurance',
-    description: 'Fleet insurance for company vehicles',
-    type: 'Vehicle',
-    coverageAmount: 500000,
-    premium: 15000,
-    startDate: '2024-01-01',
-    endDate: '2024-12-31',
-    status: 'Active',
-    clientId: '1',
-    client: { id: '1', email: 'joao@email.com', firstName: 'João', lastName: 'Silva', role: 'Client', status: 'Active' },
-    createdAt: '2024-01-01'
-  },
-  {
-    id: '2',
-    policyNumber: 'POL-2024-002',
-    name: 'Property Insurance',
-    description: 'Commercial building insurance',
-    type: 'Property',
-    coverageAmount: 1000000,
-    premium: 25000,
-    startDate: '2024-02-01',
-    endDate: '2025-01-31',
-    status: 'Active',
-    clientId: '2',
-    client: { id: '2', email: 'maria@email.com', firstName: 'Maria', lastName: 'Santos', role: 'Client', status: 'Active' },
-    createdAt: '2024-02-01'
-  }
-];
+import { Policy, PolicyFilter, PaginatedResponse } from '../types/policy.types';
 
 export const policyService = {
-  async getPolicies(page = 1, pageSize = 10): Promise<PaginatedResponse<Policy>> {
-    return {
-      items: mockPolicies,
-      totalItems: mockPolicies.length,
-      page,
-      pageSize,
-      totalPages: 1
-    };
+  async getPolicies(
+    page: number = 1,
+    pageSize: number = 10,
+    filters?: PolicyFilter
+  ): Promise<PaginatedResponse<Policy>> {
+    const params = new URLSearchParams({
+      page: page.toString(),
+      pageSize: pageSize.toString(),
+      ...(filters?.status && { status: filters.status }),
+      ...(filters?.type && { type: filters.type }),
+      ...(filters?.search && { search: filters.search }),
+    });
+    const response = await api.get<PaginatedResponse<Policy>>(`/policies?${params}`);
+    return response.data;
   },
 
   async getPolicy(id: string): Promise<Policy> {
-    const policy = mockPolicies.find(p => p.id === id);
-    if (!policy) throw new Error('Policy not found');
-    return policy;
+    const response = await api.get<Policy>(`/policies/${id}`);
+    return response.data;
   },
 
   async createPolicy(data: any): Promise<Policy> {
-    const newPolicy = {
-      id: String(mockPolicies.length + 1),
-      policyNumber: `POL-2024-${String(mockPolicies.length + 1).padStart(3, '0')}`,
-      createdAt: new Date().toISOString(),
-      ...data
-    };
-    mockPolicies.push(newPolicy);
-    return newPolicy;
+    const response = await api.post<Policy>('/policies', data);
+    return response.data;
   },
 
   async updatePolicy(id: string, data: any): Promise<Policy> {
-    const index = mockPolicies.findIndex(p => p.id === id);
-    if (index === -1) throw new Error('Policy not found');
-    mockPolicies[index] = { ...mockPolicies[index], ...data };
-    return mockPolicies[index];
+    const response = await api.put<Policy>(`/policies/${id}`, data);
+    return response.data;
   },
 
   async deletePolicy(id: string): Promise<void> {
-    const index = mockPolicies.findIndex(p => p.id === id);
-    if (index !== -1) mockPolicies.splice(index, 1);
-  }
+    await api.delete(`/policies/${id}`);
+  },
+
+  async getPolicyStats(): Promise<any> {
+    const response = await api.get('/policies/stats');
+    return response.data;
+  },
 };
