@@ -1,4 +1,3 @@
-// InsureX.Application/DTOs/Auth/UserDto.cs
 namespace InsureX.Application.DTOs.Auth;
 
 public class UserDto
@@ -9,6 +8,6 @@ public class UserDto
     public string FirstName { get; set; } = string.Empty;
     public string LastName { get; set; } = string.Empty;
     public string Role { get; set; } = string.Empty;
-    public Guid? TenantId { get; set; }
+    public Guid? TenantId { get; set; }  // Changed from Guid to Guid?
     public string? TenantCode { get; set; }
 }

@@ -1,4 +1,4 @@
-﻿using InsureX.Domain.Entities;
+using InsureX.Domain.Entities;
 using InsureX.Domain.Interfaces;
 using InsureX.Application.DTOs.Auth;
 using InsureX.Application.Interfaces;
@@ -84,7 +84,7 @@ public class AuthService : IAuthService
             PhoneNumber = request.PhoneNumber ?? string.Empty,
             Role = userRole,
             Status = UserStatus.Active,
-            TenantId = request.TenantId,
+            //TenantId = request.TenantId,
             CreatedAt = DateTime.UtcNow,
             UpdatedAt = DateTime.UtcNow
         };
