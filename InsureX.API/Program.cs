@@ -6,6 +6,9 @@ using InsureX.Domain.Interfaces;
 using InsureX.Infrastructure.Context;
 using InsureX.Infrastructure.Repositories;
 using InsureX.Infrastructure.Security;
+using InsureX.Infrastructure.Tenancy;
+using InsureX.Infrastructure.Reporting;
+using InsureX.Infrastructure.Workflow;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -145,6 +148,9 @@ builder.Services.AddScoped<IPolicyRepository, PolicyRepository>();
 builder.Services.AddScoped<IPartnerRepository, PartnerRepository>();
 builder.Services.AddScoped<IInvoiceRepository, InvoiceRepository>();
 builder.Services.AddScoped<IUserRepository, UserRepository>();
+builder.Services.AddScoped<IClaimInvestigationNoteRepository, ClaimInvestigationNoteRepository>();
+builder.Services.AddScoped<IAuditRepository, AuditRepository>();
+builder.Services.AddScoped<ITenantRepository, TenantRepository>();
 
 // Register Services
 builder.Services.AddScoped<IAssetService, AssetService>();
@@ -153,9 +159,17 @@ builder.Services.AddScoped<IPolicyService, PolicyService>();
 builder.Services.AddScoped<IPartnerService, PartnerService>();
 builder.Services.AddScoped<IInvoiceService, InvoiceService>();
 builder.Services.AddScoped<IJwtService, JwtService>();
+builder.Services.AddScoped<IPasswordHasher, PasswordHasher>();
+builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddScoped<IClaimInvestigationNoteService, ClaimInvestigationNoteService>();
+builder.Services.AddScoped<ITenantService, TenantService>();
+builder.Services.AddScoped<IAuditService, AuditService>();
+builder.Services.AddScoped<IWorkflowService, WorkflowService>();
+builder.Services.AddScoped<IReportGeneratorService, ReportGeneratorService>();
 
 // Tenant Context
-builder.Services.AddScoped<ITenantContext, TenantContext>();
+builder.Services.AddScoped<ITenantContext, InsureX.Infrastructure.Tenancy.TenantContext>();
+builder.Services.AddHttpContextAccessor();
 
 // Health Checks
 builder.Services.AddHealthChecks()
@@ -208,10 +222,13 @@ if (app.Environment.IsDevelopment())
     });
 }
 
+// Correlation ID (should be very first)
+app.UseCorrelationId();
+
 // Security Headers
 app.UseSecurityHeaders();
 
-// Global Exception Handler (should be first)
+// Global Exception Handler
 app.UseGlobalExceptionHandler();
 
 // Request Validation
@@ -235,6 +252,9 @@ app.UseAuthorization();
 
 // Tenant Resolution
 app.UseTenantResolution();
+
+// Response Caching for read-heavy endpoints
+app.UseResponseCaching();
 
 // Health Checks
 app.MapHealthChecks("/health", new Microsoft.AspNetCore.Diagnostics.HealthChecks.HealthCheckOptions
