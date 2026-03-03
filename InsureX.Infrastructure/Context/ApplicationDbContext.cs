@@ -325,9 +325,10 @@ public class ApplicationDbContext : DbContext, IUnitOfWork
 
     public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
     {
-        // Update audit fields
-        var entries = ChangeTracker.Entries<BaseEntity>();
-        foreach (var entry in entries)
+        var auditEntries = new List<AuditEntry>();
+
+        // Update audit fields and capture audit trail
+        foreach (var entry in ChangeTracker.Entries<BaseEntity>())
         {
             if (entry.State == EntityState.Added)
             {
@@ -341,8 +342,86 @@ public class ApplicationDbContext : DbContext, IUnitOfWork
                 if (string.IsNullOrEmpty(entry.Entity.UpdatedBy))
                     entry.Entity.UpdatedBy = "system";
             }
+
+            // Skip audit entries for AuditEntry itself to avoid recursion
+            if (entry.Entity.GetType() == typeof(AuditEntry))
+                continue;
+
+            var auditEntry = CreateAuditEntry(entry);
+            if (auditEntry != null)
+                auditEntries.Add(auditEntry);
         }
 
-        return await base.SaveChangesAsync(cancellationToken);
+        var result = await base.SaveChangesAsync(cancellationToken);
+
+        // Save audit entries (post-save to capture generated IDs)
+        if (auditEntries.Count > 0)
+        {
+            foreach (var auditEntry in auditEntries.Where(a => a.Action == "Create"))
+            {
+                // Update entity ID for newly created entities
+                var trackedEntry = ChangeTracker.Entries<BaseEntity>()
+                    .FirstOrDefault(e => e.Entity.GetType().Name == auditEntry.EntityType &&
+                                        e.Entity.Id.ToString() != "0");
+                if (trackedEntry != null)
+                    auditEntry.EntityId = trackedEntry.Entity.Id.ToString();
+            }
+
+            AuditEntries.AddRange(auditEntries);
+            await base.SaveChangesAsync(cancellationToken);
+        }
+
+        return result;
+    }
+
+    private AuditEntry? CreateAuditEntry(Microsoft.EntityFrameworkCore.ChangeTracking.EntityEntry<BaseEntity> entry)
+    {
+        if (entry.State == EntityState.Detached || entry.State == EntityState.Unchanged)
+            return null;
+
+        var entityType = entry.Entity.GetType().Name;
+        var tenantId = entry.Entity.GetType().GetProperty("TenantId")?.GetValue(entry.Entity) as int?;
+
+        var audit = new AuditEntry
+        {
+            EntityType = entityType,
+            EntityId = entry.Entity.Id.ToString(),
+            TenantId = tenantId ?? _tenantContext?.TenantId,
+            Timestamp = DateTime.UtcNow
+        };
+
+        switch (entry.State)
+        {
+            case EntityState.Added:
+                audit.Action = "Create";
+                audit.NewValues = System.Text.Json.JsonSerializer.Serialize(
+                    entry.Properties.Where(p => p.CurrentValue != null)
+                        .ToDictionary(p => p.Metadata.Name, p => p.CurrentValue));
+                break;
+
+            case EntityState.Modified:
+                var changedProps = entry.Properties.Where(p => p.IsModified).ToList();
+                if (changedProps.Count == 0) return null;
+
+                audit.Action = entry.Entity.IsDeleted ? "SoftDelete" : "Update";
+                audit.OldValues = System.Text.Json.JsonSerializer.Serialize(
+                    changedProps.ToDictionary(p => p.Metadata.Name, p => p.OriginalValue));
+                audit.NewValues = System.Text.Json.JsonSerializer.Serialize(
+                    changedProps.ToDictionary(p => p.Metadata.Name, p => p.CurrentValue));
+                audit.AffectedColumns = System.Text.Json.JsonSerializer.Serialize(
+                    changedProps.Select(p => p.Metadata.Name));
+                break;
+
+            case EntityState.Deleted:
+                audit.Action = "Delete";
+                audit.OldValues = System.Text.Json.JsonSerializer.Serialize(
+                    entry.Properties.ToDictionary(p => p.Metadata.Name, p => p.OriginalValue));
+                break;
+
+            default:
+                return null;
+        }
+
+        return audit;
     }
 }

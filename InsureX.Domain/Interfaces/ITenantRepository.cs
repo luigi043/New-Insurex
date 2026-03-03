@@ -1,15 +1,14 @@
 using InsureX.Domain.Entities;
 
-namespace InsureX.Domain.Interfaces
+namespace InsureX.Domain.Interfaces;
+
+public interface ITenantRepository
 {
-    public interface ITenantRepository
-    {
-        Task<Tenant?> GetByIdAsync(Guid id);
-        Task<Tenant?> GetByNameAsync(string name);
-        Task<IEnumerable<Tenant>> GetAllAsync();
-        Task<Tenant> AddAsync(Tenant tenant);
-        Task UpdateAsync(Tenant tenant);
-        Task DeleteAsync(Guid id);
-        Task<bool> ExistsAsync(string name);
-    }
+    Task<Tenant?> GetByIdAsync(int id);
+    Task<Tenant?> GetByNameAsync(string name);
+    Task<IEnumerable<Tenant>> GetAllAsync();
+    Task<Tenant> AddAsync(Tenant tenant);
+    Task UpdateAsync(Tenant tenant);
+    Task DeleteAsync(int id);
+    Task<bool> ExistsAsync(string name);
 }

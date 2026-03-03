@@ -21,4 +21,5 @@ public class Tenant : BaseEntity
     public ICollection<Asset> Assets { get; set; } = new List<Asset>();
     public ICollection<Claim> Claims { get; set; } = new List<Claim>();
     public ICollection<Partner> Partners { get; set; } = new List<Partner>();
+    public ICollection<TenantSettings> Settings { get; set; } = new List<TenantSettings>();
 }
