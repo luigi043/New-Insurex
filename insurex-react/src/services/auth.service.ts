@@ -63,6 +63,14 @@ class AuthService {
     await apiClient.post('/auth/change-password', data);
   }
 
+  async verifyEmail(token: string): Promise<void> {
+    await apiClient.post('/auth/verify-email', { token });
+  }
+
+  async resendVerificationEmail(email: string): Promise<void> {
+    await apiClient.post('/auth/resend-verification', { email });
+  }
+
   async getCurrentUser(): Promise<User> {
     const response = await apiClient.get<User>('/auth/me');
     return response.data;
