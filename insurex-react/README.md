@@ -68,6 +68,7 @@ InsureX is a comprehensive insurance management system designed to streamline po
 - **State Management**: React Context API + Custom Hooks
 - **Routing**: React Router v6
 - **HTTP Client**: Axios with interceptors
+- **Resilience**: Global error boundary for UI crashes
 
 ### Backend
 - **Framework**: .NET 8 Web API
@@ -382,5 +383,4 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - All contributors and testers
 
 ---
-
 
