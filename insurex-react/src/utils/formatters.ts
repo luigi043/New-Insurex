@@ -1,199 +1,205 @@
 /**
- * Format currency value to Brazilian Real
+ * Format a number as currency
  */
-export const formatCurrency = (value: number | string | undefined | null): string => {
-  if (value === undefined || value === null) return 'R$ 0,00';
+export const formatCurrency = (value: number | undefined | null, currency: string = 'USD'): string => {
+  if (value === undefined || value === null) return '-';
   
-  const numValue = typeof value === 'string' ? parseFloat(value) : value;
-  
-  if (isNaN(numValue)) return 'R$ 0,00';
-  
-  return new Intl.NumberFormat('pt-BR', {
+  return new Intl.NumberFormat('en-US', {
     style: 'currency',
-    currency: 'BRL'
-  }).format(numValue);
+    currency,
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2
+  }).format(value);
 };
 
 /**
- * Format date to Brazilian format
+ * Format a date string
  */
 export const formatDate = (date: string | Date | undefined | null): string => {
   if (!date) return '-';
   
-  const dateObj = typeof date === 'string' ? new Date(date) : date;
+  const d = typeof date === 'string' ? new Date(date) : date;
   
-  if (isNaN(dateObj.getTime())) return '-';
-  
-  return new Intl.DateTimeFormat('pt-BR', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric'
-  }).format(dateObj);
+  return new Intl.DateTimeFormat('en-US', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric'
+  }).format(d);
 };
 
 /**
- * Format date and time to Brazilian format
+ * Format a date with time
  */
 export const formatDateTime = (date: string | Date | undefined | null): string => {
   if (!date) return '-';
   
-  const dateObj = typeof date === 'string' ? new Date(date) : date;
+  const d = typeof date === 'string' ? new Date(date) : date;
   
-  if (isNaN(dateObj.getTime())) return '-';
-  
-  return new Intl.DateTimeFormat('pt-BR', {
-    day: '2-digit',
-    month: '2-digit',
+  return new Intl.DateTimeFormat('en-US', {
     year: 'numeric',
+    month: 'short',
+    day: 'numeric',
     hour: '2-digit',
     minute: '2-digit'
-  }).format(dateObj);
+  }).format(d);
 };
 
 /**
- * Format CPF/CNPJ document
+ * Format a number with commas
  */
-export const formatDocument = (document: string | undefined | null): string => {
-  if (!document) return '-';
+export const formatNumber = (value: number | undefined | null, decimals: number = 0): string => {
+  if (value === undefined || value === null) return '-';
   
-  const cleanDoc = document.replace(/\D/g, '');
-  
-  if (cleanDoc.length === 11) {
-    // CPF
-    return cleanDoc.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4');
-  } else if (cleanDoc.length === 14) {
-    // CNPJ
-    return cleanDoc.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/, '$1.$2.$3/$4-$5');
-  }
-  
-  return document;
+  return new Intl.NumberFormat('en-US', {
+    minimumFractionDigits: decimals,
+    maximumFractionDigits: decimals
+  }).format(value);
 };
 
 /**
- * Format phone number
+ * Format a percentage
+ */
+export const formatPercent = (value: number | undefined | null, decimals: number = 2): string => {
+  if (value === undefined || value === null) return '-';
+  
+  return new Intl.NumberFormat('en-US', {
+    style: 'percent',
+    minimumFractionDigits: decimals,
+    maximumFractionDigits: decimals
+  }).format(value / 100);
+};
+
+/**
+ * Format a phone number
  */
 export const formatPhone = (phone: string | undefined | null): string => {
   if (!phone) return '-';
   
-  const cleanPhone = phone.replace(/\D/g, '');
+  // Remove all non-numeric characters
+  const cleaned = phone.replace(/\D/g, '');
   
-  if (cleanPhone.length === 11) {
-    // Mobile
-    return cleanPhone.replace(/(\d{2})(\d{5})(\d{4})/, '($1) $2-$3');
-  } else if (cleanPhone.length === 10) {
-    // Landline
-    return cleanPhone.replace(/(\d{2})(\d{4})(\d{4})/, '($1) $2-$3');
+  // Format based on length
+  if (cleaned.length === 10) {
+    return `(${cleaned.slice(0, 3)}) ${cleaned.slice(3, 6)}-${cleaned.slice(6)}`;
+  } else if (cleaned.length === 11 && cleaned.startsWith('1')) {
+    return `+1 (${cleaned.slice(1, 4)}) ${cleaned.slice(4, 7)}-${cleaned.slice(7)}`;
   }
   
   return phone;
 };
 
 /**
- * Format CEP (Brazilian ZIP code)
+ * Format an address
  */
-export const formatCEP = (cep: string | undefined | null): string => {
-  if (!cep) return '-';
+export const formatAddress = (
+  address: string,
+  city?: string,
+  state?: string,
+  zipCode?: string,
+  country?: string
+): string => {
+  const parts: string[] = [address];
   
-  const cleanCEP = cep.replace(/\D/g, '');
-  
-  if (cleanCEP.length === 8) {
-    return cleanCEP.replace(/(\d{5})(\d{3})/, '$1-$2');
+  if (city || state || zipCode) {
+    const cityStateZip = [city, state && zipCode ? `${state} ${zipCode}` : state || zipCode]
+      .filter(Boolean)
+      .join(', ');
+    if (cityStateZip) parts.push(cityStateZip);
   }
   
-  return cep;
-};
-
-/**
- * Format percentage
- */
-export const formatPercentage = (value: number | string | undefined | null): string => {
-  if (value === undefined || value === null) return '0%';
+  if (country) parts.push(country);
   
-  const numValue = typeof value === 'string' ? parseFloat(value) : value;
-  
-  if (isNaN(numValue)) return '0%';
-  
-  return `${numValue.toFixed(2)}%`;
-};
-
-/**
- * Format number with Brazilian separators
- */
-export const formatNumber = (value: number | string | undefined | null): string => {
-  if (value === undefined || value === null) return '0';
-  
-  const numValue = typeof value === 'string' ? parseFloat(value) : value;
-  
-  if (isNaN(numValue)) return '0';
-  
-  return new Intl.NumberFormat('pt-BR').format(numValue);
+  return parts.filter(Boolean).join('\n');
 };
 
 /**
  * Truncate text with ellipsis
  */
-export const truncateText = (text: string | undefined | null, maxLength: number): string => {
-  if (!text) return '';
-  
+export const truncate = (text: string | undefined | null, maxLength: number): string => {
+  if (!text) return '-';
   if (text.length <= maxLength) return text;
   
-  return text.substring(0, maxLength) + '...';
+  return text.slice(0, maxLength - 3) + '...';
+};
+
+/**
+ * Format file size
+ */
+export const formatFileSize = (bytes: number | undefined | null): string => {
+  if (bytes === undefined || bytes === null) return '-';
+  
+  const units = ['B', 'KB', 'MB', 'GB', 'TB'];
+  let size = bytes;
+  let unitIndex = 0;
+  
+  while (size >= 1024 && unitIndex < units.length - 1) {
+    size /= 1024;
+    unitIndex++;
+  }
+  
+  return `${size.toFixed(2)} ${units[unitIndex]}`;
+};
+
+/**
+ * Format duration in milliseconds to human readable string
+ */
+export const formatDuration = (ms: number | undefined | null): string => {
+  if (ms === undefined || ms === null) return '-';
+  
+  const seconds = Math.floor(ms / 1000);
+  const minutes = Math.floor(seconds / 60);
+  const hours = Math.floor(minutes / 60);
+  const days = Math.floor(hours / 24);
+  
+  if (days > 0) return `${days}d ${hours % 24}h`;
+  if (hours > 0) return `${hours}h ${minutes % 60}m`;
+  if (minutes > 0) return `${minutes}m ${seconds % 60}s`;
+  return `${seconds}s`;
 };
 
 /**
  * Capitalize first letter of each word
  */
 export const capitalizeWords = (text: string | undefined | null): string => {
-  if (!text) return '';
+  if (!text) return '-';
   
   return text
-    .toLowerCase()
     .split(' ')
-    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
     .join(' ');
 };
 
 /**
- * Parse currency string to number
+ * Format enum value to readable string
  */
-export const parseCurrency = (value: string): number => {
-  if (!value) return 0;
+export const formatEnum = (value: string | undefined | null): string => {
+  if (!value) return '-';
   
-  const cleanValue = value
-    .replace('R$', '')
-    .replace(/\./g, '')
-    .replace(',', '.')
-    .trim();
-  
-  const numValue = parseFloat(cleanValue);
-  
-  return isNaN(numValue) ? 0 : numValue;
+  // Insert spaces before capital letters and capitalize first letter
+  return value
+    .replace(/([A-Z])/g, ' $1')
+    .trim()
+    .replace(/^./, str => str.toUpperCase());
 };
 
 /**
- * Get relative time (e.g., "há 2 horas")
+ * Format a relative time (e.g., "2 hours ago")
  */
-export const getRelativeTime = (date: string | Date | undefined | null): string => {
+export const formatRelativeTime = (date: string | Date | undefined | null): string => {
   if (!date) return '-';
   
-  const dateObj = typeof date === 'string' ? new Date(date) : date;
+  const d = typeof date === 'string' ? new Date(date) : date;
   const now = new Date();
-  const diffInSeconds = Math.floor((now.getTime() - dateObj.getTime()) / 1000);
+  const diffMs = now.getTime() - d.getTime();
+  const diffSecs = Math.floor(diffMs / 1000);
+  const diffMins = Math.floor(diffSecs / 60);
+  const diffHours = Math.floor(diffMins / 60);
+  const diffDays = Math.floor(diffHours / 24);
   
-  if (diffInSeconds < 60) return 'agora mesmo';
+  if (diffSecs < 60) return 'just now';
+  if (diffMins < 60) return `${diffMins} minute${diffMins > 1 ? 's' : ''} ago`;
+  if (diffHours < 24) return `${diffHours} hour${diffHours > 1 ? 's' : ''} ago`;
+  if (diffDays < 7) return `${diffDays} day${diffDays > 1 ? 's' : ''} ago`;
   
-  const diffInMinutes = Math.floor(diffInSeconds / 60);
-  if (diffInMinutes < 60) return `há ${diffInMinutes} minuto${diffInMinutes > 1 ? 's' : ''}`;
-  
-  const diffInHours = Math.floor(diffInMinutes / 60);
-  if (diffInHours < 24) return `há ${diffInHours} hora${diffInHours > 1 ? 's' : ''}`;
-  
-  const diffInDays = Math.floor(diffInHours / 24);
-  if (diffInDays < 30) return `há ${diffInDays} dia${diffInDays > 1 ? 's' : ''}`;
-  
-  const diffInMonths = Math.floor(diffInDays / 30);
-  if (diffInMonths < 12) return `há ${diffInMonths} mês${diffInMonths > 1 ? 'es' : ''}`;
-  
-  const diffInYears = Math.floor(diffInMonths / 12);
-  return `há ${diffInYears} ano${diffInYears > 1 ? 's' : ''}`;
+  return formatDate(d);
 };
