@@ -34,6 +34,7 @@ public class ApplicationDbContext : DbContext, IUnitOfWork
     public DbSet<InvoiceLineItem> InvoiceLineItems => Set<InvoiceLineItem>();
     public DbSet<Payment> Payments => Set<Payment>();
     public DbSet<Transaction> Transactions => Set<Transaction>();
+    public DbSet<ClaimInvestigationNote> ClaimInvestigationNotes => Set<ClaimInvestigationNote>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -77,6 +78,7 @@ public class ApplicationDbContext : DbContext, IUnitOfWork
         ConfigureClaim(modelBuilder);
         ConfigurePartner(modelBuilder);
         ConfigureInvoice(modelBuilder);
+        ConfigureClaimInvestigationNote(modelBuilder);
     }
 
     private static void SetSoftDeleteFilter<TEntity>(ModelBuilder builder) where TEntity : BaseEntity
@@ -217,6 +219,28 @@ public class ApplicationDbContext : DbContext, IUnitOfWork
             entity.Property(e => e.Amount).HasPrecision(18, 2);
             entity.Property(e => e.ExchangeRate).HasPrecision(18, 6);
             entity.Property(e => e.OriginalAmount).HasPrecision(18, 2);
+        });
+    }
+
+    private void ConfigureClaimInvestigationNote(ModelBuilder modelBuilder)
+    {
+        modelBuilder.Entity<ClaimInvestigationNote>(entity =>
+        {
+            entity.HasIndex(e => e.ClaimId);
+            entity.HasIndex(e => e.TenantId);
+            entity.HasIndex(e => e.NoteType);
+            entity.HasIndex(e => e.IsInternal);
+            entity.HasIndex(e => e.NoteDate);
+            entity.Property(e => e.Subject).HasMaxLength(500);
+            entity.Property(e => e.NoteType).HasMaxLength(100);
+            entity.HasOne(e => e.Claim)
+                .WithMany(c => c.InvestigationNotes)
+                .HasForeignKey(e => e.ClaimId)
+                .OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne(e => e.CreatedByUser)
+                .WithMany()
+                .HasForeignKey(e => e.CreatedByUserId)
+                .OnDelete(DeleteBehavior.Restrict);
         });
     }
 
