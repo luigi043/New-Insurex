@@ -1,8 +1,19 @@
 # InsureX - Insurance Management System
 
+**GitHub Repository**: [https://github.com/luigi043/New-Insurex](https://github.com/luigi043/New-Insurex)
+
 A full-stack insurance management platform with a modern React frontend and a robust .NET 8 Web API backend, built with Clean Architecture principles.
 
 ![InsureX Platform](https://via.placeholder.com/1200x400/1976d2/ffffff?text=InsureX+Insurance+Management+System)
+
+## Documentation
+
+| Document | Description |
+|----------|-------------|
+| [Quick Start Guide](./docs/QUICK_START.md) | Get running in 5 minutes |
+| [Developer Onboarding](./docs/ONBOARDING.md) | Complete setup and development guide |
+| [Usage Guide](./docs/USAGE_GUIDE.md) | User and API usage documentation |
+| [Development Checklist](./Checklist.md) | Project progress tracking |
 
 ## 📋 Overview
 
