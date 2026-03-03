@@ -145,6 +145,8 @@ New-Insurex/
 
 ## 🚀 Getting Started
 
+New contributors should start with the onboarding guide in `ONBOARDING.md`.
+
 ### Prerequisites
 
 | Requirement | Version |
@@ -379,4 +381,3 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - .NET Team for robust backend framework
 - Material-UI for beautiful components
 - All contributors and testers
-

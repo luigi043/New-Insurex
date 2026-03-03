@@ -1,3 +1,7 @@
+# InsureX Development Checklist
+
+**GitHub Repository**: https://github.com/luigi043/New-Insurex
+
 ## Project Progress Tracking
 
 **Project**: InsureX Insurance Management System  
@@ -407,4 +411,3 @@
 
 **Last Updated**: 2026-03-03  
 **Next Review**: 2026-03-10
-
