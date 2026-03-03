@@ -1,4 +1,4 @@
-﻿using InsureX.Application.DTOs.Policy;
+using InsureX.Application.DTOs.Policy;
 using InsureX.Application.Queries.PolicyQueries;
 using InsureX.Domain.Interfaces;
 using MediatR;
@@ -23,11 +23,11 @@ public class GetAllPoliciesQueryHandler : IRequestHandler<GetAllPoliciesQuery, P
         {
             Id = p.Id,
             PolicyNumber = p.PolicyNumber,
-            PolicyType = p.PolicyType,
-            Premium = p.Premium,
+            PolicyType = p.Type.ToString(),
+            Premium = p.PremiumAmount,
             StartDate = p.StartDate,
             EndDate = p.EndDate,
-            Status = p.Status,
+            Status = p.Status.ToString(),
             TenantId = p.TenantId
         }).ToList();
 
@@ -40,3 +40,4 @@ public class GetAllPoliciesQueryHandler : IRequestHandler<GetAllPoliciesQuery, P
         };
     }
 }
+

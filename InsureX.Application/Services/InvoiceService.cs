@@ -299,8 +299,7 @@ public class InvoiceService : IInvoiceService
             PaymentDate = DateTime.UtcNow,
             TransactionId = reference,
             TenantId = _tenantContext.TenantId,
-            PaymentReference = await GeneratePaymentReferenceAsync(),
-            SetCreated = _ => { },
+            PaymentReference = await GeneratePaymentReferenceAsync()
         };
         payment.SetCreated("system");
 
@@ -371,4 +370,5 @@ public class InvoiceService : IInvoiceService
         };
     }
 }
+
 
