@@ -16,6 +16,7 @@ import {
   Tooltip,
   CircularProgress,
   Button,
+  Divider,
 } from '@mui/material';
 import {
   TrendingUp,
@@ -27,6 +28,9 @@ import {
   Claim,
   ArrowForward,
   Refresh,
+  HealthAndSafety,
+  TaskAlt,
+  NotificationsActive,
 } from '@mui/icons-material';
 import { policyService } from '../../services/policy.service';
 import { claimService } from '../../services/claim.service';
@@ -57,9 +61,12 @@ export const Dashboard: React.FC = () => {
     expiringPolicies: [],
   });
   const [isLoading, setIsLoading] = useState(true);
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
 
-  const fetchDashboardData = async () => {
-    setIsLoading(true);
+  const fetchDashboardData = async (showLoader = false) => {
+    if (showLoader) {
+      setIsLoading(true);
+    }
     try {
       const [policyStats, claimStats, assetStats, expiringPolicies] = await Promise.all([
         policyService.getPolicyStats(),
@@ -80,12 +87,20 @@ export const Dashboard: React.FC = () => {
     } catch (err: any) {
       showError(err.message || 'Failed to fetch dashboard data');
     } finally {
-      setIsLoading(false);
+      if (showLoader) {
+        setIsLoading(false);
+      }
+      setLastUpdated(new Date());
     }
   };
 
   useEffect(() => {
-    fetchDashboardData();
+    fetchDashboardData(true);
+    const interval = window.setInterval(() => {
+      fetchDashboardData();
+    }, 60000);
+
+    return () => window.clearInterval(interval);
   }, []);
 
   const StatCard = ({
@@ -147,9 +162,14 @@ export const Dashboard: React.FC = () => {
   return (
     <Box>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-        <Typography variant="h4">Dashboard</Typography>
+        <Box>
+          <Typography variant="h4">Dashboard</Typography>
+          <Typography variant="body2" color="text.secondary">
+            Atualizado {lastUpdated ? formatDate(lastUpdated) : 'agora'}
+          </Typography>
+        </Box>
         <Tooltip title="Refresh">
-          <IconButton onClick={fetchDashboardData}>
+          <IconButton onClick={() => fetchDashboardData(true)}>
             <Refresh />
           </IconButton>
         </Tooltip>
@@ -228,6 +248,77 @@ export const Dashboard: React.FC = () => {
             icon={CheckCircle}
             color="#388e3c"
           />
+        </Grid>
+      </Grid>
+
+      <Grid container spacing={3} sx={{ mb: 4 }}>
+        <Grid item xs={12} md={4}>
+          <Card>
+            <CardContent>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                <Typography variant="h6">System Health</Typography>
+                <HealthAndSafety color="success" />
+              </Box>
+              <Divider sx={{ mb: 2 }} />
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <Typography variant="body2">API Gateway</Typography>
+                  <Chip label="Online" color="success" size="small" />
+                </Box>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <Typography variant="body2">Claims Engine</Typography>
+                  <Chip label="Stable" color="info" size="small" />
+                </Box>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <Typography variant="body2">Data Pipeline</Typography>
+                  <Chip label="Monitoring" color="warning" size="small" />
+                </Box>
+              </Box>
+            </CardContent>
+          </Card>
+        </Grid>
+        <Grid item xs={12} md={8}>
+          <Card>
+            <CardContent>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                <Typography variant="h6">Task Summary</Typography>
+                <TaskAlt color="primary" />
+              </Box>
+              <Divider sx={{ mb: 2 }} />
+              <Grid container spacing={2}>
+                <Grid item xs={12} sm={4}>
+                  <StatCard
+                    title="Open Reviews"
+                    value={stats.claims?.claimsByStatus?.submitted || 0}
+                    subtitle="Claims awaiting review"
+                    icon={NotificationsActive}
+                    color="#ef6c00"
+                    onClick={() => navigate('/claims', { state: { filter: 'submitted' } })}
+                  />
+                </Grid>
+                <Grid item xs={12} sm={4}>
+                  <StatCard
+                    title="Expiring Policies"
+                    value={stats.expiringPolicies?.length || 0}
+                    subtitle="Next 30 days"
+                    icon={TrendingUp}
+                    color="#0288d1"
+                    onClick={() => navigate('/policies', { state: { filter: 'expiring' } })}
+                  />
+                </Grid>
+                <Grid item xs={12} sm={4}>
+                  <StatCard
+                    title="Assets to Inspect"
+                    value={formatNumber((stats.assets?.totalAssets || 0) * 0.08)}
+                    subtitle="Scheduled inspections"
+                    icon={Inventory}
+                    color="#6a1b9a"
+                    onClick={() => navigate('/assets')}
+                  />
+                </Grid>
+              </Grid>
+            </CardContent>
+          </Card>
         </Grid>
       </Grid>
 

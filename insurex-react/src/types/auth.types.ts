@@ -45,6 +45,10 @@ export interface ResetPasswordData {
   password: string;
   confirmPassword: string;
 }
+export interface VerifyEmailData {
+  token: string;
+  email?: string;
+}
 export interface ChangePasswordData {
   currentPassword: string;
   newPassword: string;

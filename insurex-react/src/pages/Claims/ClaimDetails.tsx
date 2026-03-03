@@ -30,7 +30,8 @@ import {
   TimelineSeparator,
   TimelineConnector,
   TimelineContent,
-  TimelineDot
+  TimelineDot,
+  MenuItem
 } from '@mui/material';
 import {
   Edit,
@@ -102,6 +103,7 @@ export const ClaimDetails: React.FC = () => {
   const [statusDialogOpen, setStatusDialogOpen] = useState(false);
   const [newStatus, setNewStatus] = useState<ClaimStatus>(ClaimStatus.PENDING);
   const [statusNotes, setStatusNotes] = useState('');
+  const [investigationNotes, setInvestigationNotes] = useState('');
 
   useEffect(() => {
     if (id) {
@@ -113,6 +115,7 @@ export const ClaimDetails: React.FC = () => {
     try {
       const data = await getClaimById(claimId);
       setClaim(data);
+      setInvestigationNotes(data?.investigationNotes || '');
     } catch (err) {
       showError('Erro ao carregar detalhes do sinistro');
     }
@@ -143,6 +146,20 @@ export const ClaimDetails: React.FC = () => {
       setStatusDialogOpen(false);
     } catch (err) {
       showError('Erro ao atualizar status');
+    }
+  };
+
+  const handleInvestigationSave = async () => {
+    if (!id) return;
+
+    try {
+      await updateClaim(id, {
+        investigationNotes
+      });
+      showSuccess('Notas de investigação atualizadas!');
+      loadClaim(id);
+    } catch (err) {
+      showError('Erro ao atualizar notas de investigação');
     }
   };
 
@@ -322,6 +339,24 @@ export const ClaimDetails: React.FC = () => {
               </ImageList>
             </Paper>
           )}
+
+          <Paper sx={{ p: 3, mt: 3 }}>
+            <Typography variant="h6" gutterBottom>Notas de Investigação</Typography>
+            <Divider sx={{ mb: 2 }} />
+            <TextField
+              fullWidth
+              multiline
+              rows={4}
+              placeholder="Registre observações, evidências e próximos passos da investigação..."
+              value={investigationNotes}
+              onChange={(e) => setInvestigationNotes(e.target.value)}
+            />
+            <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 2 }}>
+              <Button variant="contained" onClick={handleInvestigationSave}>
+                Salvar Notas
+              </Button>
+            </Box>
+          </Paper>
         </Grid>
 
         <Grid item xs={12} lg={4}>

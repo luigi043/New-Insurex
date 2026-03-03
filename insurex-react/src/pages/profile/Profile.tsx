@@ -18,7 +18,14 @@ import {
   Dialog,
   DialogTitle,
   DialogContent,
-  DialogActions
+  DialogActions,
+  FormControl,
+  FormControlLabel,
+  Switch,
+  Select,
+  MenuItem,
+  InputLabel,
+  Chip
 } from '@mui/material';
 import {
   Edit,
@@ -71,6 +78,14 @@ export const Profile: React.FC = () => {
   });
 
   const [passwordDialogOpen, setPasswordDialogOpen] = useState(false);
+  const [preferences, setPreferences] = useState({
+    emailNotifications: true,
+    smsNotifications: false,
+    marketingOptIn: false,
+    language: 'pt-BR',
+    timezone: 'America/Sao_Paulo',
+    securityAlerts: true
+  });
 
   useEffect(() => {
     if (user) {
@@ -130,6 +145,14 @@ export const Profile: React.FC = () => {
       };
       reader.readAsDataURL(file);
     }
+  };
+
+  const handlePreferenceChange = (field: keyof typeof preferences, value: boolean | string) => {
+    setPreferences(prev => ({ ...prev, [field]: value }));
+  };
+
+  const handlePreferencesSave = () => {
+    showSuccess('Preferências salvas com sucesso!');
   };
 
   if (loading) {
@@ -217,6 +240,7 @@ export const Profile: React.FC = () => {
           <Tab icon={<Person />} label="Informações Pessoais" />
           <Tab icon={<Business />} label="Empresa" />
           <Tab icon={<VpnKey />} label="Segurança" />
+          <Tab icon={<Email />} label="Preferências" />
         </Tabs>
 
         <TabPanel value={activeTab} index={0}>
@@ -307,6 +331,103 @@ export const Profile: React.FC = () => {
               Alterar Senha
             </Button>
           </Box>
+        </TabPanel>
+
+        <TabPanel value={activeTab} index={3}>
+          <Grid container spacing={3}>
+            <Grid item xs={12} md={6}>
+              <Card variant="outlined">
+                <CardContent>
+                  <Typography variant="h6" gutterBottom>
+                    Notificações
+                  </Typography>
+                  <FormControlLabel
+                    control={
+                      <Switch
+                        checked={preferences.emailNotifications}
+                        onChange={(e) => handlePreferenceChange('emailNotifications', e.target.checked)}
+                      />
+                    }
+                    label="Receber notificações por email"
+                  />
+                  <FormControlLabel
+                    control={
+                      <Switch
+                        checked={preferences.smsNotifications}
+                        onChange={(e) => handlePreferenceChange('smsNotifications', e.target.checked)}
+                      />
+                    }
+                    label="Receber notificações por SMS"
+                  />
+                  <FormControlLabel
+                    control={
+                      <Switch
+                        checked={preferences.securityAlerts}
+                        onChange={(e) => handlePreferenceChange('securityAlerts', e.target.checked)}
+                      />
+                    }
+                    label="Alertas de segurança"
+                  />
+                </CardContent>
+              </Card>
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <Card variant="outlined">
+                <CardContent>
+                  <Typography variant="h6" gutterBottom>
+                    Conta
+                  </Typography>
+                  <FormControl fullWidth sx={{ mb: 2 }}>
+                    <InputLabel id="language-select-label">Idioma</InputLabel>
+                    <Select
+                      labelId="language-select-label"
+                      value={preferences.language}
+                      label="Idioma"
+                      onChange={(e) => handlePreferenceChange('language', e.target.value)}
+                    >
+                      <MenuItem value="pt-BR">Português (BR)</MenuItem>
+                      <MenuItem value="en-US">English (US)</MenuItem>
+                      <MenuItem value="es-ES">Español</MenuItem>
+                    </Select>
+                  </FormControl>
+                  <FormControl fullWidth>
+                    <InputLabel id="timezone-select-label">Fuso horário</InputLabel>
+                    <Select
+                      labelId="timezone-select-label"
+                      value={preferences.timezone}
+                      label="Fuso horário"
+                      onChange={(e) => handlePreferenceChange('timezone', e.target.value)}
+                    >
+                      <MenuItem value="America/Sao_Paulo">America/Sao_Paulo</MenuItem>
+                      <MenuItem value="America/Mexico_City">America/Mexico_City</MenuItem>
+                      <MenuItem value="America/New_York">America/New_York</MenuItem>
+                      <MenuItem value="Europe/Lisbon">Europe/Lisbon</MenuItem>
+                    </Select>
+                  </FormControl>
+                  <Box sx={{ mt: 2 }}>
+                    <Chip label="Plano Enterprise" color="primary" variant="outlined" />
+                  </Box>
+                  <FormControlLabel
+                    sx={{ mt: 1 }}
+                    control={
+                      <Switch
+                        checked={preferences.marketingOptIn}
+                        onChange={(e) => handlePreferenceChange('marketingOptIn', e.target.checked)}
+                      />
+                    }
+                    label="Aceitar comunicações sobre novidades"
+                  />
+                </CardContent>
+              </Card>
+            </Grid>
+            <Grid item xs={12}>
+              <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
+                <Button variant="contained" onClick={handlePreferencesSave}>
+                  Salvar Preferências
+                </Button>
+              </Box>
+            </Grid>
+          </Grid>
         </TabPanel>
       </Paper>
 

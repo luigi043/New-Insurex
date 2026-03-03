@@ -6,6 +6,7 @@ import {
   User, 
   ForgotPasswordData, 
   ResetPasswordData,
+  VerifyEmailData,
   ChangePasswordData,
   UpdateProfileData 
 } from '../types/auth.types';
@@ -57,6 +58,10 @@ class AuthService {
 
   async resetPassword(data: ResetPasswordData): Promise<void> {
     await apiClient.post('/auth/reset-password', data);
+  }
+
+  async verifyEmail(data: VerifyEmailData): Promise<void> {
+    await apiClient.post('/auth/verify-email', data);
   }
 
   async changePassword(data: ChangePasswordData): Promise<void> {
