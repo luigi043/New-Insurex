@@ -65,7 +65,7 @@ export const InvoiceList: React.FC = () => {
       const url = window.URL.createObjectURL(new Blob([response.data]));
       const link = document.createElement('a');
       link.href = url;
-      link.setAttribute('download', \invoices_\.csv\);
+      link.setAttribute('download', 'invoices_.csv');
       document.body.appendChild(link);
       link.click();
     } catch (error) {
@@ -147,7 +147,7 @@ export const InvoiceList: React.FC = () => {
                     <Chip label={invoice.status} color={getStatusColor(invoice.status) as any} size="small" />
                   </TableCell>
                   <TableCell>
-                    <IconButton size="small" onClick={() => navigate(\/billing/invoices/\\)}>
+                    <IconButton size="small" onClick={() => navigate('/billing/invoices/')}>
                       <Visibility />
                     </IconButton>
                     {invoice.status === 'Draft' && (

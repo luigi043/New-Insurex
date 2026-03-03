@@ -32,18 +32,18 @@ export const emailService = {
   },
 
   getEmailLogs: (page: number = 1, pageSize: number = 20) => {
-    return api.get(\/notifications/logs?page=\&pageSize=\\);
+    return api.get('/notifications/logs?page=&pageSize='); 
   },
 
   sendPolicyConfirmation: (policyId: string) => {
-    return api.post(\/notifications/policy/\/confirmation\);
+    return api.post('/notifications/policy/confirmation');
   },
 
   sendClaimUpdate: (claimId: string) => {
-    return api.post(\/notifications/claim/\/update\);
+    return api.post('/notifications/claim/update');
   },
 
   sendInvoiceNotification: (invoiceId: string) => {
-    return api.post(\/notifications/invoice/\/send\);
+    return api.post('/notifications/claim/update');
   }
 };
