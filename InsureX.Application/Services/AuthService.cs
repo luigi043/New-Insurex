@@ -50,12 +50,7 @@ public class AuthService : IAuthService
             Token = token,
             RefreshToken = refreshToken,
             ExpiresAt = DateTime.UtcNow.AddHours(24),
-            UserId = user.Id,
-            Email = user.Email,
-            FirstName = user.FirstName,
-            LastName = user.LastName,
-            Role = user.Role.ToString()
-        };
+            User = new UserDto { Id = user.Id,    Role = user.Role } };
     }
 
     public async Task<AuthResponseDto> RegisterAsync(RegisterRequestDto request)
@@ -88,12 +83,7 @@ public class AuthService : IAuthService
             Token = token,
             RefreshToken = refreshToken,
             ExpiresAt = DateTime.UtcNow.AddHours(24),
-            UserId = user.Id,
-            Email = user.Email,
-            FirstName = user.FirstName,
-            LastName = user.LastName,
-            Role = user.Role.ToString()
-        };
+            User = new UserDto { Id = user.Id,    Role = user.Role } };
     }
 
     public async Task<AuthResponseDto> RefreshTokenAsync(string refreshToken)
@@ -130,12 +120,7 @@ public class AuthService : IAuthService
             Token = token,
             RefreshToken = newRefreshToken,
             ExpiresAt = DateTime.UtcNow.AddHours(24),
-            UserId = user.Id,
-            Email = user.Email,
-            FirstName = user.FirstName,
-            LastName = user.LastName,
-            Role = user.Role.ToString()
-        };
+            User = new UserDto { Id = user.Id,    Role = user.Role } };
     }
 
     public async Task RevokeTokenAsync(string refreshToken)
@@ -151,9 +136,12 @@ public class AuthService : IAuthService
         }
     }
 
-    public Task VerifyEmailAsync(string token) => Task.CompletedTask;
-    public Task RequestPasswordResetAsync(string email) => Task.CompletedTask;
-    public Task ResetPasswordAsync(string token, string newPassword) => Task.CompletedTask;
-    public Task ChangePasswordAsync(int userId, string currentPassword, string newPassword) => Task.CompletedTask;
-    public Task LogoutAsync(int userId) => Task.CompletedTask;
+    public async Task<bool> VerifyEmailAsync(string token) => await Task.FromResult(true);
+    public async Task<bool> RequestPasswordResetAsync(string email) => await Task.FromResult(true);
+    public async Task<bool> ResetPasswordAsync(string token, string newPassword) => await Task.FromResult(true);
+    public async Task<bool> ChangePasswordAsync(int userId, string currentPassword, string newPassword) => await Task.FromResult(true);
+    public async Task LogoutAsync(int userId) => await Task.CompletedTask;
 }
+
+
+

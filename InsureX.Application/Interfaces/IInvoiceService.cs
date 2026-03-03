@@ -1,3 +1,4 @@
+using InsureX.Application.DTOs.Filters;
 using InsureX.Application.DTOs;
 using InsureX.Domain.Entities;
 using InsureX.Domain.Enums;
@@ -22,3 +23,4 @@ public interface IInvoiceService
     Task<decimal> GetTotalOutstandingAsync();
     Task<decimal> GetTotalPaidAsync();
 }
+
