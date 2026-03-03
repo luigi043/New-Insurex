@@ -1,31 +1,28 @@
-namespace InsureX.Domain.Enums;
+﻿namespace InsureX.Domain.Enums;
 
 public enum PolicyStatus
 {
     Draft = 0,
-    Active = 1,
-    Lapsed = 2,
-    Cancelled = 3,
-    Reinstated = 4,
-    Expired = 5,
-    Pending = 6
+    Pending = 1,
+    Active = 2,
+    Expired = 3,
+    Cancelled = 4
 }
 
 public enum PolicyType
 {
-    Motor = 0,
     Property = 1,
-    Liability = 2,
-    Marine = 3,
-    Aviation = 4,
-    Engineering = 5,
-    Miscellaneous = 6
+    Vehicle = 2,
+    Liability = 3,
+    Health = 4,
+    Life = 5,
+    Business = 6
 }
 
 public enum PaymentFrequency
 {
-    Monthly = 0,
-    Quarterly = 1,
-    SemiAnnually = 2,
-    Annually = 3
+    Monthly = 1,
+    Quarterly = 2,
+    SemiAnnually = 3,
+    Annually = 4
 }

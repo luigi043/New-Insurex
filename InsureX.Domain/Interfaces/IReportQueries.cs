@@ -1,18 +1,10 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Threading.Tasks;
-using InsureX.Shared.DTOs;
+﻿using InsureX.Shared.DTOs;
+using InsureX.Shared.Enums;
 
 namespace InsureX.Domain.Interfaces;
 
 public interface IReportQueries
 {
-    Task<IEnumerable<ComplianceDashboardDto>> GetComplianceDashboardAsync(
-        DateTime startDate, 
-        DateTime endDate);
-
-    Task<byte[]> ExportComplianceReportAsync(
-        DateTime startDate, 
-        DateTime endDate,
-        ExportFormat format);
+    Task<ComplianceDashboardDto> GetComplianceDashboardAsync(DateTime? startDate = null, DateTime? endDate = null);
+    Task<byte[]> ExportReportAsync(string reportType, ExportFormat format, Dictionary<string, object> parameters);
 }

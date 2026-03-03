@@ -1,4 +1,4 @@
-using InsureX.Domain.Enums;
+﻿using InsureX.Domain.Enums;
 
 namespace InsureX.Domain.Entities;
 
@@ -20,7 +20,7 @@ public class Invoice : BaseEntity
     public string? Description { get; set; }
     public string? Notes { get; set; }
     public string? InternalNotes { get; set; }
-    public int? CreatedById { get; set; }
+    //public int? CreatedById { get; set; }
     public int? SentById { get; set; }
     public DateTime? SentAt { get; set; }
     public string? SentToEmail { get; set; }
@@ -87,3 +87,4 @@ public class InvoiceLineItem : BaseEntity
     // Navigation properties
     public Invoice Invoice { get; set; } = null!;
 }
+

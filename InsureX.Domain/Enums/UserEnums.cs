@@ -1,22 +1,20 @@
-namespace InsureX.Domain.Enums;
+﻿namespace InsureX.Domain.Enums;
 
 public enum UserRole
 {
-    Admin = 0,
-    Insurer = 1,
-    Financer = 2,
-    Broker = 3,
-    Viewer = 4,
-    Underwriter = 5,
-    ClaimsProcessor = 6,
-    Accountant = 7
+    Admin = 1,
+    Manager = 2,
+    Insurer = 3,
+    Broker = 4,
+    Accountant = 5,
+    Viewer = 6,
+    ClaimsProcessor = 7
 }
 
 public enum UserStatus
 {
-    Active = 0,
-    Inactive = 1,
-    Suspended = 2,
+    Active = 1,
+    Inactive = 2,
     Locked = 3,
-    PendingVerification = 4
+    Pending = 4
 }
