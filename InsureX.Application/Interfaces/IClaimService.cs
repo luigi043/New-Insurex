@@ -22,7 +22,7 @@ public interface IClaimService
     Task<Claim> RejectAsync(int claimId, string reason);
     Task<Claim> MarkAsPaidAsync(int claimId, string paymentReference);
     Task<Claim> CloseAsync(int claimId, string? notes = null);
+    Task<ClaimInvestigationNote> AddInvestigationNoteAsync(int claimId, string note, bool isInternal = true);
     Task<decimal> GetTotalClaimedAmountAsync();
     Task<decimal> GetTotalPaidAmountAsync();
 }
-

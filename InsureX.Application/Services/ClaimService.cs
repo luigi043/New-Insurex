@@ -315,6 +315,22 @@ public class ClaimService : IClaimService
         return claim;
     }
 
+    public async Task<ClaimInvestigationNote> AddInvestigationNoteAsync(int claimId, string note, bool isInternal = true)
+    {
+        var claim = await GetByIdAsync(claimId);
+        if (claim == null)
+            throw new NotFoundException("Claim not found");
+
+        claim.AddInvestigationNote(note, null, isInternal);
+        var addedNote = claim.InvestigationNotes[^1];
+        await _claimRepository.UpdateAsync(claim);
+        await _unitOfWork.SaveChangesAsync();
+
+        _logger.LogInformation("Investigation note added to claim {ClaimNumber}", claim.ClaimNumber);
+
+        return addedNote;
+    }
+
     public async Task<decimal> GetTotalClaimedAmountAsync()
     {
         return await _claimRepository.GetTotalClaimedAmountAsync(_tenantContext.TenantId);
@@ -344,4 +360,3 @@ public class ClaimService : IClaimService
         };
     }
 }
-

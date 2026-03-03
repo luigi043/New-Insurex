@@ -181,6 +181,16 @@ public class ClaimsController : ControllerBase
         return Ok(ApiResponse<Claim>.SuccessResponse(claim, "Claim closed successfully"));
     }
 
+    [HttpPost("{id:int}/investigation-notes")]
+    [Authorize(Roles = "Admin,Insurer,ClaimsProcessor")]
+    [ProducesResponseType(typeof(ApiResponse<ClaimInvestigationNote>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> AddInvestigationNote(int id, [FromBody] AddInvestigationNoteRequest request)
+    {
+        var note = await _claimService.AddInvestigationNoteAsync(id, request.Note, request.IsInternal);
+        return Ok(ApiResponse<ClaimInvestigationNote>.SuccessResponse(note, "Investigation note added"));
+    }
+
     [HttpGet("summary/totals")]
     [Authorize(Roles = "Admin,Insurer,Accountant")]
     [ProducesResponseType(typeof(ApiResponse<ClaimTotalsDto>), StatusCodes.Status200OK)]
@@ -216,6 +226,12 @@ public class PayClaimRequest
 public class CloseClaimRequest
 {
     public string? Notes { get; set; }
+}
+
+public class AddInvestigationNoteRequest
+{
+    public string Note { get; set; } = string.Empty;
+    public bool IsInternal { get; set; } = true;
 }
 
 public class ClaimTotalsDto

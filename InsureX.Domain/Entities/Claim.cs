@@ -33,6 +33,7 @@ public class Claim : BaseEntity
     public int? PaidById { get; set; }
     public string? PaymentReference { get; set; }
     public string? Documents { get; set; } // JSON array of document URLs
+    public ICollection<ClaimInvestigationNote> InvestigationNotes { get; set; } = new List<ClaimInvestigationNote>();
     
     // Navigation properties
     public Policy Policy { get; set; } = null!;
@@ -118,6 +119,20 @@ public class Claim : BaseEntity
             Notes = notes
         });
     }
+
+    public void AddInvestigationNote(string note, int? createdById = null, bool isInternal = true)
+    {
+        if (string.IsNullOrWhiteSpace(note))
+            throw new ArgumentException("Investigation note is required");
+
+        InvestigationNotes.Add(new ClaimInvestigationNote
+        {
+            ClaimId = Id,
+            Note = note.Trim(),
+            CreatedById = createdById,
+            IsInternal = isInternal
+        });
+    }
 }
 
 public class ClaimStatusHistory : BaseEntity
@@ -132,4 +147,15 @@ public class ClaimStatusHistory : BaseEntity
     // Navigation properties
     public Claim Claim { get; set; } = null!;
     public User? ChangedBy { get; set; }
+}
+
+public class ClaimInvestigationNote : BaseEntity
+{
+    public int ClaimId { get; set; }
+    public int? CreatedById { get; set; }
+    public string Note { get; set; } = string.Empty;
+    public bool IsInternal { get; set; }
+
+    public Claim Claim { get; set; } = null!;
+    public User? CreatedBy { get; set; }
 }

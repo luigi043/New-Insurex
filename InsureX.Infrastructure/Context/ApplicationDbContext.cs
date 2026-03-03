@@ -28,6 +28,7 @@ public class ApplicationDbContext : DbContext, IUnitOfWork
     public DbSet<Asset> Assets => Set<Asset>();
     public DbSet<PolicyAsset> PolicyAssets => Set<PolicyAsset>();
     public DbSet<Claim> Claims => Set<Claim>();
+    public DbSet<ClaimInvestigationNote> ClaimInvestigationNotes => Set<ClaimInvestigationNote>();
     public DbSet<ClaimStatusHistory> ClaimStatusHistories => Set<ClaimStatusHistory>();
     public DbSet<Partner> Partners => Set<Partner>();
     public DbSet<Invoice> Invoices => Set<Invoice>();
@@ -171,6 +172,13 @@ public class ApplicationDbContext : DbContext, IUnitOfWork
         {
             entity.HasIndex(e => e.ClaimId);
             entity.HasOne(e => e.Claim).WithMany(c => c.StatusHistory).HasForeignKey(e => e.ClaimId);
+        });
+
+        modelBuilder.Entity<ClaimInvestigationNote>(entity =>
+        {
+            entity.HasIndex(e => e.ClaimId);
+            entity.HasOne(e => e.Claim).WithMany(c => c.InvestigationNotes).HasForeignKey(e => e.ClaimId);
+            entity.Property(e => e.Note).HasMaxLength(2000);
         });
     }
 

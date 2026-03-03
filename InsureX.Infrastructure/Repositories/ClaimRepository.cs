@@ -18,6 +18,7 @@ public class ClaimRepository : Repository<Claim>, IClaimRepository
             .Include(c => c.Policy)
             .Include(c => c.Asset)
             .Include(c => c.StatusHistory)
+            .Include(c => c.InvestigationNotes)
             .FirstOrDefaultAsync(c => c.ClaimNumber == claimNumber);
     }
 
@@ -99,6 +100,7 @@ public class ClaimRepository : Repository<Claim>, IClaimRepository
             .Include(c => c.Policy)
             .Include(c => c.Asset)
             .Include(c => c.StatusHistory)
+            .Include(c => c.InvestigationNotes)
             .FirstOrDefaultAsync(c => c.Id == id);
     }
 }
