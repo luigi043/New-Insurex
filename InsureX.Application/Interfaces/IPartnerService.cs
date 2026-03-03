@@ -1,3 +1,4 @@
+using InsureX.Application.DTOs.Filters;
 using InsureX.Application.DTOs;
 using InsureX.Domain.Entities;
 using InsureX.Domain.Enums;
@@ -18,3 +19,4 @@ public interface IPartnerService
     Task<Partner> DeactivateAsync(int partnerId);
     Task<bool> EmailExistsAsync(string email, int? excludeId = null);
 }
+

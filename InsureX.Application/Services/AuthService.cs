@@ -151,9 +151,11 @@ public class AuthService : IAuthService
         }
     }
 
-    public Task VerifyEmailAsync(string token) => Task.CompletedTask;
-    public Task RequestPasswordResetAsync(string email) => Task.CompletedTask;
-    public Task ResetPasswordAsync(string token, string newPassword) => Task.CompletedTask;
-    public Task ChangePasswordAsync(int userId, string currentPassword, string newPassword) => Task.CompletedTask;
-    public Task LogoutAsync(int userId) => Task.CompletedTask;
+    public async Task<bool> VerifyEmailAsync(string token) => await Task.FromResult(true);
+    public async Task<bool> RequestPasswordResetAsync(string email) => await Task.FromResult(true);
+    public async Task<bool> ResetPasswordAsync(string token, string newPassword) => await Task.FromResult(true);
+    public async Task<bool> ChangePasswordAsync(int userId, string currentPassword, string newPassword) => await Task.FromResult(true);
+    public async Task LogoutAsync(int userId) => await Task.CompletedTask;
 }
+
+

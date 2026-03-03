@@ -1,3 +1,4 @@
+using InsureX.Application.DTOs.Filters;
 using InsureX.Application.DTOs;
 using InsureX.Application.Exceptions;
 using InsureX.Application.Interfaces;
@@ -370,3 +371,4 @@ public class InvoiceService : IInvoiceService
         };
     }
 }
+

@@ -1,4 +1,6 @@
-﻿namespace InsureX.Application.DTOs.Policy;
+using System;
+
+namespace InsureX.Application.DTOs.Policy;
 
 public class PolicyDto
 {
