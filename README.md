@@ -1,262 +1,382 @@
 # InsureX - Insurance Management System
 
-A comprehensive .NET 8 Web API for insurance management, built with Clean Architecture principles.
+A full-stack insurance management platform with a modern React frontend and a robust .NET 8 Web API backend, built with Clean Architecture principles.
 
-## Features
+![InsureX Platform](https://via.placeholder.com/1200x400/1976d2/ffffff?text=InsureX+Insurance+Management+System)
 
-### Core Modules
-- **Policy Management** - Create, manage, and track insurance policies
-- **Claims Processing** - Full claims lifecycle with workflow state management
-- **Asset Management** - Track insured assets across multiple categories
-- **Partner Management** - Manage agencies, brokers, insurers, and service providers
-- **Billing & Invoicing** - Generate invoices and track payments
-- **Multi-tenancy** - Tenant isolation with global query filters
+## 📋 Overview
 
-### Architecture & Production Features
-- **Clean Architecture** - Domain, Application, Infrastructure, API layers
-- **JWT Authentication** - Secure token-based authentication
-- **RBAC (Role-Based Access Control)** - Admin, Insurer, Broker, Viewer, ClaimsProcessor, Accountant roles
-- **Workflow State Management** - Policy and Claim lifecycle states with transition validation
-- **Structured Logging** - Serilog with file and console sinks
-- **Global Exception Handling** - Centralized error handling with standardized responses
-- **Health Checks** - Database and memory health monitoring
-- **Rate Limiting** - API rate limiting protection
-- **Security Headers** - XSS, CSRF, and other security protections
-- **Audit Trail** - Automatic audit fields on all entities
-- **Soft Delete** - Data retention with soft delete pattern
+InsureX is a comprehensive insurance management system designed to streamline policy management, claims processing, asset tracking, partner management, and billing operations. The platform features role-based access control, workflow state management, and a responsive modern UI.
 
-## Project Structure
+### ✨ Key Features
+
+| Module | Capabilities |
+|--------|--------------|
+| **Policy Management** | Full lifecycle management (Draft → Active → Expired/Cancelled) |
+| **Claims Processing** | Complete workflow with state transitions (Submitted → Approved/Rejected → Paid) |
+| **Asset Management** | Track 11+ asset types across multiple categories |
+| **Partner Management** | Manage agencies, brokers, insurers, and service providers |
+| **Billing & Invoicing** | Automated invoice generation and payment tracking |
+| **Multi-tenancy** | Tenant isolation with global query filters |
+| **RBAC** | 6 user roles with granular permissions |
+
+## 🏗️ Architecture
 
 ```
-InsureX/
-├── InsureX.Domain/           # Domain entities, enums, interfaces
-│   ├── Entities/             # Domain entities
-│   ├── Enums/                # Enumeration types
-│   ├── Interfaces/           # Repository interfaces
-│   └── ValueObjects/         # Value objects
-├── InsureX.Application/      # Application layer
-│   ├── DTOs/                 # Data transfer objects
-│   ├── Exceptions/           # Custom exceptions
-│   ├── Interfaces/           # Service interfaces
-│   ├── Services/             # Business logic services
-│   └── Validators/           # Input validators
-├── InsureX.Infrastructure/   # Infrastructure layer
-│   ├── Context/              # DbContext
-│   ├── Repositories/         # Repository implementations
-│   ├── Security/             # JWT and security
-│   └── Tenancy/              # Tenant context
-└── InsureX.API/              # API layer
-    ├── Controllers/          # API controllers
-    └── Middleware/           # Custom middleware
+┌─────────────────────────────────────────────────────────────┐
+│                      Frontend (insurex-react)                │
+│  React 18 + TypeScript + Material-UI + Vite + React Router  │
+└─────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌─────────────────────────────────────────────────────────────┐
+│                         Backend API                          │
+│                    .NET 8 Web API + JWT                      │
+└─────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌─────────────────────────────────────────────────────────────┐
+│                    Application Layer                          │
+│              Business Logic + DTOs + Validators              │
+└─────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌─────────────────────────────────────────────────────────────┐
+│                    Infrastructure Layer                       │
+│            EF Core + Repositories + Security + Tenancy       │
+└─────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌─────────────────────────────────────────────────────────────┐
+│                         Domain Layer                          │
+│              Entities + Enums + Value Objects                 │
+└─────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌─────────────────────────────────────────────────────────────┐
+│                       SQL Server                              │
+└─────────────────────────────────────────────────────────────┘
 ```
 
-## Getting Started
+## 🛠️ Technology Stack
+
+### Frontend
+- **Framework**: React 18 with TypeScript
+- **Build Tool**: Vite
+- **UI Library**: Material-UI (MUI) v5
+- **State Management**: React Context API + Custom Hooks
+- **Routing**: React Router v6
+- **HTTP Client**: Axios with interceptors
+
+### Backend
+- **Framework**: .NET 8 Web API
+- **ORM**: Entity Framework Core
+- **Database**: SQL Server
+- **Authentication**: JWT with refresh tokens
+- **Logging**: Serilog
+- **Documentation**: Swagger/OpenAPI
+- **Testing**: xUnit
+
+## 📁 Project Structure
+
+```
+New-Insurex/
+├── insurex-react/                    # Frontend React application
+│   ├── public/                       # Static assets
+│   ├── src/
+│   │   ├── components/               # Reusable UI components
+│   │   │   ├── Auth/                 # Authentication components
+│   │   │   ├── Layout/               # Layout components
+│   │   │   └── Notifications/        # Notification system
+│   │   ├── hooks/                    # Custom React hooks
+│   │   │   ├── useAuth.ts
+│   │   │   ├── usePolicies.ts
+│   │   │   ├── useClaims.ts
+│   │   │   ├── useAssets.ts
+│   │   │   ├── usePartners.ts
+│   │   │   └── useBilling.ts
+│   │   ├── pages/                     # Page components
+│   │   │   ├── auth/                  # Login, Register, ForgotPassword
+│   │   │   ├── dashboard/              # Dashboard
+│   │   │   ├── policies/               # Policy management
+│   │   │   ├── claims/                 # Claims management
+│   │   │   ├── assets/                 # Asset management
+│   │   │   ├── partners/               # Partner management
+│   │   │   ├── billing/                # Billing & invoices
+│   │   │   ├── reports/                # Reports & analytics
+│   │   │   ├── profile/                # User profile
+│   │   │   └── settings/               # System settings
+│   │   ├── services/                   # API service layer
+│   │   │   ├── api.service.ts          # Axios configuration
+│   │   │   ├── auth.service.ts
+│   │   │   ├── policy.service.ts
+│   │   │   └── ...
+│   │   ├── types/                       # TypeScript definitions
+│   │   ├── utils/                        # Utility functions
+│   │   ├── App.tsx
+│   │   └── main.tsx
+│   ├── .env.example
+│   ├── index.html
+│   ├── package.json
+│   ├── tsconfig.json
+│   └── vite.config.ts
+│
+├── InsureX.API/                         # Backend API layer
+├── InsureX.Application/                  # Application logic
+├── InsureX.Domain/                       # Domain entities
+├── InsureX.Infrastructure/                # Infrastructure
+├── InsureX.Shared/                        # Shared DTOs
+├── InsureX.Tests/                         # Unit tests
+├── InsureX.SeedTool/                      # Data seeding tool
+│
+├── IAPR_Web/                              # Legacy ASP.NET Web Forms
+├── database/                               # Database scripts
+├── _Archive/                               # Archived files
+│
+├── .github/workflows/                      # GitHub Actions CI/CD
+├── docker-compose.yml                       # Docker composition
+├── Dockerfile                               # Docker build file
+├── Directory.Packages.props                 # Central package management
+├── InsureX.sln                              # Visual Studio solution
+├── README.md                                # This file
+├── Checklist.md                             # Development checklist
+└── notes.md                                 # Command reference
+```
+
+## 🚀 Getting Started
 
 ### Prerequisites
-- .NET 8 SDK
-- SQL Server (LocalDB or full instance)
-- Visual Studio 2022 or VS Code
 
-### Installation
+| Requirement | Version |
+|-------------|---------|
+| Node.js | 18.x or higher |
+| npm or yarn | Latest |
+| .NET SDK | 8.0 |
+| SQL Server | 2019+ or LocalDB |
+| Git | Latest |
 
-1. Clone the repository
+### Quick Start (5 minutes)
+
+#### 1. Clone the Repository
 ```bash
 git clone https://github.com/luigi043/New-Insurex.git
-cd InsureX
+cd New-Insurex
 ```
 
-2. Update connection string in `appsettings.Development.json`
-```json
-"ConnectionStrings": {
-  "DefaultConnection": "Server=localhost;Database=InsureX_Dev;Trusted_Connection=True;MultipleActiveResultSets=true;TrustServerCertificate=True"
-}
-```
-
-3. Update JWT settings (for production, use a secure secret)
-```json
-"JwtSettings": {
-  "SecretKey": "your-super-secret-key-with-at-least-32-characters",
-  "Issuer": "InsureX",
-  "Audience": "InsureXClient",
-  "ExpirationHours": "24"
-}
-```
-
-4. Run database migrations
+#### 2. Backend Setup
 ```bash
+# Navigate to API project
 cd InsureX.API
-dotnet ef migrations add InitialCreate --project ../InsureX.Infrastructure
-dotnet ef database update --project ../InsureX.Infrastructure
-```
 
-5. Run the application
-```bash
+# Restore NuGet packages
+dotnet restore
+
+# Update database (update connection string in appsettings.Development.json first)
+dotnet ef database update
+
+# Run the API
 dotnet run
 ```
+Backend will run at: `https://localhost:7001` | `http://localhost:5001`
 
-The API will be available at `https://localhost:7001` and `http://localhost:5001`
+#### 3. Frontend Setup (new terminal)
+```bash
+# Navigate to React app
+cd insurex-react
 
-### Swagger Documentation
+# Install dependencies
+npm install
 
-When running in Development mode, Swagger UI is available at:
-- https://localhost:7001/swagger
+# Create environment file
+cp .env.example .env
+# Edit .env with your API URL: VITE_API_URL=https://localhost:7001/api
 
-## API Endpoints
+# Start development server
+npm run dev
+```
+Frontend will run at: `http://localhost:3000`
+
+#### 4. Access the Application
+- **Frontend**: http://localhost:3000
+- **Backend API**: https://localhost:7001/swagger
+- **Default Login**: admin@insurex.com / Admin123!
+
+## 🔌 API Endpoints
 
 ### Authentication
-- `POST /api/auth/login` - Login with email and password
-- `POST /api/auth/register` - Register new user
-- `POST /api/auth/refresh` - Refresh access token
-- `POST /api/auth/logout` - Logout user
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/api/auth/login` | User login |
+| POST | `/api/auth/register` | New registration |
+| POST | `/api/auth/refresh` | Refresh token |
+| GET | `/api/auth/me` | Current user |
 
 ### Policies
-- `GET /api/policies` - Get all policies
-- `GET /api/policies/{id}` - Get policy by ID
-- `POST /api/policies` - Create new policy
-- `PUT /api/policies/{id}` - Update policy
-- `DELETE /api/policies/{id}` - Delete policy
-- `POST /api/policies/{id}/activate` - Activate policy
-- `POST /api/policies/{id}/cancel` - Cancel policy
-- `POST /api/policies/{id}/renew` - Renew policy
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/policies` | List all policies |
+| GET | `/api/policies/{id}` | Get policy details |
+| POST | `/api/policies` | Create policy |
+| PUT | `/api/policies/{id}` | Update policy |
+| POST | `/api/policies/{id}/activate` | Activate policy |
+| POST | `/api/policies/{id}/cancel` | Cancel policy |
+| POST | `/api/policies/{id}/renew` | Renew policy |
+| GET | `/api/policies/stats` | Policy statistics |
 
 ### Claims
-- `GET /api/claims` - Get all claims
-- `GET /api/claims/{id}` - Get claim by ID
-- `POST /api/claims` - Create new claim
-- `PUT /api/claims/{id}` - Update claim
-- `DELETE /api/claims/{id}` - Delete claim
-- `POST /api/claims/{id}/submit` - Submit claim
-- `POST /api/claims/{id}/approve` - Approve claim
-- `POST /api/claims/{id}/reject` - Reject claim
-- `POST /api/claims/{id}/pay` - Mark claim as paid
-- `POST /api/claims/{id}/close` - Close claim
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/claims` | List all claims |
+| GET | `/api/claims/{id}` | Get claim details |
+| POST | `/api/claims` | Create claim |
+| POST | `/api/claims/{id}/submit` | Submit claim |
+| POST | `/api/claims/{id}/approve` | Approve claim |
+| POST | `/api/claims/{id}/reject` | Reject claim |
+| POST | `/api/claims/{id}/pay` | Mark as paid |
+| GET | `/api/claims/stats` | Claim statistics |
 
-### Assets
-- `GET /api/assets` - Get all assets
-- `GET /api/assets/{id}` - Get asset by ID
-- `POST /api/assets` - Create new asset
-- `PUT /api/assets/{id}` - Update asset
-- `DELETE /api/assets/{id}` - Delete asset
+### Assets, Partners, Invoices
+Similar CRUD endpoints available for each module.
 
-### Partners
-- `GET /api/partners` - Get all partners
-- `GET /api/partners/{id}` - Get partner by ID
-- `POST /api/partners` - Create new partner
-- `PUT /api/partners/{id}` - Update partner
-- `DELETE /api/partners/{id}` - Delete partner
-
-### Invoices
-- `GET /api/invoices` - Get all invoices
-- `GET /api/invoices/{id}` - Get invoice by ID
-- `POST /api/invoices` - Create new invoice
-- `PUT /api/invoices/{id}` - Update invoice
-- `POST /api/invoices/{id}/send` - Send invoice
-- `POST /api/invoices/{id}/payment` - Record payment
-- `POST /api/invoices/{id}/cancel` - Cancel invoice
-
-### Health Checks
-- `GET /health` - Overall health status
-- `GET /health/ready` - Readiness probe (database)
-- `GET /health/live` - Liveness probe
-
-## Role-Based Access Control
+## 👥 User Roles & Permissions
 
 | Role | Permissions |
 |------|-------------|
-| Admin | Full access to all endpoints |
-| Insurer | Manage policies, claims, partners, invoices |
-| Broker | Create policies and claims, view data |
-| ClaimsProcessor | Process and manage claims |
-| Accountant | Manage invoices and payments |
-| Viewer | Read-only access |
+| **Admin** | Full system access, user management, configuration |
+| **Manager** | Manage policies, claims, view reports |
+| **Insurer** | Process claims, manage policies |
+| **Broker/Agent** | Create policies, submit claims |
+| **Accountant** | Manage invoices, process payments |
+| **Viewer** | Read-only access to data |
 
-## Claim Workflow States
+## 🔐 Environment Variables
 
-```
-Submitted → UnderReview → Approved → Paid → Closed
-                ↓
-            Rejected
-```
-
-State transitions are validated to ensure proper workflow.
-
-## Policy Lifecycle States
-
-```
-Draft → Pending → Active → Expired
-  ↓       ↓        ↓
-Cancelled Cancelled Cancelled
+### Frontend (.env)
+```env
+VITE_API_URL=http://localhost:5001/api
+VITE_APP_NAME=InsureX
+VITE_APP_VERSION=1.0.0
 ```
 
-## Configuration
-
-### Environment Variables
-
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `ConnectionStrings__DefaultConnection` | SQL Server connection string | - |
-| `JwtSettings__SecretKey` | JWT signing key | - |
-| `JwtSettings__ExpirationHours` | Token expiration time | 24 |
-| `Cors__AllowedOrigins` | Allowed CORS origins | localhost |
-
-### Logging
-
-Logs are written to:
-- Console (all environments)
-- `logs/log-YYYY-MM-DD.txt` (file sink)
-
-Configure in `appsettings.json`:
+### Backend (appsettings.json)
 ```json
-"Serilog": {
-  "MinimumLevel": {
-    "Default": "Information",
-    "Override": {
-      "Microsoft": "Warning"
-    }
+{
+  "ConnectionStrings": {
+    "DefaultConnection": "Server=localhost;Database=InsureX_Dev;Trusted_Connection=True;TrustServerCertificate=True"
+  },
+  "JwtSettings": {
+    "SecretKey": "your-super-secret-key-with-at-least-32-characters",
+    "Issuer": "InsureX",
+    "Audience": "InsureXClient",
+    "ExpirationHours": 24
   }
 }
 ```
 
-## Testing
+## 🐳 Docker Deployment
 
-Run unit tests:
 ```bash
+# Build and run with Docker Compose
+docker-compose up -d
+
+# Build individual images
+docker build -t insurex-api -f InsureX.API/Dockerfile .
+docker build -t insurex-frontend -f insurex-react/Dockerfile .
+
+# Run containers
+docker run -p 8080:80 insurex-api
+docker run -p 3000:3000 insurex-frontend
+```
+
+## 📊 Database Migrations
+
+```bash
+# Add new migration
+cd InsureX.API
+dotnet ef migrations add MigrationName --project ../InsureX.Infrastructure
+
+# Apply migrations
+dotnet ef database update --project ../InsureX.Infrastructure
+
+# Remove last migration
+dotnet ef migrations remove --project ../InsureX.Infrastructure
+
+# Generate SQL script
+dotnet ef migrations script --project ../InsureX.Infrastructure
+```
+
+## 🧪 Testing
+
+```bash
+# Run all tests
 dotnet test
+
+# Run with coverage
+dotnet test --collect:"XPlat Code Coverage"
+
+# Frontend tests (when implemented)
+cd insurex-react
+npm test
+npm run test:coverage
 ```
 
-## Deployment
+## 📈 Performance Optimization
 
-### Docker
+### Frontend
+- Code splitting with React.lazy()
+- Virtualized lists for large datasets
+- Debounced search inputs
+- Memoized selectors with useMemo/useCallback
 
-Build Docker image:
-```bash
-docker build -t insurex-api .
-```
+### Backend
+- Response caching
+- Pagination for all list endpoints
+- Compiled queries
+- Database indexing strategy
 
-Run container:
-```bash
-docker run -p 8080:80 -e "ConnectionStrings__DefaultConnection=..." insurex-api
-```
+## 🔒 Security Features
 
-### Azure App Service
+- **JWT Authentication** with refresh tokens
+- **Role-Based Access Control** (RBAC)
+- **Rate Limiting** (100 requests per minute)
+- **CORS** policy configuration
+- **Security Headers** (XSS, CSRF protection)
+- **SQL Injection** prevention via EF Core
+- **Audit Trail** for all entities
+- **Soft Delete** pattern
 
-1. Create an Azure SQL Database
-2. Update connection string in Azure Portal
-3. Deploy using GitHub Actions or Azure DevOps
-4. Configure JWT secret in Application Settings
+## 🤝 Contributing
 
-## Contributing
+1. **Fork** the repository
+2. **Create** a feature branch (`git checkout -b feature/amazing-feature`)
+3. **Commit** changes (`git commit -m 'Add amazing feature'`)
+4. **Push** to branch (`git push origin feature/amazing-feature`)
+5. **Open** a Pull Request
 
-1. Fork the repository
-2. Create a feature branch
-3. Commit your changes
-4. Push to the branch
-5. Create a Pull Request
+### Commit Convention
+We follow [Conventional Commits](https://www.conventionalcommits.org/):
+- `feat:` New feature
+- `fix:` Bug fix
+- `docs:` Documentation
+- `style:` Code style
+- `refactor:` Code refactoring
+- `test:` Testing
+- `chore:` Maintenance
 
-## License
+## 📝 License
 
-This project is licensed under the MIT License.
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-## Support
+## 📞 Support
 
-For support, email support@insurex.com or create an issue in the repository.
+- **Documentation**: [https://docs.insurex.com](https://docs.insurex.com)
+- **Issues**: [GitHub Issues](https://github.com/luigi043/New-Insurex/issues)
+- **Email**: support@insurex.com
+
+## 🙏 Acknowledgments
+
+- React Team for amazing frontend library
+- .NET Team for robust backend framework
+- Material-UI for beautiful components
+- All contributors and testers
+
