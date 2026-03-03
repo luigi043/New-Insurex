@@ -1,8 +1,10 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
-using InsureX.Application.Interfaces;
+using InsureX.Application.DTOs;
 using InsureX.Application.DTOs.Policy;
-using System.Security.Claims;
+using InsureX.Application.Interfaces;
+using InsureX.Domain.Entities;
+using InsureX.Domain.Enums;
 
 namespace InsureX.API.Controllers;
 
@@ -21,67 +23,115 @@ public class PolicyController : ControllerBase
     }
 
     [HttpGet]
-    public async Task<ActionResult<List<PolicyDto>>> GetAll([FromQuery] PolicySearchDto search)
+    public async Task<ActionResult> GetAll([FromQuery] PaginationRequest? request)
     {
-        try { return Ok(await _policyService.GetAllPoliciesAsync(search)); }
+        try { return Ok(await _policyService.GetAllAsync(request ?? new PaginationRequest())); }
         catch (Exception ex) { _logger.LogError(ex, "Error getting policies"); return StatusCode(500, new { message = "Error retrieving policies" }); }
     }
 
-    [HttpGet("{id}")]
-    public async Task<ActionResult<PolicyDto>> GetById(Guid id)
+    [HttpGet("{id:int}")]
+    public async Task<ActionResult> GetById(int id)
     {
-        try { return Ok(await _policyService.GetPolicyByIdAsync(id)); }
-        catch (KeyNotFoundException) { return NotFound(new { message = $"Policy {id} not found" }); }
+        try
+        {
+            var policy = await _policyService.GetByIdAsync(id);
+            return policy == null ? NotFound(new { message = $"Policy {id} not found" }) : Ok(policy);
+        }
         catch (Exception ex) { _logger.LogError(ex, "Error getting policy {id}", id); return StatusCode(500, new { message = "Error retrieving policy" }); }
     }
 
     [HttpPost]
-    public async Task<ActionResult<PolicyDto>> Create(CreatePolicyDto createDto)
+    public async Task<ActionResult> Create([FromBody] CreatePolicyDto createDto)
     {
         try
         {
-            var userId = Guid.TryParse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value, out var id) ? id : Guid.Empty;
-            var policy = await _policyService.CreatePolicyAsync(createDto, userId);
-            return CreatedAtAction(nameof(GetById), new { id = policy.Id }, policy);
+            if (!Enum.TryParse<PolicyType>(createDto.PolicyType, true, out var policyType))
+                return BadRequest(new { message = $"Invalid policy type: {createDto.PolicyType}" });
+
+            var policy = new Policy
+            {
+                PolicyNumber    = createDto.PolicyNumber,
+                TenantId        = createDto.TenantId,
+                Type            = policyType,
+                PremiumAmount   = createDto.Premium,
+                StartDate       = createDto.StartDate,
+                EndDate         = createDto.EndDate,
+                InsuredId       = createDto.PartnerId,
+                Status          = PolicyStatus.Draft
+            };
+
+            var created = await _policyService.CreateAsync(policy);
+            return CreatedAtAction(nameof(GetById), new { id = created.Id }, created);
         }
         catch (Exception ex) { _logger.LogError(ex, "Error creating policy"); return StatusCode(500, new { message = "Error creating policy" }); }
     }
 
-    [HttpPut("{id}")]
-    public async Task<ActionResult<PolicyDto>> Update(Guid id, UpdatePolicyDto updateDto)
+    [HttpPut("{id:int}")]
+    public async Task<ActionResult> Update(int id, [FromBody] UpdatePolicyDto updateDto)
     {
         if (id != updateDto.Id) return BadRequest(new { message = "ID mismatch" });
-        try { return Ok(await _policyService.UpdatePolicyAsync(updateDto)); }
-        catch (KeyNotFoundException) { return NotFound(new { message = $"Policy {id} not found" }); }
+        try
+        {
+            var existing = await _policyService.GetByIdAsync(id);
+            if (existing == null) return NotFound(new { message = $"Policy {id} not found" });
+
+            if (!Enum.TryParse<PolicyType>(updateDto.PolicyType, true, out var policyType))
+                return BadRequest(new { message = $"Invalid policy type: {updateDto.PolicyType}" });
+
+            existing.PolicyNumber  = updateDto.PolicyNumber;
+            existing.Type          = policyType;
+            existing.PremiumAmount = updateDto.Premium;
+            existing.StartDate     = updateDto.StartDate;
+            existing.EndDate       = updateDto.EndDate;
+
+            return Ok(await _policyService.UpdateAsync(existing));
+        }
         catch (Exception ex) { _logger.LogError(ex, "Error updating policy {id}", id); return StatusCode(500, new { message = "Error updating policy" }); }
     }
 
-    [HttpDelete("{id}")]
-    public async Task<ActionResult> Delete(Guid id)
+    [HttpDelete("{id:int}")]
+    public async Task<ActionResult> Delete(int id)
     {
         try
         {
-            if (!await _policyService.DeletePolicyAsync(id)) return NotFound(new { message = $"Policy {id} not found" });
+            var existing = await _policyService.GetByIdAsync(id);
+            if (existing == null) return NotFound(new { message = $"Policy {id} not found" });
+            await _policyService.DeleteAsync(id);
             return NoContent();
         }
         catch (Exception ex) { _logger.LogError(ex, "Error deleting policy {id}", id); return StatusCode(500, new { message = "Error deleting policy" }); }
     }
 
-    [HttpPatch("{id}/status")]
-    public async Task<ActionResult> UpdateStatus(Guid id, [FromBody] string status)
+    [HttpPatch("{id:int}/activate")]
+    public async Task<ActionResult> Activate(int id)
     {
-        try
-        {
-            if (!await _policyService.UpdatePolicyStatusAsync(id, status)) return NotFound(new { message = $"Policy {id} not found" });
-            return Ok(new { message = "Status updated successfully" });
-        }
-        catch (Exception ex) { _logger.LogError(ex, "Error updating policy status {id}", id); return StatusCode(500, new { message = "Error updating status" }); }
+        try { return Ok(await _policyService.ActivateAsync(id)); }
+        catch (KeyNotFoundException) { return NotFound(new { message = $"Policy {id} not found" }); }
+        catch (Exception ex) { _logger.LogError(ex, "Error activating policy {id}", id); return StatusCode(500, new { message = "Error activating policy" }); }
+    }
+
+    [HttpPatch("{id:int}/cancel")]
+    public async Task<ActionResult> Cancel(int id, [FromBody] CancelPolicyRequest request)
+    {
+        try { return Ok(await _policyService.CancelAsync(id, request.Reason)); }
+        catch (KeyNotFoundException) { return NotFound(new { message = $"Policy {id} not found" }); }
+        catch (Exception ex) { _logger.LogError(ex, "Error cancelling policy {id}", id); return StatusCode(500, new { message = "Error cancelling policy" }); }
     }
 
     [HttpGet("expiring")]
-    public async Task<ActionResult<List<PolicyDto>>> GetExpiring([FromQuery] int days = 30)
+    public async Task<ActionResult> GetExpiring([FromQuery] int days = 30)
     {
-        try { return Ok(await _policyService.GetPoliciesExpiringAsync(days)); }
+        try
+        {
+            var from = DateTime.UtcNow;
+            var to   = DateTime.UtcNow.AddDays(days);
+            return Ok(await _policyService.GetExpiringPoliciesAsync(from, to, new PaginationRequest()));
+        }
         catch (Exception ex) { _logger.LogError(ex, "Error getting expiring policies"); return StatusCode(500, new { message = "Error retrieving expiring policies" }); }
     }
+}
+
+public class CancelPolicyRequest
+{
+    public string Reason { get; set; } = string.Empty;
 }

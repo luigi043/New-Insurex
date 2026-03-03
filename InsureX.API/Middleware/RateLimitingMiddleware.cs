@@ -33,7 +33,7 @@ public class RateLimitingMiddleware
             {
                 _logger.LogWarning("Rate limit exceeded for client {ClientId}", clientId);
                 context.Response.StatusCode = StatusCodes.Status429TooManyRequests;
-                context.Response.Headers.Add("Retry-After", "60");
+                context.Response.Headers.Append("Retry-After", "60");
                 return;
             }
 

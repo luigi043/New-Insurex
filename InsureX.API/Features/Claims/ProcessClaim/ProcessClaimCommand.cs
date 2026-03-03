@@ -1,13 +1,14 @@
+using InsureX.Application.Interfaces;
+using InsureX.Domain.Entities;
+using InsureX.Domain.Enums;
+using InsureX.Infrastructure.Data;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
-using InsureX.Domain.Entities;
-using InsureX.Infrastructure.Data;
-using InsureX.Application.Interfaces;
 
 namespace InsureX.API.Features.Claims.ProcessClaim;
 
 public record ClaimResponse(
-    Guid Id,
+    int Id,
     string ClaimNumber,
     ClaimStatus Status,
     decimal ClaimedAmount,
@@ -16,14 +17,14 @@ public record ClaimResponse(
 );
 
 public record ProcessClaimCommand(
-    Guid ClaimId,
+    int ClaimId,
     ClaimAction Action,
     decimal? ApprovedAmount = null,
     string? RejectionReason = null,
     string? Notes = null
 ) : IRequest<ClaimResponse>;
 
-public enum ClaimAction { Review, RequestAdditionalInfo, Approve, Reject, Pay, Close }
+public enum ClaimAction { Review, Approve, Reject, Pay, Close }
 
 public class ProcessClaimHandler : IRequestHandler<ProcessClaimCommand, ClaimResponse>
 {
@@ -41,7 +42,7 @@ public class ProcessClaimHandler : IRequestHandler<ProcessClaimCommand, ClaimRes
     public async Task<ClaimResponse> Handle(ProcessClaimCommand request, CancellationToken cancellationToken)
     {
         var claim = await _context.Claims
-            .Include(c => c.Policy).ThenInclude(p => p.Client)
+            .Include(c => c.StatusHistory)
             .FirstOrDefaultAsync(c => c.Id == request.ClaimId, cancellationToken)
             ?? throw new KeyNotFoundException("Claim not found");
 
@@ -52,49 +53,58 @@ public class ProcessClaimHandler : IRequestHandler<ProcessClaimCommand, ClaimRes
         {
             case ClaimAction.Review:
                 claim.Status = ClaimStatus.UnderReview;
-                claim.ReviewedAt = DateTime.UtcNow;
-                claim.ReviewedBy = userId;
-                break;
-            case ClaimAction.RequestAdditionalInfo:
-                claim.Status = ClaimStatus.AdditionalInfoRequired;
                 break;
             case ClaimAction.Approve:
-                if (!request.ApprovedAmount.HasValue) throw new InvalidOperationException("Approved amount is required");
-                claim.Status = ClaimStatus.Approved;
+                if (!request.ApprovedAmount.HasValue)
+                    throw new InvalidOperationException("Approved amount is required");
+                claim.Status        = ClaimStatus.Approved;
                 claim.ApprovedAmount = request.ApprovedAmount.Value;
-                claim.ApprovedAt = DateTime.UtcNow;
-                claim.ApprovedBy = userId;
-                await _emailService.SendClaimApprovedNotificationAsync(claim);
+                claim.ApprovedAt    = DateTime.UtcNow;
+                await _emailService.SendEmailAsync(
+                    "noreply@insurex.com",
+                    $"Claim {claim.ClaimNumber} Approved",
+                    $"Your claim {claim.ClaimNumber} has been approved for {claim.ApprovedAmount:C}.",
+                    isHtml: true);
                 break;
             case ClaimAction.Reject:
-                if (string.IsNullOrWhiteSpace(request.RejectionReason)) throw new InvalidOperationException("Rejection reason is required");
-                claim.Status = ClaimStatus.Rejected;
+                if (string.IsNullOrWhiteSpace(request.RejectionReason))
+                    throw new InvalidOperationException("Rejection reason is required");
+                claim.Status          = ClaimStatus.Rejected;
                 claim.RejectionReason = request.RejectionReason;
-                await _emailService.SendClaimRejectedNotificationAsync(claim);
+                claim.RejectedAt      = DateTime.UtcNow;
+                await _emailService.SendEmailAsync(
+                    "noreply@insurex.com",
+                    $"Claim {claim.ClaimNumber} Rejected",
+                    $"Your claim {claim.ClaimNumber} has been rejected. Reason: {request.RejectionReason}",
+                    isHtml: true);
                 break;
             case ClaimAction.Pay:
-                if (claim.Status != ClaimStatus.Approved) throw new InvalidOperationException("Claim must be approved before payment");
-                claim.Status = ClaimStatus.Paid;
-                claim.PaidAt = DateTime.UtcNow;
+                if (claim.Status != ClaimStatus.Approved)
+                    throw new InvalidOperationException("Claim must be approved before payment");
+                claim.Status           = ClaimStatus.Paid;
+                claim.PaidAt           = DateTime.UtcNow;
                 claim.PaymentReference = $"PAY-{DateTime.UtcNow:yyyyMMdd}-{Guid.NewGuid().ToString()[..8].ToUpper()}";
-                await _emailService.SendClaimPaidNotificationAsync(claim);
+                await _emailService.SendEmailAsync(
+                    "noreply@insurex.com",
+                    $"Claim {claim.ClaimNumber} Paid",
+                    $"Your claim {claim.ClaimNumber} payment has been processed. Reference: {claim.PaymentReference}",
+                    isHtml: true);
                 break;
             case ClaimAction.Close:
-                claim.Status = ClaimStatus.Closed;
+                claim.Status          = ClaimStatus.Closed;
+                claim.ResolutionNotes = request.Notes;
+                claim.ResolvedAt      = DateTime.UtcNow;
                 break;
         }
 
         claim.StatusHistory.Add(new ClaimStatusHistory
         {
-            ClaimId = claim.Id,
-            OldStatus = oldStatus,
-            NewStatus = claim.Status,
-            ChangedBy = userId,
-            Reason = request.Notes ?? $"Status changed to {claim.Status}"
+            ClaimId    = claim.Id,
+            FromStatus = oldStatus,
+            ToStatus   = claim.Status,
+            ChangedAt  = DateTime.UtcNow,
+            Notes      = request.Notes ?? $"Status changed to {claim.Status}"
         });
-
-        if (!string.IsNullOrWhiteSpace(request.Notes))
-            claim.Notes.Add(new ClaimNote { Content = request.Notes, Author = userId, IsInternal = true });
 
         await _context.SaveChangesAsync(cancellationToken);
 

@@ -11,11 +11,10 @@ public class ApplicationDbContext : DbContext
     public DbSet<Policy> Policies => Set<Policy>();
     public DbSet<Asset> Assets => Set<Asset>();
     public DbSet<Claim> Claims => Set<Claim>();
-    public DbSet<ClaimDocument> ClaimDocuments => Set<ClaimDocument>();
     public DbSet<ClaimNote> ClaimNotes => Set<ClaimNote>();
     public DbSet<ClaimStatusHistory> ClaimStatusHistories => Set<ClaimStatusHistory>();
-    public DbSet<PolicyDocument> PolicyDocuments => Set<PolicyDocument>();
     public DbSet<Partner> Partners => Set<Partner>();
+    public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
     public DbSet<Tenant> Tenants => Set<Tenant>();
     public DbSet<Transaction> Transactions => Set<Transaction>();
 
@@ -34,7 +33,6 @@ public class ApplicationDbContext : DbContext
         modelBuilder.Entity<Policy>(entity =>
         {
             entity.HasIndex(e => e.PolicyNumber).IsUnique();
-            entity.HasOne(e => e.Client).WithMany(u => u.Policies).HasForeignKey(e => e.ClientId).OnDelete(DeleteBehavior.Restrict);
         });
 
         // Claim configuration
@@ -42,24 +40,12 @@ public class ApplicationDbContext : DbContext
         {
             entity.HasIndex(e => e.ClaimNumber).IsUnique();
             entity.HasOne(e => e.Policy).WithMany(p => p.Claims).HasForeignKey(e => e.PolicyId);
-            entity.HasOne(e => e.Client).WithMany(u => u.Claims).HasForeignKey(e => e.ClientId);
         });
 
-        // Asset inheritance
+        // Asset configuration
         modelBuilder.Entity<Asset>(entity =>
         {
-            entity.HasDiscriminator<AssetType>("Type")
-                .HasValue<VehicleAsset>(AssetType.Vehicle)
-                .HasValue<PropertyAsset>(AssetType.Property)
-                .HasValue<WatercraftAsset>(AssetType.Watercraft)
-                .HasValue<AviationAsset>(AssetType.Aviation)
-                .HasValue<StockInventoryAsset>(AssetType.StockInventory)
-                .HasValue<AccountsReceivableAsset>(AssetType.AccountsReceivable)
-                .HasValue<MachineryAsset>(AssetType.Machinery)
-                .HasValue<PlantEquipmentAsset>(AssetType.PlantEquipment)
-                .HasValue<BusinessInterruptionAsset>(AssetType.BusinessInterruption)
-                .HasValue<KeymanInsuranceAsset>(AssetType.KeymanInsurance)
-                .HasValue<ElectronicEquipmentAsset>(AssetType.ElectronicEquipment);
+            entity.HasIndex(e => e.Type);
         });
     }
 }

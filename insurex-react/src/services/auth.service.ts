@@ -1,13 +1,13 @@
 import apiClient from './api.service';
-import { 
-  LoginCredentials, 
-  RegisterData, 
-  AuthResponse, 
-  User, 
-  ForgotPasswordData, 
+import {
+  LoginCredentials,
+  RegisterData,
+  AuthResponse,
+  User,
+  ForgotPasswordData,
   ResetPasswordData,
   ChangePasswordData,
-  UpdateProfileData 
+  UpdateProfileData
 } from '../types/auth.types';
 
 class AuthService {
@@ -61,6 +61,18 @@ class AuthService {
 
   async changePassword(data: ChangePasswordData): Promise<void> {
     await apiClient.post('/auth/change-password', data);
+  }
+
+  async verifyEmail(token: string): Promise<void> {
+    await apiClient.post('/auth/verify-email', { token });
+  }
+
+  async resendVerificationEmail(email: string): Promise<void> {
+    await apiClient.post('/auth/resend-verification', { email });
+  }
+
+  async verify2FA(code: string): Promise<void> {
+    await apiClient.post('/auth/verify-2fa', { code });
   }
 
   async getCurrentUser(): Promise<User> {

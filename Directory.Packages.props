@@ -30,6 +30,7 @@
 
   <!-- Infrastructure Layer Packages -->
   <ItemGroup>
+    <PackageVersion Include="Dapper" Version="2.1.28" />
     <PackageVersion Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="8.0.2" />
     <PackageVersion Include="Microsoft.AspNetCore.Http.Abstractions" Version="2.2.0" />
     <PackageVersion Include="Microsoft.EntityFrameworkCore.SqlServer" Version="8.0.2" />

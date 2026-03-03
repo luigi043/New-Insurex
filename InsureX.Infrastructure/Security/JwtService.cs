@@ -1,11 +1,11 @@
 using System.IdentityModel.Tokens.Jwt;
-using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
 using InsureX.Application.Interfaces;
 using InsureX.Domain.Entities;
 using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
+using SecurityClaim = System.Security.Claims.Claim;
 
 namespace InsureX.Infrastructure.Security;
 
@@ -32,23 +32,23 @@ public class JwtService : IJwtService
         var tokenHandler = new JwtSecurityTokenHandler();
         var key = Encoding.UTF8.GetBytes(_secretKey);
 
-        var claims = new List<Claim>
+        var claims = new List<SecurityClaim>
         {
-            new Claim(JwtRegisteredClaimNames.Sub, user.Id.ToString()),
-            new Claim(JwtRegisteredClaimNames.Email, user.Email),
-            new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
-            new Claim("user_id", user.Id.ToString()),
-            new Claim("first_name", user.FirstName),
-            new Claim("last_name", user.LastName),
-            new Claim("role", user.Role.ToString()),
-            new Claim("tenant_id", user.TenantId.ToString()),
-            new Claim("tenant_name", user.Tenant?.Name ?? ""),
-            new Claim("email_verified", user.EmailVerified.ToString())
+            new SecurityClaim(JwtRegisteredClaimNames.Sub, user.Id.ToString()),
+            new SecurityClaim(JwtRegisteredClaimNames.Email, user.Email),
+            new SecurityClaim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
+            new SecurityClaim("user_id", user.Id.ToString()),
+            new SecurityClaim("first_name", user.FirstName),
+            new SecurityClaim("last_name", user.LastName),
+            new SecurityClaim("role", user.Role.ToString()),
+            new SecurityClaim("tenant_id", user.TenantId.ToString()),
+            new SecurityClaim("tenant_name", user.Tenant?.Name ?? ""),
+            new SecurityClaim("email_verified", user.EmailVerified.ToString())
         };
 
         var tokenDescriptor = new SecurityTokenDescriptor
         {
-            Subject = new ClaimsIdentity(claims),
+            Subject = new System.Security.Claims.ClaimsIdentity(claims),
             Expires = DateTime.UtcNow.AddHours(_expirationHours),
             Issuer = _issuer,
             Audience = _audience,

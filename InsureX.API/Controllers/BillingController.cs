@@ -1,8 +1,10 @@
 // InsureX.API/Controllers/BillingController.cs
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using InsureX.Application.DTOs;
 using InsureX.Application.Interfaces;
 using InsureX.Domain.Entities;
+using InsureX.Domain.Enums;
 
 namespace InsureX.API.Controllers;
 
@@ -19,7 +21,8 @@ public class BillingController : ControllerBase
     }
 
     [HttpGet("invoices")]
-    public async Task<IActionResult> GetInvoices() => Ok(await _invoiceService.GetAllAsync());
+    public async Task<IActionResult> GetInvoices([FromQuery] PaginationRequest? request)
+        => Ok(await _invoiceService.GetAllAsync(request ?? new PaginationRequest()));
 
     [HttpGet("invoices/{id:int}")]
     public async Task<IActionResult> GetInvoice(int id)
@@ -37,9 +40,16 @@ public class BillingController : ControllerBase
     }
 
     [HttpPost("invoices/{id:int}/payments")]
-    public async Task<IActionResult> RecordPayment(int id, [FromBody] Payment payment)
+    public async Task<IActionResult> RecordPayment(int id, [FromBody] RecordBillingPaymentRequest request)
     {
-        var recorded = await _invoiceService.RecordPaymentAsync(id, payment);
+        var recorded = await _invoiceService.RecordPaymentAsync(id, request.Amount, request.Method, request.Reference);
         return Ok(recorded);
     }
+}
+
+public class RecordBillingPaymentRequest
+{
+    public decimal Amount { get; set; }
+    public PaymentMethod Method { get; set; }
+    public string? Reference { get; set; }
 }

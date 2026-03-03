@@ -1,5 +1,6 @@
 
 using InsureX.Domain.Entities;
+using InsureX.Domain.Enums;
 using InsureX.Infrastructure.Data;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
@@ -7,7 +8,7 @@ using Microsoft.EntityFrameworkCore;
 namespace InsureX.Api.Features.Assets.GetAssets;
 
 public record GetAssetsQuery(
-    Guid? PolicyId = null,
+    int? PolicyId = null,
     AssetType? Type = null,
     AssetStatus? Status = null,
     string? SearchTerm = null,
@@ -27,12 +28,11 @@ public class GetAssetsHandler : IRequestHandler<GetAssetsQuery, PagedList<AssetL
     public async Task<PagedList<AssetListResponse>> Handle(GetAssetsQuery request, CancellationToken cancellationToken)
     {
         var query = _context.Assets
-            .Include(a => a.Policy)
             .AsNoTracking()
             .AsQueryable();
 
         if (request.PolicyId.HasValue)
-            query = query.Where(a => a.PolicyId == request.PolicyId.Value);
+            query = query.Where(a => a.PolicyAssets.Any(pa => pa.PolicyId == request.PolicyId.Value));
 
         if (request.Type.HasValue)
             query = query.Where(a => a.Type == request.Type.Value);
@@ -41,9 +41,9 @@ public class GetAssetsHandler : IRequestHandler<GetAssetsQuery, PagedList<AssetL
             query = query.Where(a => a.Status == request.Status.Value);
 
         if (!string.IsNullOrWhiteSpace(request.SearchTerm))
-            query = query.Where(a => 
-                a.Name.Contains(request.SearchTerm) || 
-                a.Description.Contains(request.SearchTerm));
+            query = query.Where(a =>
+                a.Name.Contains(request.SearchTerm) ||
+                (a.Description != null && a.Description.Contains(request.SearchTerm)));
 
         var totalCount = await query.CountAsync(cancellationToken);
 
@@ -57,8 +57,8 @@ public class GetAssetsHandler : IRequestHandler<GetAssetsQuery, PagedList<AssetL
                 a.Type,
                 a.Value,
                 a.Status,
-                a.Location,
-                a.Policy.Name,
+                a.Location ?? string.Empty,
+                a.PurchaseDate,
                 a.CreatedAt
             ))
             .ToListAsync(cancellationToken);
@@ -68,13 +68,13 @@ public class GetAssetsHandler : IRequestHandler<GetAssetsQuery, PagedList<AssetL
 }
 
 public record AssetListResponse(
-    Guid Id,
+    int Id,
     string Name,
     AssetType Type,
     decimal Value,
     AssetStatus Status,
     string Location,
-    string PolicyName,
+    DateTime? PurchaseDate,
     DateTime CreatedAt
 );
 

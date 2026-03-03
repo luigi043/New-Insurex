@@ -1,4 +1,5 @@
 using InsureX.Application.DTOs;
+using InsureX.Application.DTOs.Filters;
 using InsureX.Application.Interfaces;
 using InsureX.Domain.Entities;
 using InsureX.Domain.Enums;

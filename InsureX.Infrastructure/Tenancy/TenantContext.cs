@@ -1,4 +1,5 @@
 using InsureX.Domain.Interfaces;
+using Microsoft.AspNetCore.Http;
 
 namespace InsureX.Infrastructure.Tenancy;
 

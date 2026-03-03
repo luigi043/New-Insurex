@@ -1,5 +1,7 @@
 
+using InsureX.Application.Interfaces;
 using InsureX.Domain.Entities;
+using InsureX.Domain.Enums;
 using InsureX.Domain.Interfaces;
 using InsureX.Infrastructure.Data;
 using MediatR;
@@ -13,7 +15,7 @@ public record RegisterCommand(
     string FirstName,
     string LastName,
     string PhoneNumber,
-    UserRole Role = UserRole.Client
+    UserRole Role = UserRole.Viewer
 ) : IRequest<AuthResponse>;
 
 public class RegisterHandler : IRequestHandler<RegisterCommand, AuthResponse>
@@ -65,4 +67,4 @@ public class RegisterHandler : IRequestHandler<RegisterCommand, AuthResponse>
     }
 }
 
-public record AuthResponse(Guid UserId, string Email, string FirstName, string LastName, UserRole Role, string Token, string Message);
+public record AuthResponse(int UserId, string Email, string FirstName, string LastName, UserRole Role, string Token, string Message);

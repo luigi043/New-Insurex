@@ -11,6 +11,7 @@ using CsvHelper;
 using System.Globalization;
 using InsureX.Domain.Interfaces;
 using InsureX.Shared.DTOs;
+using InsureX.Shared.Enums;
 
 namespace InsureX.Infrastructure.Reporting;
 
@@ -79,11 +80,35 @@ public class ReportQueries : IReportQueries
         
         return format switch
         {
-            ExportFormat.Csv => await ExportToCsvAsync(data),
+            ExportFormat.CSV => await ExportToCsvAsync(data),
             ExportFormat.Excel => throw new NotImplementedException("Excel export not implemented yet"),
-            ExportFormat.Pdf => throw new NotImplementedException("PDF export not implemented yet"),
+            ExportFormat.PDF => throw new NotImplementedException("PDF export not implemented yet"),
             _ => throw new NotSupportedException($"Format {format} not supported")
         };
+    }
+
+    public async Task<byte[]> GenerateReport(string reportName, ExportFormat format, Dictionary<string, object> parameters)
+    {
+        // Delegate to compliance report as default implementation
+        var startDate = parameters.TryGetValue("startDate", out var sd) ? (DateTime)sd : DateTime.UtcNow.AddMonths(-1);
+        var endDate = parameters.TryGetValue("endDate", out var ed) ? (DateTime)ed : DateTime.UtcNow;
+        return await ExportComplianceReportAsync(startDate, endDate, format);
+    }
+
+    public Task<List<ReportDto>> GetAvailableReports()
+    {
+        var reports = new List<ReportDto>
+        {
+            new ReportDto
+            {
+                Id = "compliance-dashboard",
+                Name = "Compliance Dashboard",
+                Description = "Asset compliance statistics by type",
+                Category = "Compliance",
+                IsSystem = true
+            }
+        };
+        return Task.FromResult(reports);
     }
 
     private async Task<byte[]> ExportToCsvAsync(IEnumerable<ComplianceDashboardDto> data)

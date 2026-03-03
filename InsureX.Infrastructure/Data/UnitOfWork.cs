@@ -1,50 +1,67 @@
-using InsureX.Domain.Entities;
 using InsureX.Domain.Interfaces;
-using MediatR;
+using Microsoft.EntityFrameworkCore.Storage;
 
 namespace InsureX.Infrastructure.Data;
 
 public class UnitOfWork : IUnitOfWork
 {
     private readonly ApplicationDbContext _context;
-    private readonly IMediator _mediator;
+    private IDbContextTransaction? _currentTransaction;
 
-    public UnitOfWork(ApplicationDbContext context, IMediator mediator)
+    public UnitOfWork(ApplicationDbContext context)
     {
         _context = context;
-        _mediator = mediator;
     }
 
     public async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
     {
-        // Dispatch domain events before saving
-        await DispatchDomainEvents();
-        
         return await _context.SaveChangesAsync(cancellationToken);
     }
 
-    private async Task DispatchDomainEvents()
+    public async Task BeginTransactionAsync()
     {
-        var entitiesWithEvents = _context.ChangeTracker
-            .Entries<BaseEntity>()
-            .Where(e => e.Entity.DomainEvents.Any())
-            .Select(e => e.Entity)
-            .ToList();
+        if (_currentTransaction != null)
+            throw new InvalidOperationException("A transaction is already in progress");
 
-        var domainEvents = entitiesWithEvents
-            .SelectMany(e => e.DomainEvents)
-            .ToList();
+        _currentTransaction = await _context.Database.BeginTransactionAsync();
+    }
 
-        entitiesWithEvents.ForEach(e => e.ClearDomainEvents());
-
-        foreach (var domainEvent in domainEvents)
+    public async Task CommitTransactionAsync()
+    {
+        try
         {
-            await _mediator.Publish(domainEvent);
+            await _context.SaveChangesAsync();
+            if (_currentTransaction != null)
+                await _currentTransaction.CommitAsync();
+        }
+        catch
+        {
+            await RollbackTransactionAsync();
+            throw;
+        }
+        finally
+        {
+            if (_currentTransaction != null)
+            {
+                await _currentTransaction.DisposeAsync();
+                _currentTransaction = null;
+            }
+        }
+    }
+
+    public async Task RollbackTransactionAsync()
+    {
+        if (_currentTransaction != null)
+        {
+            await _currentTransaction.RollbackAsync();
+            await _currentTransaction.DisposeAsync();
+            _currentTransaction = null;
         }
     }
 
     public void Dispose()
     {
+        _currentTransaction?.Dispose();
         _context.Dispose();
     }
 }
