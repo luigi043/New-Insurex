@@ -131,8 +131,8 @@
 - [x] CRUD operations
 - [x] Valuation tracking
 - [x] Inspection scheduling
-- [x] Asset depreciation
-
+- [x] Assest depreciation
+a
 #### Frontend
 - [ ] Asset list with categories
 - [ ] Asset creation wizard
