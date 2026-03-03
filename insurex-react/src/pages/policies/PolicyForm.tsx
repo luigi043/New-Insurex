@@ -13,25 +13,24 @@ import { useNotification } from '../../hooks/useNotification';
 const steps = ['Basic Information', 'Coverage Details', 'Benefits & Documents'];
 
 const policyTypes: { value: PolicyType; label: string }[] = [
-  { value: 'life', label: 'Life Insurance' },
-  { value: 'health', label: 'Health Insurance' },
-  { value: 'auto', label: 'Auto Insurance' },
-  { value: 'home', label: 'Home Insurance' },
-  { value: 'property', label: 'Property Insurance' },
-  { value: 'liability', label: 'Liability Insurance' },
-  { value: 'travel', label: 'Travel Insurance' },
-  { value: 'business', label: 'Business Insurance' },
-  { value: 'marine', label: 'Marine Insurance' },
-  { value: 'agriculture', label: 'Agriculture Insurance' },
-  { value: 'other', label: 'Other' },
+  { value: PolicyType.LIFE, label: 'Life Insurance' },
+  { value: PolicyType.HEALTH, label: 'Health Insurance' },
+  { value: PolicyType.AUTO, label: 'Auto Insurance' },
+  { value: PolicyType.HOME, label: 'Home Insurance' },
+  { value: PolicyType.PROPERTY, label: 'Property Insurance' },
+  { value: PolicyType.LIABILITY, label: 'Liability Insurance' },
+  { value: PolicyType.TRAVEL, label: 'Travel Insurance' },
+  { value: PolicyType.BUSINESS, label: 'Business Insurance' },
+  { value: PolicyType.AGRICULTURE, label: 'Agriculture Insurance' },
+  { value: PolicyType.OTHER, label: 'Other' },
 ];
 
 const paymentFrequencies: { value: PaymentFrequency; label: string }[] = [
-  { value: 'monthly', label: 'Monthly' },
-  { value: 'quarterly', label: 'Quarterly' },
-  { value: 'semi-annual', label: 'Semi-Annual' },
-  { value: 'annual', label: 'Annual' },
-  { value: 'single', label: 'Single Payment' },
+  { value: 'monthly' as PaymentFrequency, label: 'Monthly' },
+  { value: 'quarterly' as PaymentFrequency, label: 'Quarterly' },
+  { value: 'semi-annual' as PaymentFrequency, label: 'Semi-Annual' },
+  { value: 'annual' as PaymentFrequency, label: 'Annual' },
+  { value: 'single' as PaymentFrequency, label: 'Single Payment' },
 ];
 
 export const PolicyForm: React.FC = () => {
@@ -46,7 +45,7 @@ export const PolicyForm: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
 
   const [formData, setFormData] = useState({
-    type: 'life' as PolicyType,
+    type: PolicyType.LIFE,
     holderId: '',
     startDate: '',
     endDate: '',
@@ -77,18 +76,26 @@ export const PolicyForm: React.FC = () => {
       setFormData({
         type: policy.type,
         holderId: policy.holderId,
-        startDate: policy.startDate.split('T')[0],
-        endDate: policy.endDate.split('T')[0],
+        startDate: policy.startDate ? policy.startDate.split('T')[0] : '',
+        endDate: policy.endDate ? policy.endDate.split('T')[0] : '',
         premium: policy.premium,
-        coverageAmount: policy.coverageAmount,
-        deductible: policy.deductible,
-        currency: policy.currency,
-        paymentFrequency: policy.paymentFrequency,
-        description: policy.description || '',
-        terms: policy.terms || '',
-        exclusions: policy.exclusions || [],
-        benefits: policy.benefits?.map(b => ({ name: b.name, description: b.description, coverageAmount: b.coverageAmount })) || [],
-        beneficiaries: policy.beneficiaries?.map(b => ({ name: b.name, relationship: b.relationship, percentage: b.percentage })) || [],
+        coverageAmount: (policy as any).coverageAmount || policy.insuredAmount || 0,
+        deductible: policy.deductible || 0,
+        currency: (policy as any).currency || 'USD',
+        paymentFrequency: (policy as any).paymentFrequency || 'annual',
+        description: policy.notes || '',
+        terms: (policy as any).terms || '',
+        exclusions: (policy as any).exclusions || [],
+        benefits: policy.coverageDetails?.map((b: any) => ({
+          name: b.name,
+          description: b.description,
+          coverageAmount: b.amount
+        })) || [],
+        beneficiaries: policy.beneficiaries?.map((b: any) => ({
+          name: b.name,
+          relationship: b.relationship,
+          percentage: b.percentage
+        })) || [],
       });
     } catch (err: any) {
       setError(err.message || 'Failed to fetch policy');
@@ -110,10 +117,10 @@ export const PolicyForm: React.FC = () => {
     setError(null);
     try {
       if (isEditMode && id) {
-        await policyService.updatePolicy(id, formData);
+        await policyService.updatePolicy(id, formData as any);
         showSuccess('Policy updated successfully');
       } else {
-        await policyService.createPolicy(formData);
+        await policyService.createPolicy(formData as any);
         showSuccess('Policy created successfully');
       }
       navigate('/policies');
@@ -134,17 +141,6 @@ export const PolicyForm: React.FC = () => {
 
   const removeBenefit = (index: number) => {
     setFormData((prev) => ({ ...prev, benefits: prev.benefits.filter((_, i) => i !== index) }));
-  };
-
-  const addExclusion = () => {
-    if (newExclusion.trim()) {
-      setFormData((prev) => ({ ...prev, exclusions: [...prev.exclusions, newExclusion.trim()] }));
-      setNewExclusion('');
-    }
-  };
-
-  const removeExclusion = (index: number) => {
-    setFormData((prev) => ({ ...prev, exclusions: prev.exclusions.filter((_, i) => i !== index) }));
   };
 
   const addBeneficiary = () => {
@@ -245,6 +241,46 @@ export const PolicyForm: React.FC = () => {
                               <TableCell>{benefit.description}</TableCell>
                               <TableCell align="right">{benefit.coverageAmount}</TableCell>
                               <TableCell align="center"><IconButton size="small" color="error" onClick={() => removeBenefit(index)}><Delete /></IconButton></TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </TableContainer>
+                  )}
+                </CardContent>
+              </Card>
+            </Grid>
+            <Grid item xs={12} sx={{ mt: 3 }}>
+              <Card>
+                <CardContent>
+                  <Typography variant="h6" gutterBottom>Beneficiaries</Typography>
+                  <Grid container spacing={2} alignItems="flex-end">
+                    <Grid item xs={12} sm={4}>
+                      <TextField fullWidth label="Name" value={newBeneficiary.name} onChange={(e) => setNewBeneficiary({ ...newBeneficiary, name: e.target.value })} />
+                    </Grid>
+                    <Grid item xs={12} sm={4}>
+                      <TextField fullWidth label="Relationship" value={newBeneficiary.relationship} onChange={(e) => setNewBeneficiary({ ...newBeneficiary, relationship: e.target.value })} />
+                    </Grid>
+                    <Grid item xs={12} sm={3}>
+                      <TextField fullWidth label="Percentage" type="number" value={newBeneficiary.percentage} onChange={(e) => setNewBeneficiary({ ...newBeneficiary, percentage: parseFloat(e.target.value) })} />
+                    </Grid>
+                    <Grid item xs={12} sm={1}>
+                      <Button variant="contained" onClick={addBeneficiary} fullWidth><Add /></Button>
+                    </Grid>
+                  </Grid>
+                  {formData.beneficiaries.length > 0 && (
+                    <TableContainer sx={{ mt: 2 }}>
+                      <Table size="small">
+                        <TableHead>
+                          <TableRow><TableCell>Name</TableCell><TableCell>Relationship</TableCell><TableCell align="right">Percentage</TableCell><TableCell align="center">Action</TableCell></TableRow>
+                        </TableHead>
+                        <TableBody>
+                          {formData.beneficiaries.map((b, index) => (
+                            <TableRow key={index}>
+                              <TableCell>{b.name}</TableCell>
+                              <TableCell>{b.relationship}</TableCell>
+                              <TableCell align="right">{b.percentage}%</TableCell>
+                              <TableCell align="center"><IconButton size="small" color="error" onClick={() => removeBeneficiary(index)}><Delete /></IconButton></TableCell>
                             </TableRow>
                           ))}
                         </TableBody>

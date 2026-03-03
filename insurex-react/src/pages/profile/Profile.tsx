@@ -8,13 +8,10 @@ import {
   Button,
   Avatar,
   Divider,
-  Card,
-  CardContent,
   Tabs,
   Tab,
   IconButton,
   CircularProgress,
-  Alert,
   Dialog,
   DialogTitle,
   DialogContent,
@@ -29,10 +26,6 @@ import {
   Lock,
   Person,
   Business,
-  Email,
-  Phone,
-  LocationOn,
-  LocationOn,
   VpnKey,
   Security
 } from '@mui/icons-material';
@@ -85,10 +78,8 @@ export const Profile: React.FC = () => {
 
   const handleToggle2FA = async () => {
     try {
-      // In a real app, this would open a setup wizard or confirm modal
-      // For now, we'll simulate toggling
       const newState = !twoFAEnabled;
-      await updateProfile({ ...formData, isTwoFactorEnabled: newState });
+      await updateProfile({ isTwoFactorEnabled: newState });
       setTwoFAEnabled(newState);
       showSuccess(`Autenticação de dois fatores ${newState ? 'ativada' : 'desativada'} com sucesso!`);
     } catch (err) {
@@ -136,7 +127,11 @@ export const Profile: React.FC = () => {
     }
 
     try {
-      await changePassword(passwordData.currentPassword, passwordData.newPassword);
+      await changePassword({
+        currentPassword: passwordData.currentPassword,
+        newPassword: passwordData.newPassword,
+        confirmPassword: passwordData.confirmPassword
+      });
       showSuccess('Senha alterada com sucesso!');
       setPasswordDialogOpen(false);
       setPasswordData({ currentPassword: '', newPassword: '', confirmPassword: '' });

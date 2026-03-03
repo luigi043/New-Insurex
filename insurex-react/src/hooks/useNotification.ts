@@ -12,6 +12,8 @@ export interface Notification {
 interface NotificationContextType {
   notifications: Notification[];
   showNotification: (type: NotificationType, message: string, duration?: number) => void;
+  showSuccess: (message: string, duration?: number) => void;
+  showError: (message: string, duration?: number) => void;
   hideNotification: (id: string) => void;
   clearAll: () => void;
 }
@@ -24,7 +26,7 @@ export const useNotificationProvider = () => {
   const showNotification = useCallback((type: NotificationType, message: string, duration = 5000) => {
     const id = Math.random().toString(36).substring(2, 9);
     const notification: Notification = { id, type, message, duration };
-    
+
     setNotifications((prev) => [...prev, notification]);
 
     if (duration > 0) {
@@ -33,6 +35,14 @@ export const useNotificationProvider = () => {
       }, duration);
     }
   }, []);
+
+  const showSuccess = useCallback((message: string, duration = 5000) => {
+    showNotification('success', message, duration);
+  }, [showNotification]);
+
+  const showError = useCallback((message: string, duration = 5000) => {
+    showNotification('error', message, duration);
+  }, [showNotification]);
 
   const hideNotification = useCallback((id: string) => {
     setNotifications((prev) => prev.filter((n) => n.id !== id));
@@ -45,6 +55,8 @@ export const useNotificationProvider = () => {
   return {
     notifications,
     showNotification,
+    showSuccess,
+    showError,
     hideNotification,
     clearAll,
   };

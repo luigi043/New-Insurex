@@ -31,7 +31,9 @@ export enum PolicyType {
   BUSINESS = 'BUSINESS',
   TRAVEL = 'TRAVEL',
   LIABILITY = 'LIABILITY',
-  PROPERTY = 'PROPERTY'
+  PROPERTY = 'PROPERTY',
+  AGRICULTURE = 'AGRICULTURE',
+  OTHER = 'OTHER'
 }
 
 export enum PolicyStatus {
@@ -41,6 +43,14 @@ export enum PolicyStatus {
   EXPIRED = 'EXPIRED',
   CANCELLED = 'CANCELLED',
   SUSPENDED = 'SUSPENDED'
+}
+
+export enum PaymentFrequency {
+  MONTHLY = 'monthly',
+  QUARTERLY = 'quarterly',
+  SEMI_ANNUAL = 'semi-annual',
+  ANNUAL = 'annual',
+  SINGLE = 'single'
 }
 
 export interface CoverageDetail {
@@ -102,7 +112,9 @@ export interface PolicyFilters {
 
 export interface PolicyStats {
   total: number;
+  totalPolicies: number;
   active: number;
+  activePolicies: number;
   pending: number;
   expired: number;
   cancelled: number;

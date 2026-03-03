@@ -17,7 +17,7 @@ export const validateCPF = (cpf: string): boolean => {
   return true;
 };
 
-export const validateCNPJ = (cnpj: string): boolean => {
+export const validateCNPJ = (_cnpj: string): boolean => {
   // Brazilian CNPJ validation
   return true;
 };

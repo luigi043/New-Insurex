@@ -24,7 +24,6 @@ import {
   Alert
 } from '@mui/material';
 import {
-  Download,
   PictureAsPdf,
   TableChart,
   BarChart,
@@ -33,10 +32,9 @@ import {
   AttachMoney,
   Assignment,
   Warning,
-  CalendarToday
 } from '@mui/icons-material';
 import { useReports } from '../../hooks/useReports';
-import { formatCurrency, formatDate } from '../../utils/formatters';
+import { formatCurrency } from '../../utils/formatters';
 import { useNotification } from '../../hooks/useNotification';
 
 interface TabPanelProps {
@@ -76,15 +74,15 @@ export const Reports: React.FC = () => {
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const { showSuccess, showError } = useNotification();
-  
-  const { 
-    financialReport, 
-    policiesReport, 
-    claimsReport, 
-    loading, 
+
+  const {
+    financialReport,
+    policiesReport,
+    claimsReport,
+    loading,
     error,
     generateReport,
-    exportReport 
+    exportReport
   } = useReports();
 
   const handleTabChange = (_: React.SyntheticEvent, newValue: number) => {
@@ -336,12 +334,12 @@ export const Reports: React.FC = () => {
                     <TableCell align="right">{formatCurrency(item.average)}</TableCell>
                   </TableRow>
                 )) || (
-                  <TableRow>
-                    <TableCell colSpan={4} align="center">
-                      Nenhum dado disponível
-                    </TableCell>
-                  </TableRow>
-                )}
+                    <TableRow>
+                      <TableCell colSpan={4} align="center">
+                        Nenhum dado disponível
+                      </TableCell>
+                    </TableRow>
+                  )}
               </TableBody>
             </Table>
           </TableContainer>
@@ -368,12 +366,12 @@ export const Reports: React.FC = () => {
                     <TableCell align="right">{formatCurrency(item.paid)}</TableCell>
                   </TableRow>
                 )) || (
-                  <TableRow>
-                    <TableCell colSpan={4} align="center">
-                      Nenhum dado disponível
-                    </TableCell>
-                  </TableRow>
-                )}
+                    <TableRow>
+                      <TableCell colSpan={4} align="center">
+                        Nenhum dado disponível
+                      </TableCell>
+                    </TableRow>
+                  )}
               </TableBody>
             </Table>
           </TableContainer>

@@ -125,7 +125,9 @@ export interface ClaimFilters {
 
 export interface ClaimStats {
   total: number;
+  totalClaims: number;
   byStatus: Record<ClaimStatus, number>;
+  pendingClaims: number;
   totalClaimed: number;
   totalApproved: number;
   averageProcessingTime: number;

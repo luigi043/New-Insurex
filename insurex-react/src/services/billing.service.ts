@@ -1,10 +1,10 @@
 import apiClient from './api.service';
-import { 
-  Invoice, 
-  CreateInvoiceData, 
-  CreatePaymentData, 
-  BillingFilters, 
-  BillingStats 
+import {
+  Invoice,
+  CreateInvoiceData,
+  CreatePaymentData,
+  BillingFilters,
+  BillingStats
 } from '../types/billing.types';
 import { PaginatedResponse } from './policy.service';
 
@@ -13,7 +13,7 @@ class BillingService {
     const params = new URLSearchParams();
     params.append('page', page.toString());
     params.append('limit', limit.toString());
-    
+
     if (filters) {
       Object.entries(filters).forEach(([key, value]) => {
         if (value !== undefined && value !== null && value !== '') {
@@ -21,9 +21,13 @@ class BillingService {
         }
       });
     }
-    
+
     const response = await apiClient.get<PaginatedResponse<Invoice>>(`/billing?${params.toString()}`);
     return response.data;
+  }
+
+  async getInvoices(filters?: BillingFilters, page = 1, limit = 10): Promise<PaginatedResponse<Invoice>> {
+    return this.getAll(filters, page, limit);
   }
 
   async getById(id: string): Promise<Invoice> {
@@ -34,6 +38,10 @@ class BillingService {
   async create(data: CreateInvoiceData): Promise<Invoice> {
     const response = await apiClient.post<Invoice>('/billing', data);
     return response.data;
+  }
+
+  async createInvoice(data: CreateInvoiceData): Promise<Invoice> {
+    return this.create(data);
   }
 
   async update(id: string, data: Partial<CreateInvoiceData>): Promise<Invoice> {
@@ -85,6 +93,27 @@ class BillingService {
       responseType: 'blob',
     });
     return response.data;
+  }
+
+  async exportInvoices(filters?: BillingFilters): Promise<void> {
+    const params = new URLSearchParams();
+    if (filters) {
+      Object.entries(filters).forEach(([key, value]) => {
+        if (value !== undefined && value !== null && value !== '') {
+          params.append(key, value.toString());
+        }
+      });
+    }
+    const response = await apiClient.get(`/billing/export?${params.toString()}`, {
+      responseType: 'blob',
+    });
+    const url = window.URL.createObjectURL(new Blob([response.data]));
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', 'invoices.csv');
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
   }
 }
 

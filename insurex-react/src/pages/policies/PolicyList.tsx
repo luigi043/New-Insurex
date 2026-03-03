@@ -14,34 +14,30 @@ import { useNotification } from '../../hooks/useNotification';
 
 const policyStatuses: { value: PolicyStatus | ''; label: string; color: any }[] = [
   { value: '', label: 'All Statuses', color: 'default' },
-  { value: 'draft', label: 'Draft', color: 'default' },
-  { value: 'pending', label: 'Pending', color: 'warning' },
-  { value: 'active', label: 'Active', color: 'success' },
-  { value: 'suspended', label: 'Suspended', color: 'error' },
-  { value: 'expired', label: 'Expired', color: 'error' },
-  { value: 'cancelled', label: 'Cancelled', color: 'error' },
-  { value: 'renewed', label: 'Renewed', color: 'info' },
+  { value: PolicyStatus.DRAFT, label: 'Draft', color: 'default' },
+  { value: PolicyStatus.PENDING, label: 'Pending', color: 'warning' },
+  { value: PolicyStatus.ACTIVE, label: 'Active', color: 'success' },
+  { value: PolicyStatus.SUSPENDED, label: 'Suspended', color: 'error' },
+  { value: PolicyStatus.EXPIRED, label: 'Expired', color: 'error' },
+  { value: PolicyStatus.CANCELLED, label: 'Cancelled', color: 'error' },
 ];
 
 const policyTypes: { value: PolicyType | ''; label: string }[] = [
   { value: '', label: 'All Types' },
-  { value: 'life', label: 'Life' },
-  { value: 'health', label: 'Health' },
-  { value: 'auto', label: 'Auto' },
-  { value: 'home', label: 'Home' },
-  { value: 'property', label: 'Property' },
-  { value: 'liability', label: 'Liability' },
-  { value: 'travel', label: 'Travel' },
-  { value: 'business', label: 'Business' },
-  { value: 'marine', label: 'Marine' },
-  { value: 'agriculture', label: 'Agriculture' },
-  { value: 'other', label: 'Other' },
+  { value: PolicyType.LIFE, label: 'Life' },
+  { value: PolicyType.HEALTH, label: 'Health' },
+  { value: PolicyType.AUTO, label: 'Auto' },
+  { value: PolicyType.HOME, label: 'Home' },
+  { value: PolicyType.PROPERTY, label: 'Property' },
+  { value: PolicyType.LIABILITY, label: 'Liability' },
+  { value: PolicyType.TRAVEL, label: 'Travel' },
+  { value: PolicyType.BUSINESS, label: 'Business' },
 ];
 
 export const PolicyList: React.FC = () => {
   const navigate = useNavigate();
   const { showSuccess, showError } = useNotification();
-  
+
   const [page, setPage] = useState(0);
   const [pageSize, setPageSize] = useState(10);
   const [searchQuery, setSearchQuery] = useState('');
@@ -52,14 +48,14 @@ export const PolicyList: React.FC = () => {
 
   const {
     policies,
-    totalItems,
+    pagination,
     isLoading,
     error,
-    refetch,
+    fetchPolicies,
     deletePolicy,
   } = usePolicies({
     page: page + 1,
-    pageSize,
+    limit: pageSize,
     filters: {
       search: searchQuery || undefined,
       status: statusFilter || undefined,
@@ -67,24 +63,40 @@ export const PolicyList: React.FC = () => {
     },
   });
 
-  const handleChangePage = (_: unknown, newPage: number) => setPage(newPage);
-  const handleChangeRowsPerPage = (event: React.ChangeEvent<HTMLInputElement>) => {
-    setPageSize(parseInt(event.target.value, 10));
-    setPage(0);
+  const totalItems = pagination.total;
+
+  const handleChangePage = (_: unknown, newPage: number) => {
+    setPage(newPage);
+    fetchPolicies(newPage + 1, pageSize);
   };
+
+  const handleChangeRowsPerPage = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const newSize = parseInt(event.target.value, 10);
+    setPageSize(newSize);
+    setPage(0);
+    fetchPolicies(1, newSize);
+  };
+
   const handleSearch = (event: React.ChangeEvent<HTMLInputElement>) => {
     setSearchQuery(event.target.value);
     setPage(0);
   };
+
   const handleDeleteClick = (id: string) => { setPolicyToDelete(id); setDeleteDialogOpen(true); };
+
   const handleConfirmDelete = async () => {
     if (policyToDelete) {
-      const success = await deletePolicy(policyToDelete);
-      success ? showSuccess('Policy deleted successfully') : showError('Failed to delete policy');
+      try {
+        await deletePolicy(policyToDelete);
+        showSuccess('Policy deleted successfully');
+      } catch (err) {
+        showError('Failed to delete policy');
+      }
     }
     setDeleteDialogOpen(false);
     setPolicyToDelete(null);
   };
+
   const getStatusColor = (status: PolicyStatus) => policyStatuses.find((s) => s.value === status)?.color || 'default';
 
   return (
@@ -111,7 +123,7 @@ export const PolicyList: React.FC = () => {
             </TextField>
           </Grid>
           <Grid item xs={12} sm={2}>
-            <Tooltip title="Refresh"><IconButton onClick={() => refetch()}><Refresh /></IconButton></Tooltip>
+            <Tooltip title="Refresh"><IconButton onClick={() => fetchPolicies()}><Refresh /></IconButton></Tooltip>
           </Grid>
         </Grid>
       </Paper>
@@ -135,23 +147,23 @@ export const PolicyList: React.FC = () => {
             </TableHead>
             <TableBody>
               {isLoading ? (<TableRow><TableCell colSpan={8} align="center" sx={{ py: 4 }}><CircularProgress /></TableCell></TableRow>) :
-               policies.length === 0 ? (<TableRow><TableCell colSpan={8} align="center" sx={{ py: 4 }}><Typography color="textSecondary">No policies found</Typography></TableCell></TableRow>) :
-               (policies.map((policy) => (
-                <TableRow key={policy.id} hover>
-                  <TableCell>{policy.policyNumber}</TableCell>
-                  <TableCell>{policyTypes.find((t) => t.value === policy.type)?.label || policy.type}</TableCell>
-                  <TableCell>{policy.holderName}</TableCell>
-                  <TableCell><Chip label={policyStatuses.find((s) => s.value === policy.status)?.label || policy.status} color={getStatusColor(policy.status)} size="small" /></TableCell>
-                  <TableCell>{formatDate(policy.startDate)}</TableCell>
-                  <TableCell>{formatDate(policy.endDate)}</TableCell>
-                  <TableCell align="right">{formatCurrency(policy.premium, policy.currency)}</TableCell>
-                  <TableCell align="center">
-                    <Tooltip title="View"><IconButton size="small" onClick={() => navigate(`/policies/${policy.id}`)}><Visibility /></IconButton></Tooltip>
-                    <Tooltip title="Edit"><IconButton size="small" onClick={() => navigate(`/policies/edit/${policy.id}`)}><Edit /></IconButton></Tooltip>
-                    <Tooltip title="Delete"><IconButton size="small" color="error" onClick={() => handleDeleteClick(policy.id)}><Delete /></IconButton></Tooltip>
-                  </TableCell>
-                </TableRow>
-              )))}
+                policies.length === 0 ? (<TableRow><TableCell colSpan={8} align="center" sx={{ py: 4 }}><Typography color="textSecondary">No policies found</Typography></TableCell></TableRow>) :
+                  (policies.map((policy) => (
+                    <TableRow key={policy.id} hover>
+                      <TableCell>{policy.policyNumber}</TableCell>
+                      <TableCell>{policyTypes.find((t) => t.value === policy.type)?.label || policy.type}</TableCell>
+                      <TableCell>{policy.holderName}</TableCell>
+                      <TableCell><Chip label={policyStatuses.find((s) => s.value === policy.status)?.label || policy.status} color={getStatusColor(policy.status)} size="small" /></TableCell>
+                      <TableCell>{formatDate(policy.startDate)}</TableCell>
+                      <TableCell>{formatDate(policy.endDate)}</TableCell>
+                      <TableCell align="right">{formatCurrency(policy.premium, 'BRL')}</TableCell>
+                      <TableCell align="center">
+                        <Tooltip title="View"><IconButton size="small" onClick={() => navigate(`/policies/${policy.id}`)}><Visibility /></IconButton></Tooltip>
+                        <Tooltip title="Edit"><IconButton size="small" onClick={() => navigate(`/policies/edit/${policy.id}`)}><Edit /></IconButton></Tooltip>
+                        <Tooltip title="Delete"><IconButton size="small" color="error" onClick={() => handleDeleteClick(policy.id)}><Delete /></IconButton></Tooltip>
+                      </TableCell>
+                    </TableRow>
+                  )))}
             </TableBody>
           </Table>
         </TableContainer>

@@ -6,6 +6,7 @@ interface AuthContextType {
   user: User | null;
   isAuthenticated: boolean;
   isLoading: boolean;
+  loading: boolean;
   error: string | null;
   login: (credentials: LoginCredentials) => Promise<void>;
   register: (data: RegisterData) => Promise<void>;
@@ -185,6 +186,7 @@ export const useAuthProvider = () => {
     user,
     isAuthenticated: !!user,
     isLoading,
+    loading: isLoading,
     error,
     login,
     register,

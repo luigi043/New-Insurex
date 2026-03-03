@@ -104,6 +104,7 @@ export interface AssetFilters {
 
 export interface AssetStats {
   total: number;
+  totalAssets: number;
   totalValue: number;
   byType: Record<AssetType, number>;
   byStatus: Record<AssetStatus, number>;

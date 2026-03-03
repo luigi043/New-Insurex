@@ -33,9 +33,17 @@ class PolicyService {
     return response.data;
   }
 
+  async getPolicies(page = 1, limit = 10, filters?: PolicyFilters): Promise<PaginatedResponse<Policy>> {
+    return this.getAll(filters, page, limit);
+  }
+
   async getById(id: string): Promise<Policy> {
     const response = await apiClient.get<Policy>(`/policies/${id}`);
     return response.data;
+  }
+
+  async getPolicy(id: string): Promise<Policy> {
+    return this.getById(id);
   }
 
   async create(data: CreatePolicyData): Promise<Policy> {
@@ -43,9 +51,17 @@ class PolicyService {
     return response.data;
   }
 
+  async createPolicy(data: CreatePolicyData): Promise<Policy> {
+    return this.create(data);
+  }
+
   async update(id: string, data: UpdatePolicyData): Promise<Policy> {
     const response = await apiClient.patch<Policy>(`/policies/${id}`, data);
     return response.data;
+  }
+
+  async updatePolicy(id: string, data: UpdatePolicyData): Promise<Policy> {
+    return this.update(id, data);
   }
 
   async delete(id: string): Promise<void> {
@@ -54,7 +70,17 @@ class PolicyService {
 
   async getStats(): Promise<PolicyStats> {
     const response = await apiClient.get<PolicyStats>('/policies/stats');
-    return response.data;
+    const stats = response.data;
+    // Map existing fields to dashboard expected fields if they differ, or just return as is if the interface was updated
+    return {
+      ...stats,
+      totalPolicies: stats.total,
+      activePolicies: stats.active
+    };
+  }
+
+  async getPolicyStats(): Promise<PolicyStats> {
+    return this.getStats();
   }
 
   async getByHolder(holderId: string): Promise<Policy[]> {
@@ -105,6 +131,11 @@ class PolicyService {
 
   async getHistory(id: string): Promise<any[]> {
     const response = await apiClient.get(`/policies/${id}/history`);
+    return response.data;
+  }
+
+  async getExpiringPolicies(days = 30): Promise<Policy[]> {
+    const response = await apiClient.get<Policy[]>(`/policies/expiring?days=${days}`);
     return response.data;
   }
 }

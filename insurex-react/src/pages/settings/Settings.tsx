@@ -7,45 +7,28 @@ import {
   TextField,
   Button,
   Switch,
-  FormControlLabel,
   Divider,
-  Card,
-  CardContent,
   List,
   ListItem,
   ListItemText,
   ListItemSecondaryAction,
-  IconButton,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
   Select,
   MenuItem,
   FormControl,
-  InputLabel,
-  Alert,
-  Chip
+  InputLabel
 } from '@mui/material';
 import {
   Save,
-  Notifications,
-  Security,
-  Language,
-  Palette,
-  Email,
-  Delete,
-  Add,
-  Edit,
   Business,
-  Backup
+  Notifications,
+  Security
 } from '@mui/icons-material';
 import { useNotification } from '../../hooks/useNotification';
 
 export const Settings: React.FC = () => {
-  const { showSuccess, showError } = useNotification();
+  const { showSuccess } = useNotification();
   const [activeSection, setActiveSection] = useState('general');
-  
+
   const [generalSettings, setGeneralSettings] = useState({
     companyName: 'InsureX Seguros',
     companyDocument: '00.000.000/0000-00',
@@ -74,7 +57,7 @@ export const Settings: React.FC = () => {
     loginAttempts: 5
   });
 
-  const [userDialogOpen, setUserDialogOpen] = useState(false);
+  // const [userDialogOpen, setUserDialogOpen] = useState(false);
 
   const handleSaveGeneral = () => {
     showSuccess('Configurações gerais salvas com sucesso!');

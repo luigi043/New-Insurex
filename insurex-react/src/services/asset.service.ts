@@ -50,7 +50,15 @@ class AssetService {
 
   async getStats(): Promise<AssetStats> {
     const response = await apiClient.get<AssetStats>('/assets/stats');
-    return response.data;
+    const stats = response.data;
+    return {
+      ...stats,
+      totalAssets: stats.total
+    };
+  }
+
+  async getAssetStats(): Promise<AssetStats> {
+    return this.getStats();
   }
 
   async getByOwner(ownerId: string): Promise<Asset[]> {

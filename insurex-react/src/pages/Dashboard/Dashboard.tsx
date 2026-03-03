@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback, useRef } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Box,
@@ -16,38 +16,22 @@ import {
   Tooltip,
   CircularProgress,
   Button,
-  FormControl,
-
-  Select,
-
-  MenuItem,
-
-  SelectChangeEvent,
 } from '@mui/material';
 import {
-  TrendingUp,
   Assignment,
-  CheckCircle,
   Warning,
   AttachMoney,
   Inventory,
-  Claim,
-   Autorenew,
   ArrowForward,
   Refresh,
 } from '@mui/icons-material';
 import { policyService } from '../../services/policy.service';
 import { claimService } from '../../services/claim.service';
-
-
-import { SystemHealthWidget } from '../../components/Dashboard/SystemHealthWidget';
-
-import { TaskSummaryCards } from '../../components/Dashboard/TaskSummaryCards';
 import { assetService } from '../../services/asset.service';
 import { PolicyStats } from '../../types/policy.types';
 import { ClaimStats } from '../../types/claim.types';
 import { AssetStats } from '../../types/asset.types';
-import { formatCurrency, formatDate, formatNumber } from '../../utils/formatters';
+import { formatCurrency, formatDate } from '../../utils/formatters';
 import { useNotification } from '../../hooks/useNotification';
 
 interface DashboardStats {
@@ -56,58 +40,12 @@ interface DashboardStats {
   assets: AssetStats | null;
   recentClaims: any[];
   expiringPolicies: any[];
-} const [refreshInterval, setRefreshInterval] = useState<number>(0);
-
-  const [lastRefreshed, setLastRefreshed] = useState<Date>(new Date());
-
-  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
-
- 
-
-  const handleRefreshIntervalChange = (event: SelectChangeEvent<number>) => {
-
-    setRefreshInterval(Number(event.target.value));
-
-  };
-
- 
-
-  useEffect(() => {
-
-    if (intervalRef.current) {
-
-      clearInterval(intervalRef.current);
-
-      intervalRef.current = null;
-
-    }
-
-    if (refreshInterval > 0) {
-
-      intervalRef.current = setInterval(() => {
-
-        fetchDashboardData();
-
-      }, refreshInterval * 1000);
-
-    }
-
-    return () => {
-
-      if (intervalRef.current) {
-
-        clearInterval(intervalRef.current);
-
-      }
-
-    };
-
-  }, [refreshInterval]);
+}
 
 export const Dashboard: React.FC = () => {
   const navigate = useNavigate();
   const { showError } = useNotification();
-  
+
   const [stats, setStats] = useState<DashboardStats>({
     policies: null,
     claims: null,
@@ -133,8 +71,8 @@ export const Dashboard: React.FC = () => {
         policies: policyStats,
         claims: claimStats,
         assets: assetStats,
-        recentClaims: recentClaimsResponse.items,
-        expiringPolicies: expiringPolicies,
+        recentClaims: recentClaimsResponse.data || [],
+        expiringPolicies: expiringPolicies || [],
       });
     } catch (err: any) {
       showError(err.message || 'Failed to fetch dashboard data');
@@ -162,7 +100,7 @@ export const Dashboard: React.FC = () => {
     color: string;
     onClick?: () => void;
   }) => (
-    <Card sx={{ height: '100%', cursor: onClick ? 'pointer' : 'default' }} onClick={onClick}>
+    <Card sx={{ height: '100%', cursor: onClick ? 'pointer' : 'default', '&:hover': onClick ? { boxShadow: 6 } : {} }} onClick={onClick}>
       <CardContent>
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
           <Box>
@@ -230,8 +168,8 @@ export const Dashboard: React.FC = () => {
           <StatCard
             title="Total Claims"
             value={stats.claims?.totalClaims || 0}
-            subtitle="This year"
-            icon={Claim}
+            subtitle={`${stats.claims?.pendingClaims || 0} pending`}
+            icon={Warning}
             color="#ed6c02"
             onClick={() => navigate('/claims')}
           />
@@ -257,44 +195,11 @@ export const Dashboard: React.FC = () => {
         </Grid>
       </Grid>
 
-      {/* Secondary Stats */}
-      <Grid container spacing={3} sx={{ mb: 4 }}>
-        <Grid item xs={12} sm={6} md={4}>
-          <StatCard
-            title="Pending Claims"
-            value={stats.claims?.claimsByStatus?.submitted || 0}
-            subtitle="Awaiting review"
-            icon={Warning}
-            color="#f44336"
-            onClick={() => navigate('/claims', { state: { filter: 'submitted' } })}
-          />
-        </Grid>
-        <Grid item xs={12} sm={6} md={4}>
-          <StatCard
-            title="Expiring Soon"
-            value={stats.expiringPolicies?.length || 0}
-            subtitle="Within 30 days"
-            icon={TrendingUp}
-            color="#0288d1"
-            onClick={() => navigate('/policies', { state: { filter: 'expiring' } })}
-          />
-        </Grid>
-        <Grid item xs={12} sm={6} md={4}>
-          <StatCard
-            title="Total Paid"
-            value={formatCurrency(stats.claims?.totalPaid || 0)}
-            subtitle="Claims settled"
-            icon={CheckCircle}
-            color="#388e3c"
-          />
-        </Grid>
-      </Grid>
-
       {/* Lists */}
       <Grid container spacing={3}>
         {/* Recent Claims */}
         <Grid item xs={12} md={6}>
-          <Paper>
+          <Paper sx={{ height: '100%' }}>
             <Box sx={{ p: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <Typography variant="h6">Recent Claims</Typography>
               <Button
@@ -328,15 +233,12 @@ export const Dashboard: React.FC = () => {
                           claim.status === 'approved'
                             ? 'success'
                             : claim.status === 'rejected'
-                            ? 'error'
-                            : claim.status === 'submitted'
-                            ? 'warning'
-                            : 'default'
+                              ? 'error'
+                              : claim.status === 'submitted'
+                                ? 'warning'
+                                : 'default'
                         }
                       />
-                      <Typography variant="body2">
-                        {formatCurrency(claim.estimatedAmount, claim.currency)}
-                      </Typography>
                     </Box>
                   </ListItemButton>
                 ))
@@ -347,7 +249,7 @@ export const Dashboard: React.FC = () => {
 
         {/* Expiring Policies */}
         <Grid item xs={12} md={6}>
-          <Paper>
+          <Paper sx={{ height: '100%' }}>
             <Box sx={{ p: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <Typography variant="h6">Expiring Policies</Typography>
               <Button
@@ -388,3 +290,5 @@ export const Dashboard: React.FC = () => {
     </Box>
   );
 };
+
+export default Dashboard;

@@ -7,45 +7,50 @@ import {
   TextField,
   Button,
   Grid,
-  MenuItem,
-  FormControl,
-  InputLabel,
-  Select,
   Alert,
+  MenuItem,
+  CircularProgress,
 } from '@mui/material';
+import { ArrowBack } from '@mui/icons-material';
 import { billingService } from '../../services/billing.service';
+import { InvoiceType, CreateInvoiceData } from '../../types/billing.types';
+import { useNotification } from '../../hooks/useNotification';
 
 export const InvoiceForm: React.FC = () => {
   const navigate = useNavigate();
+  const { showSuccess, showError } = useNotification();
+
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-  const [formData, setFormData] = useState({
-    invoiceNumber: '',
-    clientId: '',
-    issueDate: new Date().toISOString().split('T')[0],
-    dueDate: '',
+  const [formData, setFormData] = useState<CreateInvoiceData>({
+    policyId: '',
+    type: InvoiceType.PREMIUM,
     amount: 0,
-    tax: 0,
-    status: 'Draft',
+    taxAmount: 0,
+    discountAmount: 0,
+    dueDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+    description: '',
+    items: [],
     notes: '',
   });
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | { name?: string; value: unknown }>) => {
-    const name = e.target.name as string;
-    const value = e.target.value;
-    setFormData({ ...formData, [name]: value });
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({
+      ...prev,
+      [name]: name === 'amount' || name === 'taxAmount' || name === 'discountAmount' ? Number(value) : value,
+    }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    setError('');
 
     try {
       await billingService.createInvoice(formData);
+      showSuccess('Invoice created successfully');
       navigate('/billing/invoices');
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Failed to save invoice');
+      showError(err.response?.data?.message || 'Failed to create invoice');
     } finally {
       setLoading(false);
     }
@@ -53,41 +58,65 @@ export const InvoiceForm: React.FC = () => {
 
   return (
     <Box>
-      <Typography variant="h4" gutterBottom>New Invoice</Typography>
+      <Box display="flex" alignItems="center" mb={3}>
+        <Button startIcon={<ArrowBack />} onClick={() => navigate('/billing/invoices')} sx={{ mr: 2 }}>
+          Back
+        </Button>
+        <Typography variant="h4">New Invoice</Typography>
+      </Box>
+
       <Paper sx={{ p: 3 }}>
-        {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
         <form onSubmit={handleSubmit}>
-          <Grid container spacing={2}>
+          <Grid container spacing={3}>
             <Grid item xs={12} md={6}>
               <TextField
                 required
                 fullWidth
-                name="invoiceNumber"
-                label="Invoice Number"
-                value={formData.invoiceNumber}
+                name="policyId"
+                label="Policy ID"
+                value={formData.policyId}
                 onChange={handleChange}
+                placeholder="Enter Policy ID"
               />
             </Grid>
             <Grid item xs={12} md={6}>
               <TextField
+                select
                 required
                 fullWidth
-                name="clientId"
-                label="Client ID"
-                value={formData.clientId}
+                name="type"
+                label="Invoice Type"
+                value={formData.type}
                 onChange={handleChange}
-              />
+              >
+                {Object.values(InvoiceType).map((type) => (
+                  <MenuItem key={type} value={type}>
+                    {type}
+                  </MenuItem>
+                ))}
+              </TextField>
             </Grid>
             <Grid item xs={12} md={4}>
               <TextField
                 required
                 fullWidth
-                type="date"
-                name="issueDate"
-                label="Issue Date"
-                InputLabelProps={{ shrink: true }}
-                value={formData.issueDate}
+                type="number"
+                name="amount"
+                label="Base Amount"
+                value={formData.amount}
                 onChange={handleChange}
+                InputProps={{ inputProps: { min: 0 } }}
+              />
+            </Grid>
+            <Grid item xs={12} md={4}>
+              <TextField
+                fullWidth
+                type="number"
+                name="taxAmount"
+                label="Tax Amount"
+                value={formData.taxAmount}
+                onChange={handleChange}
+                InputProps={{ inputProps: { min: 0 } }}
               />
             </Grid>
             <Grid item xs={12} md={4}>
@@ -102,14 +131,15 @@ export const InvoiceForm: React.FC = () => {
                 onChange={handleChange}
               />
             </Grid>
-            <Grid item xs={12} md={4}>
+            <Grid item xs={12}>
               <TextField
                 required
                 fullWidth
-                type="number"
-                name="amount"
-                label="Amount"
-                value={formData.amount}
+                multiline
+                rows={2}
+                name="description"
+                label="Description"
+                value={formData.description}
                 onChange={handleChange}
               />
             </Grid>
@@ -119,16 +149,24 @@ export const InvoiceForm: React.FC = () => {
                 multiline
                 rows={3}
                 name="notes"
-                label="Notes"
-                value={formData.notes}
+                label="Internal Notes"
+                value={formData.notes || ''}
                 onChange={handleChange}
               />
             </Grid>
           </Grid>
-          <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 3, gap: 2 }}>
-            <Button variant="outlined" onClick={() => navigate('/billing/invoices')}>Cancel</Button>
-            <Button type="submit" variant="contained" disabled={loading}>
-              {loading ? 'Saving...' : 'Create Invoice'}
+
+          <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 4, gap: 2 }}>
+            <Button variant="outlined" onClick={() => navigate('/billing/invoices')} disabled={loading}>
+              Cancel
+            </Button>
+            <Button
+              type="submit"
+              variant="contained"
+              disabled={loading}
+              startIcon={loading ? <CircularProgress size={20} /> : null}
+            >
+              {loading ? 'Creating...' : 'Create Invoice'}
             </Button>
           </Box>
         </form>
@@ -136,3 +174,5 @@ export const InvoiceForm: React.FC = () => {
     </Box>
   );
 };
+
+export default InvoiceForm;

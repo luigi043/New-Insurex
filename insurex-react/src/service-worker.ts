@@ -1,6 +1,7 @@
+export { };
 /// <reference lib="webworker" />
 
-declare const self: ServiceWorkerGlobalScope;
+const sw = self as any;
 
 const CACHE_NAME = 'insurex-v1';
 
@@ -13,7 +14,7 @@ const urlsToCache = [
   '/manifest.json',
 ];
 
-self.addEventListener('install', (event) => {
+sw.addEventListener('install', (event: any) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
       return cache.addAll(urlsToCache);
@@ -21,34 +22,35 @@ self.addEventListener('install', (event) => {
   );
 });
 
-self.addEventListener('fetch', (event) => {
+sw.addEventListener('fetch', (event: any) => {
   event.respondWith(
-    caches.match(event.request).then((response) => {
+    caches.match(event.request).then((response: any) => {
       if (response) {
         return response;
       }
-      return fetch(event.request).then((response) => {
-        if (!response || response.status !== 200 || response.type !== 'basic') {
-          return response;
+      return fetch(event.request).then((res: any) => {
+        if (!res || res.status !== 200 || res.type !== 'basic') {
+          return res;
         }
-        const responseToCache = response.clone();
+        const responseToCache = res.clone();
         caches.open(CACHE_NAME).then((cache) => {
           cache.put(event.request, responseToCache);
         });
-        return response;
+        return res;
       });
     })
   );
 });
 
-self.addEventListener('activate', (event) => {
+sw.addEventListener('activate', (event: any) => {
   event.waitUntil(
     caches.keys().then((cacheNames) => {
       return Promise.all(
-        cacheNames.map((cacheName) => {
+        cacheNames.map((cacheName: any) => {
           if (cacheName !== CACHE_NAME) {
             return caches.delete(cacheName);
           }
+          return Promise.resolve();
         })
       );
     })

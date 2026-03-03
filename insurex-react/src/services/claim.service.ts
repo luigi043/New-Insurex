@@ -1,11 +1,13 @@
 import apiClient from './api.service';
-import { 
-  Claim, 
-  CreateClaimData, 
-  UpdateClaimData, 
-  ClaimFilters, 
+import {
+  Claim,
+  ClaimStatus,
+  ClaimDocument,
+  CreateClaimData,
+  UpdateClaimData,
+  ClaimFilters,
   ClaimStats,
-  ClaimHistory 
+  ClaimHistory
 } from '../types/claim.types';
 import { PaginatedResponse } from './policy.service';
 
@@ -14,7 +16,7 @@ class ClaimService {
     const params = new URLSearchParams();
     params.append('page', page.toString());
     params.append('limit', limit.toString());
-    
+
     if (filters) {
       Object.entries(filters).forEach(([key, value]) => {
         if (value !== undefined && value !== null && value !== '') {
@@ -22,14 +24,22 @@ class ClaimService {
         }
       });
     }
-    
+
     const response = await apiClient.get<PaginatedResponse<Claim>>(`/claims?${params.toString()}`);
     return response.data;
+  }
+
+  async getClaims(page = 1, limit = 10, filters?: ClaimFilters): Promise<PaginatedResponse<Claim>> {
+    return this.getAll(filters, page, limit);
   }
 
   async getById(id: string): Promise<Claim> {
     const response = await apiClient.get<Claim>(`/claims/${id}`);
     return response.data;
+  }
+
+  async getClaim(id: string): Promise<Claim> {
+    return this.getById(id);
   }
 
   async create(data: CreateClaimData): Promise<Claim> {
@@ -42,13 +52,27 @@ class ClaimService {
     return response.data;
   }
 
+  async updateClaimStatus(id: string, status: ClaimStatus, notes?: string): Promise<Claim> {
+    return this.update(id, { status, notes });
+  }
+
   async delete(id: string): Promise<void> {
     await apiClient.delete(`/claims/${id}`);
   }
 
   async getStats(): Promise<ClaimStats> {
     const response = await apiClient.get<ClaimStats>('/claims/stats');
-    return response.data;
+    const stats = response.data;
+    const pendingClaims = stats.byStatus?.SUBMITTED || stats.byStatus?.UNDER_REVIEW || 0;
+    return {
+      ...stats,
+      totalClaims: stats.total,
+      pendingClaims
+    };
+  }
+
+  async getClaimStats(): Promise<ClaimStats> {
+    return this.getStats();
   }
 
   async getHistory(id: string): Promise<ClaimHistory[]> {
@@ -90,7 +114,7 @@ class ClaimService {
     const formData = new FormData();
     formData.append('file', file);
     formData.append('name', name);
-    
+
     await apiClient.post(`/claims/${id}/documents`, formData, {
       headers: {
         'Content-Type': 'multipart/form-data',
@@ -100,6 +124,11 @@ class ClaimService {
 
   async deleteDocument(id: string, documentId: string): Promise<void> {
     await apiClient.delete(`/claims/${id}/documents/${documentId}`);
+  }
+
+  async getDocuments(id: string): Promise<ClaimDocument[]> {
+    const claim = await this.getById(id);
+    return claim.documents || [];
   }
 }
 
