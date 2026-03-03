@@ -7,6 +7,7 @@ import { AuthProvider } from './components/Auth/AuthProvider';
 import { PrivateRoute } from './components/Auth/PrivateRoute';
 import { NotificationProvider } from './components/Notifications/NotificationProvider';
 import { Layout } from './components/Layout/Layout';
+import { ErrorBoundary } from './components/Common/ErrorBoundary';
 
 // Lazy load pages for better performance
 const Login = lazy(() => import('./pages/auth/Login').then(m => ({ default: m.Login })));
@@ -78,74 +79,76 @@ function App() {
       <CssBaseline />
       <NotificationProvider>
         <AuthProvider>
-          <Suspense fallback={<LoadingFallback />}>
-            <Routes>
-              {/* Public Routes */}
-              <Route path="/login" element={<Login />} />
-              <Route path="/register" element={<Register />} />
-              <Route path="/forgot-password" element={<ForgotPassword />} />
-              <Route path="/reset-password" element={<ResetPassword />} />
+          <ErrorBoundary>
+            <Suspense fallback={<LoadingFallback />}>
+              <Routes>
+                {/* Public Routes */}
+                <Route path="/login" element={<Login />} />
+                <Route path="/register" element={<Register />} />
+                <Route path="/forgot-password" element={<ForgotPassword />} />
+                <Route path="/reset-password" element={<ResetPassword />} />
 
-              {/* Private Routes */}
-              <Route
-                path="/"
-                element={
-                  <PrivateRoute>
-                    <Layout />
-                  </PrivateRoute>
-                }
-              >
-                <Route index element={<Navigate to="/dashboard" replace />} />
-                <Route path="dashboard" element={<Dashboard />} />
+                {/* Private Routes */}
+                <Route
+                  path="/"
+                  element={
+                    <PrivateRoute>
+                      <Layout />
+                    </PrivateRoute>
+                  }
+                >
+                  <Route index element={<Navigate to="/dashboard" replace />} />
+                  <Route path="dashboard" element={<Dashboard />} />
 
-                {/* Policies */}
-                <Route path="policies">
-                  <Route index element={<PolicyList />} />
-                  <Route path="new" element={<PolicyForm />} />
-                  <Route path=":id" element={<PolicyDetails />} />
-                  <Route path="edit/:id" element={<PolicyForm />} />
+                  {/* Policies */}
+                  <Route path="policies">
+                    <Route index element={<PolicyList />} />
+                    <Route path="new" element={<PolicyForm />} />
+                    <Route path=":id" element={<PolicyDetails />} />
+                    <Route path="edit/:id" element={<PolicyForm />} />
+                  </Route>
+
+                  {/* Assets */}
+                  <Route path="assets">
+                    <Route index element={<AssetList />} />
+                    <Route path="new" element={<AssetForm />} />
+                    <Route path=":id" element={<AssetDetails />} />
+                    <Route path="edit/:id" element={<AssetForm />} />
+                  </Route>
+
+                  {/* Claims */}
+                  <Route path="claims">
+                    <Route index element={<ClaimList />} />
+                    <Route path="new" element={<ClaimForm />} />
+                    <Route path=":id" element={<ClaimDetails />} />
+                    <Route path="edit/:id" element={<ClaimForm />} />
+                  </Route>
+
+                  {/* Partners */}
+                  <Route path="partners">
+                    <Route index element={<PartnerList />} />
+                    <Route path="new" element={<PartnerForm />} />
+                    <Route path=":id" element={<PartnerForm />} />
+                  </Route>
+
+                  {/* Billing */}
+                  <Route path="billing" element={<BillingList />} />
+
+                  {/* Reports */}
+                  <Route path="reports" element={<Reports />} />
+
+                  {/* Profile */}
+                  <Route path="profile" element={<Profile />} />
+
+                  {/* Settings */}
+                  <Route path="settings" element={<Settings />} />
                 </Route>
 
-                {/* Assets */}
-                <Route path="assets">
-                  <Route index element={<AssetList />} />
-                  <Route path="new" element={<AssetForm />} />
-                  <Route path=":id" element={<AssetDetails />} />
-                  <Route path="edit/:id" element={<AssetForm />} />
-                </Route>
-
-                {/* Claims */}
-                <Route path="claims">
-                  <Route index element={<ClaimList />} />
-                  <Route path="new" element={<ClaimForm />} />
-                  <Route path=":id" element={<ClaimDetails />} />
-                  <Route path="edit/:id" element={<ClaimForm />} />
-                </Route>
-
-                {/* Partners */}
-                <Route path="partners">
-                  <Route index element={<PartnerList />} />
-                  <Route path="new" element={<PartnerForm />} />
-                  <Route path=":id" element={<PartnerForm />} />
-                </Route>
-
-                {/* Billing */}
-                <Route path="billing" element={<BillingList />} />
-
-                {/* Reports */}
-                <Route path="reports" element={<Reports />} />
-
-                {/* Profile */}
-                <Route path="profile" element={<Profile />} />
-
-                {/* Settings */}
-                <Route path="settings" element={<Settings />} />
-              </Route>
-
-              {/* 404 */}
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </Suspense>
+                {/* 404 */}
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+            </Suspense>
+          </ErrorBoundary>
         </AuthProvider>
       </NotificationProvider>
     </ThemeProvider>

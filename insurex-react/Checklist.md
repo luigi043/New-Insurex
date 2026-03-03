@@ -236,7 +236,7 @@
 - [x] Notification system
 - [ ] Loading skeletons
 - [ ] Empty states
-- [ ] Error boundaries
+- [x] Error boundaries
 - [ ] Tour/onboarding
 
 ### Accessibility
@@ -409,5 +409,4 @@
 
 **Last Updated**: 2026-03-03  
 **Next Review**: 2026-03-10
-
 
