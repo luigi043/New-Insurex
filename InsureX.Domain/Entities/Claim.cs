@@ -43,6 +43,7 @@ public class Claim : BaseEntity
     public User? RejectedBy { get; set; }
     public User? PaidBy { get; set; }
     public ICollection<ClaimStatusHistory> StatusHistory { get; set; } = new List<ClaimStatusHistory>();
+    public ICollection<ClaimInvestigationNote> InvestigationNotes { get; set; } = new List<ClaimInvestigationNote>();
     
     // Workflow methods
     public void Submit()
