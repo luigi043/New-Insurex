@@ -24,11 +24,20 @@ public class ClaimsController : ControllerBase
 
     [HttpGet]
     [Authorize(Roles = "Admin,Insurer,Broker,Viewer,ClaimsProcessor")]
-    [ProducesResponseType(typeof(ApiResponse<IEnumerable<Claim>>), StatusCodes.Status200OK)]
-    public async Task<IActionResult> GetAll()
+    [ProducesResponseType(typeof(ApiResponse<PagedResult<Claim>>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetAll([FromQuery] PaginationRequest request)
     {
-        var claims = await _claimService.GetAllAsync();
-        return Ok(ApiResponse<IEnumerable<Claim>>.SuccessResponse(claims));
+        var claims = await _claimService.GetAllAsync(request);
+        return Ok(ApiResponse<PagedResult<Claim>>.SuccessResponse(claims));
+    }
+
+    [HttpGet("filter")]
+    [Authorize(Roles = "Admin,Insurer,Broker,Viewer,ClaimsProcessor")]
+    [ProducesResponseType(typeof(ApiResponse<PagedResult<Claim>>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> Filter([FromQuery] ClaimFilterRequest request)
+    {
+        var claims = await _claimService.FilterAsync(request);
+        return Ok(ApiResponse<PagedResult<Claim>>.SuccessResponse(claims));
     }
 
     [HttpGet("{id:int}")]
@@ -59,11 +68,11 @@ public class ClaimsController : ControllerBase
 
     [HttpGet("policy/{policyId:int}")]
     [Authorize(Roles = "Admin,Insurer,Broker,Viewer,ClaimsProcessor")]
-    [ProducesResponseType(typeof(ApiResponse<IEnumerable<Claim>>), StatusCodes.Status200OK)]
-    public async Task<IActionResult> GetByPolicy(int policyId)
+    [ProducesResponseType(typeof(ApiResponse<PagedResult<Claim>>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetByPolicy(int policyId, [FromQuery] PaginationRequest request)
     {
-        var claims = await _claimService.GetByPolicyIdAsync(policyId);
-        return Ok(ApiResponse<IEnumerable<Claim>>.SuccessResponse(claims));
+        var claims = await _claimService.GetByPolicyIdAsync(policyId, request);
+        return Ok(ApiResponse<PagedResult<Claim>>.SuccessResponse(claims));
     }
 
     [HttpGet("status/{status}")]

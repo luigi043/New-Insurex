@@ -24,11 +24,20 @@ public class AssetsController : ControllerBase
 
     [HttpGet]
     [Authorize(Roles = "Admin,Insurer,Broker,Viewer")]
-    [ProducesResponseType(typeof(ApiResponse<IEnumerable<Asset>>), StatusCodes.Status200OK)]
-    public async Task<IActionResult> GetAll()
+    [ProducesResponseType(typeof(ApiResponse<PagedResult<Asset>>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetAll([FromQuery] PaginationRequest request)
     {
-        var assets = await _assetService.GetAllAsync();
-        return Ok(ApiResponse<IEnumerable<Asset>>.SuccessResponse(assets));
+        var assets = await _assetService.GetAllAsync(request);
+        return Ok(ApiResponse<PagedResult<Asset>>.SuccessResponse(assets));
+    }
+
+    [HttpGet("filter")]
+    [Authorize(Roles = "Admin,Insurer,Broker,Viewer")]
+    [ProducesResponseType(typeof(ApiResponse<PagedResult<Asset>>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> Filter([FromQuery] AssetFilterRequest request)
+    {
+        var assets = await _assetService.FilterAsync(request);
+        return Ok(ApiResponse<PagedResult<Asset>>.SuccessResponse(assets));
     }
 
     [HttpGet("{id:int}")]

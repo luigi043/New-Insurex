@@ -24,11 +24,20 @@ public class PartnersController : ControllerBase
 
     [HttpGet]
     [Authorize(Roles = "Admin,Insurer,Broker,Viewer")]
-    [ProducesResponseType(typeof(ApiResponse<IEnumerable<Partner>>), StatusCodes.Status200OK)]
-    public async Task<IActionResult> GetAll()
+    [ProducesResponseType(typeof(ApiResponse<PagedResult<Partner>>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetAll([FromQuery] PaginationRequest request)
     {
-        var partners = await _partnerService.GetAllAsync();
-        return Ok(ApiResponse<IEnumerable<Partner>>.SuccessResponse(partners));
+        var partners = await _partnerService.GetAllAsync(request);
+        return Ok(ApiResponse<PagedResult<Partner>>.SuccessResponse(partners));
+    }
+
+    [HttpGet("filter")]
+    [Authorize(Roles = "Admin,Insurer,Broker,Viewer")]
+    [ProducesResponseType(typeof(ApiResponse<PagedResult<Partner>>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> Filter([FromQuery] PartnerFilterRequest request)
+    {
+        var partners = await _partnerService.FilterAsync(request);
+        return Ok(ApiResponse<PagedResult<Partner>>.SuccessResponse(partners));
     }
 
     [HttpGet("{id:int}")]

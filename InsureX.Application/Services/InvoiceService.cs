@@ -1,3 +1,4 @@
+using InsureX.Application.DTOs;
 using InsureX.Application.Exceptions;
 using InsureX.Application.Interfaces;
 using InsureX.Domain.Entities;
@@ -26,9 +27,34 @@ public class InvoiceService : IInvoiceService
         _logger = logger;
     }
 
-    public async Task<IEnumerable<Invoice>> GetAllAsync()
+    public async Task<PagedResult<Invoice>> GetAllAsync(PaginationRequest request)
     {
-        return await _invoiceRepository.GetAllByTenantAsync(_tenantContext.TenantId);
+        var query = _invoiceRepository.QueryByTenant(_tenantContext.TenantId);
+        
+        // Apply search
+        if (!string.IsNullOrWhiteSpace(request.SearchTerm))
+        {
+            query = query.Where(i => 
+                i.InvoiceNumber.Contains(request.SearchTerm) ||
+                (i.Description != null && i.Description.Contains(request.SearchTerm)));
+        }
+        
+        // Apply sorting
+        query = ApplySorting(query, request.SortBy, request.SortDescending);
+        
+        var totalCount = await Task.FromResult(query.Count());
+        var items = query
+            .Skip((request.PageNumber - 1) * request.PageSize)
+            .Take(request.PageSize)
+            .ToList();
+        
+        return new PagedResult<Invoice>
+        {
+            Items = items,
+            TotalCount = totalCount,
+            PageNumber = request.PageNumber,
+            PageSize = request.PageSize
+        };
     }
 
     public async Task<Invoice?> GetByIdAsync(int id)
@@ -52,14 +78,102 @@ public class InvoiceService : IInvoiceService
         return await _invoiceRepository.GetByStatusAndTenantAsync(status, _tenantContext.TenantId);
     }
 
-    public async Task<IEnumerable<Invoice>> GetByPolicyIdAsync(int policyId)
+    public async Task<PagedResult<Invoice>> GetByPolicyIdAsync(int policyId, PaginationRequest request)
     {
-        return await _invoiceRepository.GetByPolicyIdAsync(policyId);
+        var query = _invoiceRepository.QueryByTenant(_tenantContext.TenantId)
+            .Where(i => i.PolicyId == policyId);
+        
+        var totalCount = await Task.FromResult(query.Count());
+        var items = query
+            .OrderByDescending(i => i.IssueDate)
+            .Skip((request.PageNumber - 1) * request.PageSize)
+            .Take(request.PageSize)
+            .ToList();
+        
+        return new PagedResult<Invoice>
+        {
+            Items = items,
+            TotalCount = totalCount,
+            PageNumber = request.PageNumber,
+            PageSize = request.PageSize
+        };
     }
 
-    public async Task<IEnumerable<Invoice>> GetOverdueInvoicesAsync()
+    public async Task<PagedResult<Invoice>> GetOverdueInvoicesAsync(PaginationRequest request)
     {
-        return await _invoiceRepository.GetOverdueInvoicesAsync(_tenantContext.TenantId);
+        var now = DateTime.UtcNow;
+        var query = _invoiceRepository.QueryByTenant(_tenantContext.TenantId)
+            .Where(i => i.Status != InvoiceStatus.Paid && 
+                       i.Status != InvoiceStatus.Cancelled &&
+                       i.DueDate < now);
+        
+        var totalCount = await Task.FromResult(query.Count());
+        var items = query
+            .OrderBy(i => i.DueDate)
+            .Skip((request.PageNumber - 1) * request.PageSize)
+            .Take(request.PageSize)
+            .ToList();
+        
+        return new PagedResult<Invoice>
+        {
+            Items = items,
+            TotalCount = totalCount,
+            PageNumber = request.PageNumber,
+            PageSize = request.PageSize
+        };
+    }
+
+    public async Task<PagedResult<Invoice>> FilterAsync(InvoiceFilterRequest request)
+    {
+        var query = _invoiceRepository.QueryByTenant(_tenantContext.TenantId);
+        
+        // Apply filters
+        if (!string.IsNullOrWhiteSpace(request.Status) && Enum.TryParse<InvoiceStatus>(request.Status, out var status))
+            query = query.Where(i => i.Status == status);
+        
+        if (request.PolicyId.HasValue)
+            query = query.Where(i => i.PolicyId == request.PolicyId.Value);
+        
+        if (request.PartnerId.HasValue)
+            query = query.Where(i => i.PartnerId == request.PartnerId.Value);
+        
+        if (request.IsOverdue.HasValue && request.IsOverdue.Value)
+        {
+            var now = DateTime.UtcNow;
+            query = query.Where(i => i.Status != InvoiceStatus.Paid && 
+                                    i.Status != InvoiceStatus.Cancelled &&
+                                    i.DueDate < now);
+        }
+        
+        if (request.FromDueDate.HasValue)
+            query = query.Where(i => i.DueDate >= request.FromDueDate.Value);
+        
+        if (request.ToDueDate.HasValue)
+            query = query.Where(i => i.DueDate <= request.ToDueDate.Value);
+        
+        if (!string.IsNullOrWhiteSpace(request.SearchTerm))
+        {
+            query = query.Where(i => 
+                i.InvoiceNumber.Contains(request.SearchTerm) ||
+                (i.Description != null && i.Description.Contains(request.SearchTerm)));
+        }
+        
+        // Apply sorting
+        query = ApplySorting(query, request.SortBy, request.SortDescending);
+        
+        var totalCount = await Task.FromResult(query.Count());
+        var items = query
+            .Skip((request.PageNumber - 1) * request.PageSize)
+            .Take(request.PageSize)
+            .ToList();
+        
+        return new PagedResult<Invoice>
+        {
+            Items = items,
+            TotalCount = totalCount,
+            PageNumber = request.PageNumber,
+            PageSize = request.PageSize
+        };
     }
 
     public async Task<Invoice> CreateAsync(Invoice invoice)
@@ -185,7 +299,7 @@ public class InvoiceService : IInvoiceService
             TransactionId = reference,
             TenantId = _tenantContext.TenantId,
             PaymentReference = await GeneratePaymentReferenceAsync(),
-            SetCreated = _ => { }, // Will be set below
+            SetCreated = _ => { },
         };
         payment.SetCreated("system");
 
@@ -241,5 +355,18 @@ public class InvoiceService : IInvoiceService
         var year = DateTime.UtcNow.Year;
         var timestamp = DateTime.UtcNow.Ticks;
         return $"PAY-{year}-{timestamp % 1000000:D6}";
+    }
+
+    private IQueryable<Invoice> ApplySorting(IQueryable<Invoice> query, string? sortBy, bool descending)
+    {
+        return sortBy?.ToLower() switch
+        {
+            "invoicenumber" => descending ? query.OrderByDescending(i => i.InvoiceNumber) : query.OrderBy(i => i.InvoiceNumber),
+            "status" => descending ? query.OrderByDescending(i => i.Status) : query.OrderBy(i => i.Status),
+            "amount" => descending ? query.OrderByDescending(i => i.Amount) : query.OrderBy(i => i.Amount),
+            "duedate" => descending ? query.OrderByDescending(i => i.DueDate) : query.OrderBy(i => i.DueDate),
+            "issuedate" => descending ? query.OrderByDescending(i => i.IssueDate) : query.OrderBy(i => i.IssueDate),
+            _ => query.OrderByDescending(i => i.CreatedAt)
+        };
     }
 }

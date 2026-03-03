@@ -1,3 +1,4 @@
+using InsureX.Application.DTOs;
 using InsureX.Domain.Entities;
 using InsureX.Domain.Enums;
 
@@ -5,12 +6,13 @@ namespace InsureX.Application.Interfaces;
 
 public interface IInvoiceService
 {
-    Task<IEnumerable<Invoice>> GetAllAsync();
+    Task<PagedResult<Invoice>> GetAllAsync(PaginationRequest request);
     Task<Invoice?> GetByIdAsync(int id);
     Task<Invoice?> GetByInvoiceNumberAsync(string invoiceNumber);
     Task<IEnumerable<Invoice>> GetByStatusAsync(InvoiceStatus status);
-    Task<IEnumerable<Invoice>> GetByPolicyIdAsync(int policyId);
-    Task<IEnumerable<Invoice>> GetOverdueInvoicesAsync();
+    Task<PagedResult<Invoice>> GetByPolicyIdAsync(int policyId, PaginationRequest request);
+    Task<PagedResult<Invoice>> GetOverdueInvoicesAsync(PaginationRequest request);
+    Task<PagedResult<Invoice>> FilterAsync(InvoiceFilterRequest request);
     Task<Invoice> CreateAsync(Invoice invoice);
     Task<Invoice> UpdateAsync(Invoice invoice);
     Task DeleteAsync(int id);

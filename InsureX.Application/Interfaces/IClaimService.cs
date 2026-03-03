@@ -1,3 +1,4 @@
+using InsureX.Application.DTOs;
 using InsureX.Domain.Entities;
 using InsureX.Domain.Enums;
 
@@ -5,12 +6,13 @@ namespace InsureX.Application.Interfaces;
 
 public interface IClaimService
 {
-    Task<IEnumerable<Claim>> GetAllAsync();
+    Task<PagedResult<Claim>> GetAllAsync(PaginationRequest request);
     Task<Claim?> GetByIdAsync(int id);
     Task<Claim?> GetByClaimNumberAsync(string claimNumber);
-    Task<IEnumerable<Claim>> GetByPolicyIdAsync(int policyId);
+    Task<PagedResult<Claim>> GetByPolicyIdAsync(int policyId, PaginationRequest request);
     Task<IEnumerable<Claim>> GetByStatusAsync(ClaimStatus status);
     Task<IEnumerable<Claim>> GetPendingClaimsAsync();
+    Task<PagedResult<Claim>> FilterAsync(ClaimFilterRequest request);
     Task<Claim> CreateAsync(Claim claim);
     Task<Claim> UpdateAsync(Claim claim);
     Task DeleteAsync(int id);

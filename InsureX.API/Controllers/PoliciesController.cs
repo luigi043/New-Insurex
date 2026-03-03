@@ -24,11 +24,20 @@ public class PoliciesController : ControllerBase
 
     [HttpGet]
     [Authorize(Roles = "Admin,Insurer,Broker,Viewer")]
-    [ProducesResponseType(typeof(ApiResponse<IEnumerable<Policy>>), StatusCodes.Status200OK)]
-    public async Task<IActionResult> GetAll()
+    [ProducesResponseType(typeof(ApiResponse<PagedResult<Policy>>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetAll([FromQuery] PaginationRequest request)
     {
-        var policies = await _policyService.GetAllAsync();
-        return Ok(ApiResponse<IEnumerable<Policy>>.SuccessResponse(policies));
+        var policies = await _policyService.GetAllAsync(request);
+        return Ok(ApiResponse<PagedResult<Policy>>.SuccessResponse(policies));
+    }
+
+    [HttpGet("filter")]
+    [Authorize(Roles = "Admin,Insurer,Broker,Viewer")]
+    [ProducesResponseType(typeof(ApiResponse<PagedResult<Policy>>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> Filter([FromQuery] PolicyFilterRequest request)
+    {
+        var policies = await _policyService.FilterAsync(request);
+        return Ok(ApiResponse<PagedResult<Policy>>.SuccessResponse(policies));
     }
 
     [HttpGet("{id:int}")]
@@ -77,13 +86,14 @@ public class PoliciesController : ControllerBase
 
     [HttpGet("expiring")]
     [Authorize(Roles = "Admin,Insurer,Broker")]
-    [ProducesResponseType(typeof(ApiResponse<IEnumerable<Policy>>), StatusCodes.Status200OK)]
-    public async Task<IActionResult> GetExpiring([FromQuery] int days = 30)
+    [ProducesResponseType(typeof(ApiResponse<PagedResult<Policy>>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetExpiring([FromQuery] int days = 30, [FromQuery] PaginationRequest? request = null)
     {
         var from = DateTime.UtcNow;
         var to = from.AddDays(days);
-        var policies = await _policyService.GetExpiringPoliciesAsync(from, to);
-        return Ok(ApiResponse<IEnumerable<Policy>>.SuccessResponse(policies));
+        request ??= new PaginationRequest();
+        var policies = await _policyService.GetExpiringPoliciesAsync(from, to, request);
+        return Ok(ApiResponse<PagedResult<Policy>>.SuccessResponse(policies));
     }
 
     [HttpPost]

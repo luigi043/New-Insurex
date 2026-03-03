@@ -24,11 +24,20 @@ public class InvoicesController : ControllerBase
 
     [HttpGet]
     [Authorize(Roles = "Admin,Insurer,Accountant,Viewer")]
-    [ProducesResponseType(typeof(ApiResponse<IEnumerable<Invoice>>), StatusCodes.Status200OK)]
-    public async Task<IActionResult> GetAll()
+    [ProducesResponseType(typeof(ApiResponse<PagedResult<Invoice>>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetAll([FromQuery] PaginationRequest request)
     {
-        var invoices = await _invoiceService.GetAllAsync();
-        return Ok(ApiResponse<IEnumerable<Invoice>>.SuccessResponse(invoices));
+        var invoices = await _invoiceService.GetAllAsync(request);
+        return Ok(ApiResponse<PagedResult<Invoice>>.SuccessResponse(invoices));
+    }
+
+    [HttpGet("filter")]
+    [Authorize(Roles = "Admin,Insurer,Accountant,Viewer")]
+    [ProducesResponseType(typeof(ApiResponse<PagedResult<Invoice>>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> Filter([FromQuery] InvoiceFilterRequest request)
+    {
+        var invoices = await _invoiceService.FilterAsync(request);
+        return Ok(ApiResponse<PagedResult<Invoice>>.SuccessResponse(invoices));
     }
 
     [HttpGet("{id:int}")]
@@ -68,20 +77,20 @@ public class InvoicesController : ControllerBase
 
     [HttpGet("policy/{policyId:int}")]
     [Authorize(Roles = "Admin,Insurer,Accountant,Viewer")]
-    [ProducesResponseType(typeof(ApiResponse<IEnumerable<Invoice>>), StatusCodes.Status200OK)]
-    public async Task<IActionResult> GetByPolicy(int policyId)
+    [ProducesResponseType(typeof(ApiResponse<PagedResult<Invoice>>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetByPolicy(int policyId, [FromQuery] PaginationRequest request)
     {
-        var invoices = await _invoiceService.GetByPolicyIdAsync(policyId);
-        return Ok(ApiResponse<IEnumerable<Invoice>>.SuccessResponse(invoices));
+        var invoices = await _invoiceService.GetByPolicyIdAsync(policyId, request);
+        return Ok(ApiResponse<PagedResult<Invoice>>.SuccessResponse(invoices));
     }
 
     [HttpGet("overdue")]
     [Authorize(Roles = "Admin,Insurer,Accountant")]
-    [ProducesResponseType(typeof(ApiResponse<IEnumerable<Invoice>>), StatusCodes.Status200OK)]
-    public async Task<IActionResult> GetOverdue()
+    [ProducesResponseType(typeof(ApiResponse<PagedResult<Invoice>>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetOverdue([FromQuery] PaginationRequest request)
     {
-        var invoices = await _invoiceService.GetOverdueInvoicesAsync();
-        return Ok(ApiResponse<IEnumerable<Invoice>>.SuccessResponse(invoices));
+        var invoices = await _invoiceService.GetOverdueInvoicesAsync(request);
+        return Ok(ApiResponse<PagedResult<Invoice>>.SuccessResponse(invoices));
     }
 
     [HttpPost]

@@ -214,6 +214,9 @@ app.UseSecurityHeaders();
 // Global Exception Handler (should be first)
 app.UseGlobalExceptionHandler();
 
+// Request Validation
+app.UseRequestValidation();
+
 // Request Timing
 app.UseRequestTiming();
 

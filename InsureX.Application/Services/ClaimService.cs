@@ -1,3 +1,4 @@
+using InsureX.Application.DTOs;
 using InsureX.Application.Exceptions;
 using InsureX.Application.Interfaces;
 using InsureX.Domain.Entities;
@@ -29,9 +30,34 @@ public class ClaimService : IClaimService
         _logger = logger;
     }
 
-    public async Task<IEnumerable<Claim>> GetAllAsync()
+    public async Task<PagedResult<Claim>> GetAllAsync(PaginationRequest request)
     {
-        return await _claimRepository.GetAllByTenantAsync(_tenantContext.TenantId);
+        var query = _claimRepository.QueryByTenant(_tenantContext.TenantId);
+        
+        // Apply search
+        if (!string.IsNullOrWhiteSpace(request.SearchTerm))
+        {
+            query = query.Where(c => 
+                c.ClaimNumber.Contains(request.SearchTerm) ||
+                c.Description.Contains(request.SearchTerm));
+        }
+        
+        // Apply sorting
+        query = ApplySorting(query, request.SortBy, request.SortDescending);
+        
+        var totalCount = await Task.FromResult(query.Count());
+        var items = query
+            .Skip((request.PageNumber - 1) * request.PageSize)
+            .Take(request.PageSize)
+            .ToList();
+        
+        return new PagedResult<Claim>
+        {
+            Items = items,
+            TotalCount = totalCount,
+            PageNumber = request.PageNumber,
+            PageSize = request.PageSize
+        };
     }
 
     public async Task<Claim?> GetByIdAsync(int id)
@@ -50,13 +76,29 @@ public class ClaimService : IClaimService
         return claim;
     }
 
-    public async Task<IEnumerable<Claim>> GetByPolicyIdAsync(int policyId)
+    public async Task<PagedResult<Claim>> GetByPolicyIdAsync(int policyId, PaginationRequest request)
     {
         var policy = await _policyRepository.GetByIdAsync(policyId);
         if (policy == null || policy.TenantId != _tenantContext.TenantId)
             throw new NotFoundException("Policy not found");
 
-        return await _claimRepository.GetByPolicyIdAsync(policyId);
+        var query = _claimRepository.QueryByTenant(_tenantContext.TenantId)
+            .Where(c => c.PolicyId == policyId);
+        
+        var totalCount = await Task.FromResult(query.Count());
+        var items = query
+            .OrderByDescending(c => c.CreatedAt)
+            .Skip((request.PageNumber - 1) * request.PageSize)
+            .Take(request.PageSize)
+            .ToList();
+        
+        return new PagedResult<Claim>
+        {
+            Items = items,
+            TotalCount = totalCount,
+            PageNumber = request.PageNumber,
+            PageSize = request.PageSize
+        };
     }
 
     public async Task<IEnumerable<Claim>> GetByStatusAsync(ClaimStatus status)
@@ -67,6 +109,57 @@ public class ClaimService : IClaimService
     public async Task<IEnumerable<Claim>> GetPendingClaimsAsync()
     {
         return await _claimRepository.GetByStatusAndTenantAsync(ClaimStatus.UnderReview, _tenantContext.TenantId);
+    }
+
+    public async Task<PagedResult<Claim>> FilterAsync(ClaimFilterRequest request)
+    {
+        var query = _claimRepository.QueryByTenant(_tenantContext.TenantId);
+        
+        // Apply filters
+        if (request.PolicyId.HasValue)
+            query = query.Where(c => c.PolicyId == request.PolicyId.Value);
+        
+        if (!string.IsNullOrWhiteSpace(request.Status) && Enum.TryParse<ClaimStatus>(request.Status, out var status))
+            query = query.Where(c => c.Status == status);
+        
+        if (!string.IsNullOrWhiteSpace(request.ClaimType) && Enum.TryParse<ClaimType>(request.ClaimType, out var claimType))
+            query = query.Where(c => c.ClaimType == claimType);
+        
+        if (request.FromIncidentDate.HasValue)
+            query = query.Where(c => c.IncidentDate >= request.FromIncidentDate.Value);
+        
+        if (request.ToIncidentDate.HasValue)
+            query = query.Where(c => c.IncidentDate <= request.ToIncidentDate.Value);
+        
+        if (request.MinAmount.HasValue)
+            query = query.Where(c => c.ClaimedAmount >= request.MinAmount.Value);
+        
+        if (request.MaxAmount.HasValue)
+            query = query.Where(c => c.ClaimedAmount <= request.MaxAmount.Value);
+        
+        if (!string.IsNullOrWhiteSpace(request.SearchTerm))
+        {
+            query = query.Where(c => 
+                c.ClaimNumber.Contains(request.SearchTerm) ||
+                c.Description.Contains(request.SearchTerm));
+        }
+        
+        // Apply sorting
+        query = ApplySorting(query, request.SortBy, request.SortDescending);
+        
+        var totalCount = await Task.FromResult(query.Count());
+        var items = query
+            .Skip((request.PageNumber - 1) * request.PageSize)
+            .Take(request.PageSize)
+            .ToList();
+        
+        return new PagedResult<Claim>
+        {
+            Items = items,
+            TotalCount = totalCount,
+            PageNumber = request.PageNumber,
+            PageSize = request.PageSize
+        };
     }
 
     public async Task<Claim> CreateAsync(Claim claim)
@@ -236,5 +329,17 @@ public class ClaimService : IClaimService
         var year = DateTime.UtcNow.Year;
         var count = await _claimRepository.CountAsync() + 1;
         return $"CLM-{year}-{count:D6}";
+    }
+
+    private IQueryable<Claim> ApplySorting(IQueryable<Claim> query, string? sortBy, bool descending)
+    {
+        return sortBy?.ToLower() switch
+        {
+            "claimnumber" => descending ? query.OrderByDescending(c => c.ClaimNumber) : query.OrderBy(c => c.ClaimNumber),
+            "status" => descending ? query.OrderByDescending(c => c.Status) : query.OrderBy(c => c.Status),
+            "amount" => descending ? query.OrderByDescending(c => c.ClaimedAmount) : query.OrderBy(c => c.ClaimedAmount),
+            "incidentdate" => descending ? query.OrderByDescending(c => c.IncidentDate) : query.OrderBy(c => c.IncidentDate),
+            _ => query.OrderByDescending(c => c.CreatedAt)
+        };
     }
 }

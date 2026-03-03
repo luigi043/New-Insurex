@@ -1,3 +1,4 @@
+using InsureX.Application.DTOs;
 using InsureX.Application.Exceptions;
 using InsureX.Application.Interfaces;
 using InsureX.Domain.Entities;
@@ -26,9 +27,35 @@ public class PartnerService : IPartnerService
         _logger = logger;
     }
 
-    public async Task<IEnumerable<Partner>> GetAllAsync()
+    public async Task<PagedResult<Partner>> GetAllAsync(PaginationRequest request)
     {
-        return await _partnerRepository.GetAllByTenantAsync(_tenantContext.TenantId);
+        var query = _partnerRepository.QueryByTenant(_tenantContext.TenantId);
+        
+        // Apply search
+        if (!string.IsNullOrWhiteSpace(request.SearchTerm))
+        {
+            query = query.Where(p => 
+                p.Name.Contains(request.SearchTerm) ||
+                (p.TradingName != null && p.TradingName.Contains(request.SearchTerm)) ||
+                (p.Email != null && p.Email.Contains(request.SearchTerm)));
+        }
+        
+        // Apply sorting
+        query = ApplySorting(query, request.SortBy, request.SortDescending);
+        
+        var totalCount = await Task.FromResult(query.Count());
+        var items = query
+            .Skip((request.PageNumber - 1) * request.PageSize)
+            .Take(request.PageSize)
+            .ToList();
+        
+        return new PagedResult<Partner>
+        {
+            Items = items,
+            TotalCount = totalCount,
+            PageNumber = request.PageNumber,
+            PageSize = request.PageSize
+        };
     }
 
     public async Task<Partner?> GetByIdAsync(int id)
@@ -47,6 +74,44 @@ public class PartnerService : IPartnerService
     public async Task<IEnumerable<Partner>> GetByStatusAsync(PartnerStatus status)
     {
         return await _partnerRepository.GetByStatusAsync(status);
+    }
+
+    public async Task<PagedResult<Partner>> FilterAsync(PartnerFilterRequest request)
+    {
+        var query = _partnerRepository.QueryByTenant(_tenantContext.TenantId);
+        
+        // Apply filters
+        if (!string.IsNullOrWhiteSpace(request.Type) && Enum.TryParse<PartnerType>(request.Type, out var partnerType))
+            query = query.Where(p => p.Type == partnerType);
+        
+        if (!string.IsNullOrWhiteSpace(request.Status) && Enum.TryParse<PartnerStatus>(request.Status, out var partnerStatus))
+            query = query.Where(p => p.Status == partnerStatus);
+        
+        if (!string.IsNullOrWhiteSpace(request.SearchTerm))
+        {
+            query = query.Where(p => 
+                p.Name.Contains(request.SearchTerm) ||
+                (p.TradingName != null && p.TradingName.Contains(request.SearchTerm)) ||
+                (p.Email != null && p.Email.Contains(request.SearchTerm)) ||
+                (p.ContactPersonName != null && p.ContactPersonName.Contains(request.SearchTerm)));
+        }
+        
+        // Apply sorting
+        query = ApplySorting(query, request.SortBy, request.SortDescending);
+        
+        var totalCount = await Task.FromResult(query.Count());
+        var items = query
+            .Skip((request.PageNumber - 1) * request.PageSize)
+            .Take(request.PageSize)
+            .ToList();
+        
+        return new PagedResult<Partner>
+        {
+            Items = items,
+            TotalCount = totalCount,
+            PageNumber = request.PageNumber,
+            PageSize = request.PageSize
+        };
     }
 
     public async Task<Partner> CreateAsync(Partner partner)
@@ -180,5 +245,17 @@ public class PartnerService : IPartnerService
     public async Task<bool> EmailExistsAsync(string email, int? excludeId = null)
     {
         return await _partnerRepository.EmailExistsAsync(email, excludeId);
+    }
+
+    private IQueryable<Partner> ApplySorting(IQueryable<Partner> query, string? sortBy, bool descending)
+    {
+        return sortBy?.ToLower() switch
+        {
+            "name" => descending ? query.OrderByDescending(p => p.Name) : query.OrderBy(p => p.Name),
+            "type" => descending ? query.OrderByDescending(p => p.Type) : query.OrderBy(p => p.Type),
+            "status" => descending ? query.OrderByDescending(p => p.Status) : query.OrderBy(p => p.Status),
+            "email" => descending ? query.OrderByDescending(p => p.Email) : query.OrderBy(p => p.Email),
+            _ => query.OrderByDescending(p => p.CreatedAt)
+        };
     }
 }

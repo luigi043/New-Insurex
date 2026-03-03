@@ -1,3 +1,4 @@
+using InsureX.Application.DTOs;
 using InsureX.Application.Exceptions;
 using InsureX.Application.Interfaces;
 using InsureX.Domain.Entities;
@@ -26,9 +27,34 @@ public class PolicyService : IPolicyService
         _logger = logger;
     }
 
-    public async Task<IEnumerable<Policy>> GetAllAsync()
+    public async Task<PagedResult<Policy>> GetAllAsync(PaginationRequest request)
     {
-        return await _policyRepository.GetAllByTenantAsync(_tenantContext.TenantId);
+        var query = _policyRepository.QueryByTenant(_tenantContext.TenantId);
+        
+        // Apply search
+        if (!string.IsNullOrWhiteSpace(request.SearchTerm))
+        {
+            query = query.Where(p => 
+                p.PolicyNumber.Contains(request.SearchTerm) ||
+                (p.Description != null && p.Description.Contains(request.SearchTerm)));
+        }
+        
+        // Apply sorting
+        query = ApplySorting(query, request.SortBy, request.SortDescending);
+        
+        var totalCount = await Task.FromResult(query.Count());
+        var items = query
+            .Skip((request.PageNumber - 1) * request.PageSize)
+            .Take(request.PageSize)
+            .ToList();
+        
+        return new PagedResult<Policy>
+        {
+            Items = items,
+            TotalCount = totalCount,
+            PageNumber = request.PageNumber,
+            PageSize = request.PageSize
+        };
     }
 
     public async Task<Policy?> GetByIdAsync(int id)
@@ -57,9 +83,79 @@ public class PolicyService : IPolicyService
         return await _policyRepository.GetByTypeAsync(type);
     }
 
-    public async Task<IEnumerable<Policy>> GetExpiringPoliciesAsync(DateTime from, DateTime to)
+    public async Task<PagedResult<Policy>> GetExpiringPoliciesAsync(DateTime from, DateTime to, PaginationRequest request)
     {
-        return await _policyRepository.GetExpiringPoliciesAsync(from, to);
+        var query = _policyRepository.QueryByTenant(_tenantContext.TenantId)
+            .Where(p => p.EndDate >= from && p.EndDate <= to && p.Status == PolicyStatus.Active);
+        
+        var totalCount = await Task.FromResult(query.Count());
+        var items = query
+            .OrderBy(p => p.EndDate)
+            .Skip((request.PageNumber - 1) * request.PageSize)
+            .Take(request.PageSize)
+            .ToList();
+        
+        return new PagedResult<Policy>
+        {
+            Items = items,
+            TotalCount = totalCount,
+            PageNumber = request.PageNumber,
+            PageSize = request.PageSize
+        };
+    }
+
+    public async Task<PagedResult<Policy>> FilterAsync(PolicyFilterRequest request)
+    {
+        var query = _policyRepository.QueryByTenant(_tenantContext.TenantId);
+        
+        // Apply filters
+        if (!string.IsNullOrWhiteSpace(request.Status) && Enum.TryParse<PolicyStatus>(request.Status, out var status))
+            query = query.Where(p => p.Status == status);
+        
+        if (!string.IsNullOrWhiteSpace(request.PolicyType) && Enum.TryParse<PolicyType>(request.PolicyType, out var policyType))
+            query = query.Where(p => p.Type == policyType);
+        
+        if (request.InsuredId.HasValue)
+            query = query.Where(p => p.InsuredId == request.InsuredId.Value);
+        
+        if (request.BrokerId.HasValue)
+            query = query.Where(p => p.BrokerId == request.BrokerId.Value);
+        
+        if (request.FromStartDate.HasValue)
+            query = query.Where(p => p.StartDate >= request.FromStartDate.Value);
+        
+        if (request.ToEndDate.HasValue)
+            query = query.Where(p => p.EndDate <= request.ToEndDate.Value);
+        
+        if (request.MinPremium.HasValue)
+            query = query.Where(p => p.PremiumAmount >= request.MinPremium.Value);
+        
+        if (request.MaxPremium.HasValue)
+            query = query.Where(p => p.PremiumAmount <= request.MaxPremium.Value);
+        
+        if (!string.IsNullOrWhiteSpace(request.SearchTerm))
+        {
+            query = query.Where(p => 
+                p.PolicyNumber.Contains(request.SearchTerm) ||
+                (p.Description != null && p.Description.Contains(request.SearchTerm)));
+        }
+        
+        // Apply sorting
+        query = ApplySorting(query, request.SortBy, request.SortDescending);
+        
+        var totalCount = await Task.FromResult(query.Count());
+        var items = query
+            .Skip((request.PageNumber - 1) * request.PageSize)
+            .Take(request.PageSize)
+            .ToList();
+        
+        return new PagedResult<Policy>
+        {
+            Items = items,
+            TotalCount = totalCount,
+            PageNumber = request.PageNumber,
+            PageSize = request.PageSize
+        };
     }
 
     public async Task<Policy> CreateAsync(Policy policy)
@@ -237,5 +333,18 @@ public class PolicyService : IPolicyService
     public async Task<int> GetActivePolicyCountAsync()
     {
         return await _policyRepository.GetActivePolicyCountAsync(_tenantContext.TenantId);
+    }
+
+    private IQueryable<Policy> ApplySorting(IQueryable<Policy> query, string? sortBy, bool descending)
+    {
+        return sortBy?.ToLower() switch
+        {
+            "policynumber" => descending ? query.OrderByDescending(p => p.PolicyNumber) : query.OrderBy(p => p.PolicyNumber),
+            "status" => descending ? query.OrderByDescending(p => p.Status) : query.OrderBy(p => p.Status),
+            "premium" => descending ? query.OrderByDescending(p => p.PremiumAmount) : query.OrderBy(p => p.PremiumAmount),
+            "startdate" => descending ? query.OrderByDescending(p => p.StartDate) : query.OrderBy(p => p.StartDate),
+            "enddate" => descending ? query.OrderByDescending(p => p.EndDate) : query.OrderBy(p => p.EndDate),
+            _ => query.OrderByDescending(p => p.CreatedAt)
+        };
     }
 }
