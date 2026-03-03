@@ -35,6 +35,9 @@ public class ApplicationDbContext : DbContext, IUnitOfWork
     public DbSet<Payment> Payments => Set<Payment>();
     public DbSet<Transaction> Transactions => Set<Transaction>();
     public DbSet<ClaimInvestigationNote> ClaimInvestigationNotes => Set<ClaimInvestigationNote>();
+    public DbSet<TenantSettings> TenantSettings => Set<TenantSettings>();
+    public DbSet<TenantOnboarding> TenantOnboardings => Set<TenantOnboarding>();
+    public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -79,6 +82,8 @@ public class ApplicationDbContext : DbContext, IUnitOfWork
         ConfigurePartner(modelBuilder);
         ConfigureInvoice(modelBuilder);
         ConfigureClaimInvestigationNote(modelBuilder);
+        ConfigureTenantSettings(modelBuilder);
+        ConfigureAuditLog(modelBuilder);
     }
 
     private static void SetSoftDeleteFilter<TEntity>(ModelBuilder builder) where TEntity : BaseEntity
@@ -241,6 +246,38 @@ public class ApplicationDbContext : DbContext, IUnitOfWork
                 .WithMany()
                 .HasForeignKey(e => e.CreatedByUserId)
                 .OnDelete(DeleteBehavior.Restrict);
+        });
+    }
+
+    private void ConfigureTenantSettings(ModelBuilder modelBuilder)
+    {
+        modelBuilder.Entity<TenantSettings>(entity =>
+        {
+            entity.HasIndex(e => e.TenantId);
+            entity.HasIndex(e => new { e.TenantId, e.SettingKey }).IsUnique();
+            entity.HasIndex(e => e.Category);
+            entity.Property(e => e.SettingKey).HasMaxLength(200);
+            entity.Property(e => e.SettingType).HasMaxLength(50);
+            entity.Property(e => e.Category).HasMaxLength(100);
+            entity.HasOne(e => e.Tenant)
+                .WithMany()
+                .HasForeignKey(e => e.TenantId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<TenantOnboarding>(entity =>
+        {
+            entity.HasIndex(e => e.TenantId).IsUnique();
+            entity.HasIndex(e => e.OnboardingStatus);
+            entity.HasIndex(e => e.ContactEmail);
+            entity.Property(e => e.CompanyName).HasMaxLength(200);
+            entity.Property(e => e.ContactPersonName).HasMaxLength(200);
+            entity.Property(e => e.ContactEmail).HasMaxLength(255);
+            entity.Property(e => e.OnboardingStatus).HasMaxLength(50);
+            entity.HasOne(e => e.Tenant)
+                .WithMany()
+                .HasForeignKey(e => e.TenantId)
+                .OnDelete(DeleteBehavior.Cascade);
         });
     }
 
