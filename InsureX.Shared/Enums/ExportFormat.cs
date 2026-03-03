@@ -2,8 +2,8 @@
 
 public enum ExportFormat
 {
-    PDF = 1,
-    Excel = 2,
-    CSV = 3,
-    JSON = 4
+    PDF,
+    Excel,
+    CSV,
+    JSON
 }

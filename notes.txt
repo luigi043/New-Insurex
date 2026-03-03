@@ -7,6 +7,9 @@ dotnet build
 dotnet test
 dotnet build 2>&1 | Select-String "error"
 
+   1. Run the API: dotnet run --project InsureX.API
+   2. Open Swagger: https://localhost:7001/swagger
+   3. Test login: admin@insurex.com / Admin123!
 
 # Navigate to your Infrastructure project
 cd InsureX.Infrastructure

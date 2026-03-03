@@ -1,4 +1,4 @@
-using InsureX.Domain.Enums;
+﻿using InsureX.Domain.Enums;
 
 namespace InsureX.Domain.Entities;
 
@@ -87,6 +87,4 @@ public class InvoiceLineItem : BaseEntity
     // Navigation properties
     public Invoice Invoice { get; set; } = null!;
 }
-
-
 
