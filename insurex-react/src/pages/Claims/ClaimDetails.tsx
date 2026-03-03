@@ -52,6 +52,7 @@ import { useClaims } from '../../hooks/useClaims';
 import { ClaimStatus, ClaimType } from '../../types/claim.types';
 import { formatCurrency, formatDate } from '../../utils/formatters';
 import { ConfirmDialog } from '../../components/Common/ConfirmDialog';
+import { InvestigationNotes } from '../../components/Claims/InvestigationNotes';
 import { useNotification } from '../../hooks/useNotification';
 
 const claimTypeLabels: Record<ClaimType, string> = {
@@ -322,6 +323,11 @@ export const ClaimDetails: React.FC = () => {
               </ImageList>
             </Paper>
           )}
+        </Grid>
+
+        {/* Investigation Notes - Full Width */}
+        <Grid item xs={12} lg={8}>
+          <InvestigationNotes claimId={id || ''} />
         </Grid>
 
         <Grid item xs={12} lg={4}>

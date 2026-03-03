@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Box,
@@ -16,6 +16,10 @@ import {
   Tooltip,
   CircularProgress,
   Button,
+  FormControl,
+  Select,
+  MenuItem,
+  SelectChangeEvent,
 } from '@mui/material';
 import {
   TrendingUp,
@@ -27,7 +31,10 @@ import {
   Claim,
   ArrowForward,
   Refresh,
+  Autorenew,
 } from '@mui/icons-material';
+import { SystemHealthWidget } from '../../components/Dashboard/SystemHealthWidget';
+import { TaskSummaryCards } from '../../components/Dashboard/TaskSummaryCards';
 import { policyService } from '../../services/policy.service';
 import { claimService } from '../../services/claim.service';
 import { assetService } from '../../services/asset.service';
@@ -57,6 +64,30 @@ export const Dashboard: React.FC = () => {
     expiringPolicies: [],
   });
   const [isLoading, setIsLoading] = useState(true);
+  const [refreshInterval, setRefreshInterval] = useState<number>(0);
+  const [lastRefreshed, setLastRefreshed] = useState<Date>(new Date());
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const handleRefreshIntervalChange = (event: SelectChangeEvent<number>) => {
+    setRefreshInterval(Number(event.target.value));
+  };
+
+  useEffect(() => {
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current);
+      intervalRef.current = null;
+    }
+    if (refreshInterval > 0) {
+      intervalRef.current = setInterval(() => {
+        fetchDashboardData();
+      }, refreshInterval * 1000);
+    }
+    return () => {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+      }
+    };
+  }, [refreshInterval]);
 
   const fetchDashboardData = async () => {
     setIsLoading(true);
@@ -77,6 +108,7 @@ export const Dashboard: React.FC = () => {
         recentClaims: recentClaimsResponse.items,
         expiringPolicies: expiringPolicies,
       });
+      setLastRefreshed(new Date());
     } catch (err: any) {
       showError(err.message || 'Failed to fetch dashboard data');
     } finally {
@@ -146,13 +178,33 @@ export const Dashboard: React.FC = () => {
 
   return (
     <Box>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3, flexWrap: 'wrap', gap: 1 }}>
         <Typography variant="h4">Dashboard</Typography>
-        <Tooltip title="Refresh">
-          <IconButton onClick={fetchDashboardData}>
-            <Refresh />
-          </IconButton>
-        </Tooltip>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          <Typography variant="caption" color="text.secondary">
+            Last updated: {lastRefreshed.toLocaleTimeString()}
+          </Typography>
+          <FormControl size="small" sx={{ minWidth: 140 }}>
+            <Select
+              value={refreshInterval}
+              onChange={handleRefreshIntervalChange}
+              displayEmpty
+              startAdornment={<Autorenew fontSize="small" sx={{ mr: 0.5, color: refreshInterval > 0 ? 'primary.main' : 'text.disabled' }} />}
+              aria-label="Auto-refresh interval"
+            >
+              <MenuItem value={0}>Manual</MenuItem>
+              <MenuItem value={15}>Every 15s</MenuItem>
+              <MenuItem value={30}>Every 30s</MenuItem>
+              <MenuItem value={60}>Every 1m</MenuItem>
+              <MenuItem value={300}>Every 5m</MenuItem>
+            </Select>
+          </FormControl>
+          <Tooltip title="Refresh now">
+            <IconButton onClick={fetchDashboardData} aria-label="Refresh dashboard data">
+              <Refresh />
+            </IconButton>
+          </Tooltip>
+        </Box>
       </Box>
 
       {/* Stats Grid */}
@@ -228,6 +280,16 @@ export const Dashboard: React.FC = () => {
             icon={CheckCircle}
             color="#388e3c"
           />
+        </Grid>
+      </Grid>
+
+      {/* System Health & Task Summary */}
+      <Grid container spacing={3} sx={{ mb: 4 }}>
+        <Grid item xs={12} md={6}>
+          <SystemHealthWidget />
+        </Grid>
+        <Grid item xs={12} md={6}>
+          <TaskSummaryCards />
         </Grid>
       </Grid>
 
