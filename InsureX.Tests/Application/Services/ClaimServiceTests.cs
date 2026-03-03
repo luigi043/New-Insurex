@@ -123,13 +123,13 @@ public class ClaimServiceTests
         {
             ClaimNumber = "CLM-NEW",
             PolicyId = 1,
-            ClaimType = ClaimType.Property,
+            ClaimType = ClaimType.PropertyDamage,
             ClaimedAmount = 5000,
             Description = "Test claim",
             IncidentDate = DateTime.UtcNow.AddDays(-1)
         };
 
-        var policy = new Policy { Id = 1, TenantId = 1, Status = PolicyStatus.Active };
+        var policy = new Policy { Id = 1, TenantId = 1, Status = PolicyStatus.Active, EndDate = DateTime.UtcNow.AddYears(1), CoverageAmount = 10000 };
         _policyRepositoryMock.Setup(x => x.GetByIdAsync(1)).ReturnsAsync(policy);
         _claimRepositoryMock.Setup(x => x.GetByClaimNumberAsync("CLM-NEW")).ReturnsAsync((Claim?)null);
         _claimRepositoryMock.Setup(x => x.AddAsync(It.IsAny<Claim>())).ReturnsAsync(claim);

@@ -12,6 +12,12 @@
     </ItemGroup>
 
     <ItemGroup>
+      <Compile Remove="InsureX.SeedTool\**\*" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <PackageReference Include="CsvHelper" />
+      <PackageReference Include="Dapper" />
       <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" />
       <PackageReference Include="Microsoft.AspNetCore.Http.Abstractions" />
       <PackageReference Include="Microsoft.EntityFrameworkCore" />

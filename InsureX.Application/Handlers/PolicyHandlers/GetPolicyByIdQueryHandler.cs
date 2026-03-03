@@ -24,11 +24,11 @@ public class GetPolicyByIdQueryHandler : IRequestHandler<GetPolicyByIdQuery, Pol
         {
             Id = policy.Id,
             PolicyNumber = policy.PolicyNumber,
-            PolicyType = policy.PolicyType,
-            Premium = policy.Premium,
+            PolicyType = policy.Type.ToString(),
+            Premium = policy.PremiumAmount,
             StartDate = policy.StartDate,
             EndDate = policy.EndDate,
-            Status = policy.Status,
+            Status = policy.Status.ToString(),
             TenantId = policy.TenantId
         };
     }

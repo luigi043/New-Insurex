@@ -18,7 +18,9 @@ import {
   Dialog,
   DialogTitle,
   DialogContent,
-  DialogActions
+  DialogActions,
+  Switch,
+  FormControlLabel
 } from '@mui/material';
 import {
   Edit,
@@ -30,7 +32,9 @@ import {
   Email,
   Phone,
   LocationOn,
-  VpnKey
+  LocationOn,
+  VpnKey,
+  Security
 } from '@mui/icons-material';
 import { useAuth } from '../../hooks/useAuth';
 import { useNotification } from '../../hooks/useNotification';
@@ -52,7 +56,7 @@ export const Profile: React.FC = () => {
   const { showSuccess, showError } = useNotification();
   const [activeTab, setActiveTab] = useState(0);
   const [isEditing, setIsEditing] = useState(false);
-  
+
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
@@ -71,6 +75,26 @@ export const Profile: React.FC = () => {
   });
 
   const [passwordDialogOpen, setPasswordDialogOpen] = useState(false);
+  const [twoFAEnabled, setTwoFAEnabled] = useState(false);
+
+  useEffect(() => {
+    if (user) {
+      setTwoFAEnabled(user.isTwoFactorEnabled || false);
+    }
+  }, [user]);
+
+  const handleToggle2FA = async () => {
+    try {
+      // In a real app, this would open a setup wizard or confirm modal
+      // For now, we'll simulate toggling
+      const newState = !twoFAEnabled;
+      await updateProfile({ ...formData, isTwoFactorEnabled: newState });
+      setTwoFAEnabled(newState);
+      showSuccess(`Autenticação de dois fatores ${newState ? 'ativada' : 'desativada'} com sucesso!`);
+    } catch (err) {
+      showError('Erro ao atualizar 2FA');
+    }
+  };
 
   useEffect(() => {
     if (user) {
@@ -110,7 +134,7 @@ export const Profile: React.FC = () => {
       showError('As senhas não coincidem');
       return;
     }
-    
+
     try {
       await changePassword(passwordData.currentPassword, passwordData.newPassword);
       showSuccess('Senha alterada com sucesso!');
@@ -306,6 +330,26 @@ export const Profile: React.FC = () => {
             >
               Alterar Senha
             </Button>
+
+            <Divider sx={{ my: 4 }} />
+
+            <Typography variant="h6" gutterBottom>Autenticação de Dois Fatores (2FA)</Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+              Adicione uma camada extra de segurança à sua conta. Quando ativado, você precisará fornecer um código de verificação além da sua senha.
+            </Typography>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+              <Security color={twoFAEnabled ? 'success' : 'action'} sx={{ fontSize: 40 }} />
+              <FormControlLabel
+                control={
+                  <Switch
+                    checked={twoFAEnabled}
+                    onChange={handleToggle2FA}
+                    color="primary"
+                  />
+                }
+                label={twoFAEnabled ? 'Ativo' : 'Inativo'}
+              />
+            </Box>
           </Box>
         </TabPanel>
       </Paper>

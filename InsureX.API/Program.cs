@@ -1,5 +1,7 @@
 using System.Text;
+using System.Threading.RateLimiting;
 using InsureX.API.Middleware;
+using Microsoft.AspNetCore.RateLimiting;
 using InsureX.Application.Interfaces;
 using InsureX.Application.Services;
 using InsureX.Domain.Interfaces;
@@ -21,8 +23,6 @@ var builder = WebApplication.CreateBuilder(args);
 Log.Logger = new LoggerConfiguration()
     .ReadFrom.Configuration(builder.Configuration)
     .Enrich.FromLogContext()
-    .Enrich.WithMachineName()
-    .Enrich.WithEnvironmentName()
     .WriteTo.Console()
     .WriteTo.File("logs/log-.txt", rollingInterval: RollingInterval.Day)
     .CreateLogger();

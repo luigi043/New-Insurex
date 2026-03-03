@@ -3,6 +3,7 @@ using InsureX.Domain.Entities;
 using InsureX.Domain.Interfaces;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Query;
+using Microsoft.EntityFrameworkCore.Storage;
 
 namespace InsureX.Infrastructure.Context;
 

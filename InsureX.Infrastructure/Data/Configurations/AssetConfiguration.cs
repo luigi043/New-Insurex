@@ -24,10 +24,7 @@ public class AssetConfiguration : IEntityTypeConfiguration<Asset>
             
         builder.Property(a => a.Location)
             .HasMaxLength(500);
-            
-        builder.Property(a => a.InsuranceCertificateNumber)
-            .HasMaxLength(100);
-            
+
         // Add indexes
         builder.HasIndex(a => new { a.TenantId, a.Status })
             .HasDatabaseName("IX_Assets_Tenant_Status");

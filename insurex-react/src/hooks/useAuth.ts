@@ -12,6 +12,9 @@ interface AuthContextType {
   logout: () => Promise<void>;
   updateProfile: (data: UpdateProfileData) => Promise<void>;
   changePassword: (data: ChangePasswordData) => Promise<void>;
+  verifyEmail: (token: string) => Promise<void>;
+  resendVerificationEmail: (email: string) => Promise<void>;
+  verify2FA: (code: string) => Promise<void>;
   clearError: () => void;
 }
 
@@ -107,6 +110,45 @@ export const useAuthProvider = () => {
     }
   }, []);
 
+  const verifyEmail = useCallback(async (token: string) => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      await authService.verifyEmail(token);
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Email verification failed.');
+      throw err;
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  const resendVerificationEmail = useCallback(async (email: string) => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      await authService.resendVerificationEmail(email);
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Failed to resend verification email.');
+      throw err;
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  const verify2FA = useCallback(async (code: string) => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      await authService.verify2FA(code);
+    } catch (err: any) {
+      setError(err.response?.data?.message || '2FA verification failed.');
+      throw err;
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
   const clearError = useCallback(() => {
     setError(null);
   }, []);
@@ -121,6 +163,9 @@ export const useAuthProvider = () => {
     logout,
     updateProfile,
     changePassword,
+    verifyEmail,
+    resendVerificationEmail,
+    verify2FA,
     clearError,
   };
 };

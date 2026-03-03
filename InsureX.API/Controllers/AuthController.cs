@@ -1,7 +1,8 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
 using InsureX.Application.Interfaces;
-using InsureX.Application.DTOs.Auth;
+using InsureX.Application.DTOs;
+using RefreshTokenRequestDto = InsureX.Application.DTOs.Auth.RefreshTokenRequestDto;
 
 namespace InsureX.API.Controllers;
 
@@ -81,7 +82,7 @@ public class AuthController : ControllerBase
     {
         try
         {
-            await _authService.LogoutAsync(request.RefreshToken);
+            await _authService.RevokeTokenAsync(request.RefreshToken);
             return Ok(new { message = "Logged out successfully" });
         }
         catch (Exception ex)
@@ -97,8 +98,10 @@ public class AuthController : ControllerBase
     {
         try
         {
-            var userId = int.Parse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value!);
-            await _authService.LogoutAllDevicesAsync(userId);
+            var userIdStr = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            if (userIdStr == null || !int.TryParse(userIdStr, out var userId))
+                return Unauthorized();
+            await _authService.LogoutAsync(userId);
             return Ok(new { message = "Logged out from all devices" });
         }
         catch (Exception ex)

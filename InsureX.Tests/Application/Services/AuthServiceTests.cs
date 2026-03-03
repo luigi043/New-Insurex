@@ -5,7 +5,7 @@ using InsureX.Domain.Entities;
 using InsureX.Domain.Interfaces;
 using InsureX.Application.Services;
 using InsureX.Application.Interfaces;
-using InsureX.Application.DTOs.Auth;
+using InsureX.Application.DTOs;
 using InsureX.Domain.Enums;
 using Microsoft.Extensions.Logging;
 

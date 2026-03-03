@@ -1,4 +1,5 @@
 using InsureX.Domain.Entities;
+using InsureX.Domain.Enums;
 using InsureX.Infrastructure.Data;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
@@ -7,15 +8,13 @@ namespace InsureX.Api.Features.Claims.CreateClaim;
 
 public record CreateClaimCommand : IRequest<ClaimResponse>
 {
-    public Guid PolicyId { get; init; }
+    public int PolicyId { get; init; }
     public DateTime IncidentDate { get; init; }
     public string Description { get; init; } = string.Empty;
     public string? IncidentLocation { get; init; }
     public decimal ClaimedAmount { get; init; }
-    public ClaimType Type { get; init; }
+    public ClaimType ClaimType { get; init; }
 }
-
-public record ClaimDocumentRequest(string FileName, string FileBase64, string FileType, string? Description, DocumentCategory Category);
 
 public class CreateClaimHandler : IRequestHandler<CreateClaimCommand, ClaimResponse>
 {
@@ -34,18 +33,17 @@ public class CreateClaimHandler : IRequestHandler<CreateClaimCommand, ClaimRespo
         var year = DateTime.UtcNow.Year;
         var count = await _context.Claims.CountAsync(c => c.CreatedAt.Year == year) + 1;
         var claimNumber = $"CLM-{year}-{count:D6}";
-        
+
         var claim = new Claim
         {
-            ClaimNumber = claimNumber,
-            PolicyId = request.PolicyId,
-            ClientId = policy.ClientId,
-            IncidentDate = request.IncidentDate,
-            Description = request.Description,
+            ClaimNumber      = claimNumber,
+            PolicyId         = request.PolicyId,
+            IncidentDate     = request.IncidentDate,
+            Description      = request.Description,
             IncidentLocation = request.IncidentLocation,
-            ClaimedAmount = request.ClaimedAmount,
-            Type = request.Type,
-            Status = ClaimStatus.Submitted
+            ClaimedAmount    = request.ClaimedAmount,
+            ClaimType        = request.ClaimType,
+            Status           = ClaimStatus.Submitted
         };
 
         _context.Claims.Add(claim);
@@ -62,4 +60,4 @@ public class CreateClaimHandler : IRequestHandler<CreateClaimCommand, ClaimRespo
     }
 }
 
-public record ClaimResponse(Guid Id, string ClaimNumber, ClaimStatus Status, decimal ClaimedAmount, DateTime IncidentDate, DateTime CreatedAt);
+public record ClaimResponse(int Id, string ClaimNumber, ClaimStatus Status, decimal ClaimedAmount, DateTime IncidentDate, DateTime CreatedAt);

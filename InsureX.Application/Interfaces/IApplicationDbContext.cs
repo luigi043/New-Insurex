@@ -9,6 +9,7 @@ public interface IApplicationDbContext
     DbSet<Tenant> Tenants { get; }
     DbSet<Policy> Policies { get; }
     DbSet<Claim> Claims { get; }
+    DbSet<ClaimNote> ClaimNotes { get; }
     DbSet<Asset> Assets { get; }
     DbSet<Partner> Partners { get; }
     DbSet<Invoice> Invoices { get; }
