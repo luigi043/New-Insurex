@@ -1,6 +1,3 @@
-﻿using Microsoft.AspNetCore.Http;
-using System;
-using System.Linq;
 using InsureX.Domain.Interfaces;
 
 namespace InsureX.Infrastructure.Tenancy;
@@ -8,34 +5,52 @@ namespace InsureX.Infrastructure.Tenancy;
 public class TenantContext : ITenantContext
 {
     private readonly IHttpContextAccessor _httpContextAccessor;
+    private int? _tenantId;
 
     public TenantContext(IHttpContextAccessor httpContextAccessor)
     {
         _httpContextAccessor = httpContextAccessor;
     }
 
-    public Guid TenantId
+    public int TenantId
     {
         get
         {
-            try
+            if (_tenantId.HasValue)
+                return _tenantId.Value;
+
+            // Try to get from HTTP context
+            var httpContext = _httpContextAccessor.HttpContext;
+            if (httpContext != null)
             {
-                // Get tenant from claims (for authenticated users)
-                var tenantClaim = _httpContextAccessor.HttpContext?.User?.FindFirst("tenant_id");
-                if (tenantClaim != null && Guid.TryParse(tenantClaim.Value, out var tenantId))
+                // From header
+                var headerValue = httpContext.Request.Headers["X-Tenant-ID"].FirstOrDefault();
+                if (!string.IsNullOrEmpty(headerValue) && int.TryParse(headerValue, out var headerTenantId))
                 {
-                    return tenantId;
+                    _tenantId = headerTenantId;
+                    return headerTenantId;
                 }
 
-                // For development, return a fixed tenant ID
-                return Guid.Parse("11111111-1111-1111-1111-111111111111");
+                // From user claims
+                var claimValue = httpContext.User?.FindFirst("tenant_id")?.Value;
+                if (!string.IsNullOrEmpty(claimValue) && int.TryParse(claimValue, out var claimTenantId))
+                {
+                    _tenantId = claimTenantId;
+                    return claimTenantId;
+                }
             }
-            catch
-            {
-                return Guid.Parse("11111111-1111-1111-1111-111111111111");
-            }
+
+            // Default tenant (for development/testing)
+            return 1;
         }
     }
 
-    public string? TenantName => "Development Tenant";
+    public string? TenantName => _httpContextAccessor.HttpContext?.User?.FindFirst("tenant_name")?.Value;
+
+    public bool IsValid => TenantId > 0;
+
+    public void SetTenantId(int tenantId)
+    {
+        _tenantId = tenantId;
+    }
 }

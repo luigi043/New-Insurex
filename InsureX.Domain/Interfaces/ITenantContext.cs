@@ -1,9 +1,8 @@
-﻿using System;
-
 namespace InsureX.Domain.Interfaces;
 
 public interface ITenantContext
 {
-    Guid TenantId { get; }
+    int TenantId { get; }
     string? TenantName { get; }
+    bool IsValid { get; }
 }

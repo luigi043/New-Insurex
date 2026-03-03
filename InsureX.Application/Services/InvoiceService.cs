@@ -1,28 +1,29 @@
-// InsureX.Application/Services/InvoiceService.cs
+using InsureX.Application.Exceptions;
 using InsureX.Application.Interfaces;
 using InsureX.Domain.Entities;
 using InsureX.Domain.Enums;
-using InsureX.Application.Exceptions;
+using InsureX.Domain.Interfaces;
+using Microsoft.Extensions.Logging;
 
 namespace InsureX.Application.Services;
 
 public class InvoiceService : IInvoiceService
 {
     private readonly IInvoiceRepository _invoiceRepository;
-    private readonly IPaymentRepository _paymentRepository;
     private readonly ITenantContext _tenantContext;
     private readonly IUnitOfWork _unitOfWork;
+    private readonly ILogger<InvoiceService> _logger;
 
     public InvoiceService(
         IInvoiceRepository invoiceRepository,
-        IPaymentRepository paymentRepository,
         ITenantContext tenantContext,
-        IUnitOfWork unitOfWork)
+        IUnitOfWork unitOfWork,
+        ILogger<InvoiceService> logger)
     {
         _invoiceRepository = invoiceRepository;
-        _paymentRepository = paymentRepository;
         _tenantContext = tenantContext;
         _unitOfWork = unitOfWork;
+        _logger = logger;
     }
 
     public async Task<IEnumerable<Invoice>> GetAllAsync()
@@ -32,60 +33,213 @@ public class InvoiceService : IInvoiceService
 
     public async Task<Invoice?> GetByIdAsync(int id)
     {
-        var invoice = await _invoiceRepository.GetByIdWithPaymentsAsync(id);
-        return invoice?.TenantId == _tenantContext.TenantId ? invoice : null;
+        var invoice = await _invoiceRepository.GetByIdAsync(id);
+        if (invoice == null || invoice.TenantId != _tenantContext.TenantId)
+            return null;
+        return invoice;
+    }
+
+    public async Task<Invoice?> GetByInvoiceNumberAsync(string invoiceNumber)
+    {
+        var invoice = await _invoiceRepository.GetByInvoiceNumberAsync(invoiceNumber);
+        if (invoice == null || invoice.TenantId != _tenantContext.TenantId)
+            return null;
+        return invoice;
+    }
+
+    public async Task<IEnumerable<Invoice>> GetByStatusAsync(InvoiceStatus status)
+    {
+        return await _invoiceRepository.GetByStatusAndTenantAsync(status, _tenantContext.TenantId);
+    }
+
+    public async Task<IEnumerable<Invoice>> GetByPolicyIdAsync(int policyId)
+    {
+        return await _invoiceRepository.GetByPolicyIdAsync(policyId);
+    }
+
+    public async Task<IEnumerable<Invoice>> GetOverdueInvoicesAsync()
+    {
+        return await _invoiceRepository.GetOverdueInvoicesAsync(_tenantContext.TenantId);
     }
 
     public async Task<Invoice> CreateAsync(Invoice invoice)
     {
-        invoice.TenantId = _tenantContext.TenantId;
-        invoice.InvoiceNumber = await GenerateInvoiceNumberAsync();
-        invoice.Status = InvoiceStatus.DRAFT;
-        invoice.IssueDate = DateTime.UtcNow;
+        // Validation
+        if (string.IsNullOrWhiteSpace(invoice.InvoiceNumber))
+            throw new ValidationException("Invoice number is required");
 
-        if (invoice.DueDate <= invoice.IssueDate)
-            throw new ValidationException("Due date must be after issue date");
+        if (invoice.Amount <= 0)
+            throw new ValidationException("Invoice amount must be greater than zero");
+
+        if (invoice.DueDate <= DateTime.UtcNow)
+            throw new ValidationException("Due date must be in the future");
+
+        // Check for duplicate invoice number
+        var existing = await _invoiceRepository.GetByInvoiceNumberAsync(invoice.InvoiceNumber);
+        if (existing != null)
+            throw new ValidationException("Invoice with this number already exists");
+
+        invoice.TenantId = _tenantContext.TenantId;
+        invoice.Status = InvoiceStatus.Draft;
+        invoice.IssueDate = DateTime.UtcNow;
+        invoice.PaidAmount = 0;
+        invoice.SetCreated("system");
 
         await _invoiceRepository.AddAsync(invoice);
         await _unitOfWork.SaveChangesAsync();
-        
+
+        _logger.LogInformation("Invoice {InvoiceNumber} created", invoice.InvoiceNumber);
+
         return invoice;
     }
 
-    public async Task<Payment> RecordPaymentAsync(int invoiceId, Payment payment)
+    public async Task<Invoice> UpdateAsync(Invoice invoice)
+    {
+        var existingInvoice = await GetByIdAsync(invoice.Id);
+        if (existingInvoice == null)
+            throw new NotFoundException("Invoice not found");
+
+        if (existingInvoice.Status == InvoiceStatus.Paid)
+            throw new ValidationException("Cannot update a paid invoice");
+
+        if (existingInvoice.Status == InvoiceStatus.Cancelled)
+            throw new ValidationException("Cannot update a cancelled invoice");
+
+        existingInvoice.Amount = invoice.Amount;
+        existingInvoice.TaxAmount = invoice.TaxAmount;
+        existingInvoice.DueDate = invoice.DueDate;
+        existingInvoice.Description = invoice.Description;
+        existingInvoice.Notes = invoice.Notes;
+        existingInvoice.InternalNotes = invoice.InternalNotes;
+        existingInvoice.SetUpdated("system");
+
+        await _invoiceRepository.UpdateAsync(existingInvoice);
+        await _unitOfWork.SaveChangesAsync();
+
+        _logger.LogInformation("Invoice {InvoiceNumber} updated", existingInvoice.InvoiceNumber);
+
+        return existingInvoice;
+    }
+
+    public async Task DeleteAsync(int id)
+    {
+        var invoice = await GetByIdAsync(id);
+        if (invoice == null)
+            throw new NotFoundException("Invoice not found");
+
+        if (invoice.Status != InvoiceStatus.Draft)
+            throw new ValidationException("Can only delete invoices in Draft status");
+
+        await _invoiceRepository.DeleteAsync(invoice);
+        await _unitOfWork.SaveChangesAsync();
+
+        _logger.LogInformation("Invoice {InvoiceNumber} deleted", invoice.InvoiceNumber);
+    }
+
+    public async Task<Invoice> MarkAsSentAsync(int invoiceId, string sentToEmail)
     {
         var invoice = await GetByIdAsync(invoiceId);
         if (invoice == null)
-            throw new NotFoundException($"Invoice {invoiceId} not found");
+            throw new NotFoundException("Invoice not found");
 
-        if (invoice.Status == InvoiceStatus.PAID || invoice.Status == InvoiceStatus.CANCELLED)
-            throw new ValidationException("Cannot record payment for paid or cancelled invoice");
+        if (invoice.Status != InvoiceStatus.Draft)
+            throw new ValidationException("Can only mark draft invoices as sent");
 
-        payment.InvoiceId = invoiceId;
-        await _paymentRepository.AddAsync(payment);
-
-        // Update invoice status
-        var totalPaid = invoice.Payments.Sum(p => p.Amount) + payment.Amount;
-        
-        if (totalPaid >= invoice.TotalAmount)
-        {
-            invoice.Status = InvoiceStatus.PAID;
-            invoice.PaidDate = DateTime.UtcNow;
-        }
-        else if (totalPaid > 0)
-        {
-            invoice.Status = InvoiceStatus.PARTIAL;
-        }
+        invoice.MarkAsSent(sentToEmail);
+        invoice.SetUpdated("system");
 
         await _invoiceRepository.UpdateAsync(invoice);
         await _unitOfWork.SaveChangesAsync();
-        
-        return payment;
+
+        _logger.LogInformation("Invoice {InvoiceNumber} marked as sent to {Email}", 
+            invoice.InvoiceNumber, sentToEmail);
+
+        return invoice;
     }
 
-    private async Task<string> GenerateInvoiceNumberAsync()
+    public async Task<Invoice> RecordPaymentAsync(int invoiceId, decimal amount, PaymentMethod method, string? reference = null)
     {
-        var count = await _invoiceRepository.CountAsync() + 1;
-        return $"INV-{DateTime.UtcNow:yyyyMMdd}-{count:D4}";
+        var invoice = await GetByIdAsync(invoiceId);
+        if (invoice == null)
+            throw new NotFoundException("Invoice not found");
+
+        if (invoice.Status == InvoiceStatus.Paid)
+            throw new ValidationException("Invoice is already fully paid");
+
+        if (invoice.Status == InvoiceStatus.Cancelled)
+            throw new ValidationException("Cannot record payment for cancelled invoice");
+
+        if (amount <= 0)
+            throw new ValidationException("Payment amount must be greater than zero");
+
+        if (amount > invoice.Balance)
+            throw new ValidationException("Payment amount cannot exceed invoice balance");
+
+        // Create payment record
+        var payment = new Payment
+        {
+            InvoiceId = invoiceId,
+            Amount = amount,
+            PaymentMethod = method,
+            PaymentDate = DateTime.UtcNow,
+            TransactionId = reference,
+            TenantId = _tenantContext.TenantId,
+            PaymentReference = await GeneratePaymentReferenceAsync(),
+            SetCreated = _ => { }, // Will be set below
+        };
+        payment.SetCreated("system");
+
+        invoice.RecordPayment(amount);
+        invoice.SetUpdated("system");
+
+        await _invoiceRepository.UpdateAsync(invoice);
+        await _unitOfWork.SaveChangesAsync();
+
+        _logger.LogInformation("Payment of {Amount:C} recorded for invoice {InvoiceNumber}", 
+            amount, invoice.InvoiceNumber);
+
+        return invoice;
+    }
+
+    public async Task<Invoice> CancelAsync(int invoiceId, string reason)
+    {
+        var invoice = await GetByIdAsync(invoiceId);
+        if (invoice == null)
+            throw new NotFoundException("Invoice not found");
+
+        if (invoice.Status == InvoiceStatus.Paid)
+            throw new ValidationException("Cannot cancel a paid invoice");
+
+        if (invoice.Status == InvoiceStatus.Cancelled)
+            throw new ValidationException("Invoice is already cancelled");
+
+        invoice.Status = InvoiceStatus.Cancelled;
+        invoice.InternalNotes = $"Cancelled: {reason}";
+        invoice.SetUpdated("system");
+
+        await _invoiceRepository.UpdateAsync(invoice);
+        await _unitOfWork.SaveChangesAsync();
+
+        _logger.LogInformation("Invoice {InvoiceNumber} cancelled. Reason: {Reason}", 
+            invoice.InvoiceNumber, reason);
+
+        return invoice;
+    }
+
+    public async Task<decimal> GetTotalOutstandingAsync()
+    {
+        return await _invoiceRepository.GetTotalOutstandingAsync(_tenantContext.TenantId);
+    }
+
+    public async Task<decimal> GetTotalPaidAsync()
+    {
+        return await _invoiceRepository.GetTotalPaidAsync(_tenantContext.TenantId);
+    }
+
+    private async Task<string> GeneratePaymentReferenceAsync()
+    {
+        var year = DateTime.UtcNow.Year;
+        var timestamp = DateTime.UtcNow.Ticks;
+        return $"PAY-{year}-{timestamp % 1000000:D6}";
     }
 }

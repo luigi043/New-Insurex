@@ -1,19 +1,15 @@
 using InsureX.Domain.Entities;
+using InsureX.Domain.Enums;
 
 namespace InsureX.Domain.Interfaces;
 
-public interface IAssetRepository
+public interface IAssetRepository : IRepository<Asset>
 {
-    Task<Asset?> GetByIdAsync(Guid id);
-    Task<IEnumerable<Asset>> GetAllAsync();
-    Task<IEnumerable<Asset>> GetByPolicyIdAsync(Guid policyId);
     Task<IEnumerable<Asset>> GetByTypeAsync(AssetType type);
+    Task<IEnumerable<Asset>> GetByTypeAndTenantAsync(AssetType type, int tenantId);
     Task<IEnumerable<Asset>> GetByStatusAsync(AssetStatus status);
-    Task<Asset> AddAsync(Asset asset);
-    Task UpdateAsync(Asset asset);
-    Task DeleteAsync(Guid id);
-    Task<int> CountAsync();
-    Task<decimal> GetTotalValueAsync();
-    Task<Dictionary<AssetType, int>> GetCountByTypeAsync();
-    Task<IEnumerable<Asset>> GetRecentlyUpdatedAsync(DateTime since); // ADD THIS LINE
+    Task<IEnumerable<Asset>> GetByPolicyIdAsync(int policyId);
+    Task<Asset?> GetBySerialNumberAsync(string serialNumber);
+    Task<decimal> GetTotalValueByTenantAsync(int tenantId);
+    Task<IEnumerable<Asset>> GetExpiringWarrantyAsync(DateTime beforeDate);
 }

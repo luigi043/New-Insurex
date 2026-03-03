@@ -1,14 +1,23 @@
-using InsureX.Application.DTOs.Policy;
+using InsureX.Domain.Entities;
+using InsureX.Domain.Enums;
 
 namespace InsureX.Application.Interfaces;
 
 public interface IPolicyService
 {
-    Task<List<PolicyDto>> GetAllPoliciesAsync(PolicySearchDto? search = null);
-    Task<PolicyDto> GetPolicyByIdAsync(Guid id);
-    Task<PolicyDto> CreatePolicyAsync(CreatePolicyDto createDto, Guid userId);
-    Task<PolicyDto> UpdatePolicyAsync(UpdatePolicyDto updateDto);
-    Task<bool> DeletePolicyAsync(Guid id);
-    Task<bool> UpdatePolicyStatusAsync(Guid id, string status);
-    Task<List<PolicyDto>> GetPoliciesExpiringAsync(int days);
+    Task<IEnumerable<Policy>> GetAllAsync();
+    Task<Policy?> GetByIdAsync(int id);
+    Task<Policy?> GetByPolicyNumberAsync(string policyNumber);
+    Task<IEnumerable<Policy>> GetByStatusAsync(PolicyStatus status);
+    Task<IEnumerable<Policy>> GetByTypeAsync(PolicyType type);
+    Task<IEnumerable<Policy>> GetExpiringPoliciesAsync(DateTime from, DateTime to);
+    Task<Policy> CreateAsync(Policy policy);
+    Task<Policy> UpdateAsync(Policy policy);
+    Task DeleteAsync(int id);
+    Task<Policy> ActivateAsync(int policyId);
+    Task<Policy> CancelAsync(int policyId, string reason);
+    Task<Policy> RenewAsync(int policyId, DateTime newEndDate);
+    Task<decimal> GetTotalPremiumAsync();
+    Task<decimal> GetTotalCoverageAsync();
+    Task<int> GetActivePolicyCountAsync();
 }

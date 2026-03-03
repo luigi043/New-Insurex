@@ -1,16 +1,16 @@
-// InsureX.API/Controllers/ClaimsController.cs
-using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Mvc;
+using InsureX.Application.DTOs;
 using InsureX.Application.Interfaces;
 using InsureX.Domain.Entities;
 using InsureX.Domain.Enums;
-using InsureX.Application.Exceptions;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 
 namespace InsureX.API.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
 [Authorize]
+[Produces("application/json")]
 public class ClaimsController : ControllerBase
 {
     private readonly IClaimService _claimService;
@@ -23,181 +23,194 @@ public class ClaimsController : ControllerBase
     }
 
     [HttpGet]
-    [ProducesResponseType(typeof(IEnumerable<Claim>), StatusCodes.Status200OK)]
+    [Authorize(Roles = "Admin,Insurer,Broker,Viewer,ClaimsProcessor")]
+    [ProducesResponseType(typeof(ApiResponse<IEnumerable<Claim>>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetAll()
     {
-        try
-        {
-            var claims = await _claimService.GetAllAsync();
-            return Ok(claims);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error retrieving claims");
-            return StatusCode(500, "Internal server error");
-        }
+        var claims = await _claimService.GetAllAsync();
+        return Ok(ApiResponse<IEnumerable<Claim>>.SuccessResponse(claims));
     }
 
     [HttpGet("{id:int}")]
-    [ProducesResponseType(typeof(Claim), StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [Authorize(Roles = "Admin,Insurer,Broker,Viewer,ClaimsProcessor")]
+    [ProducesResponseType(typeof(ApiResponse<Claim>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetById(int id)
     {
-        try
-        {
-            var claim = await _claimService.GetByIdAsync(id);
-            return claim == null ? NotFound() : Ok(claim);
-        }
-        catch (NotFoundException ex)
-        {
-            return NotFound(new { message = ex.Message });
-        }
+        var claim = await _claimService.GetByIdAsync(id);
+        if (claim == null)
+            return NotFound(ApiResponse.ErrorResponse("Claim not found"));
+        
+        return Ok(ApiResponse<Claim>.SuccessResponse(claim));
+    }
+
+    [HttpGet("number/{claimNumber}")]
+    [Authorize(Roles = "Admin,Insurer,Broker,Viewer,ClaimsProcessor")]
+    [ProducesResponseType(typeof(ApiResponse<Claim>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetByClaimNumber(string claimNumber)
+    {
+        var claim = await _claimService.GetByClaimNumberAsync(claimNumber);
+        if (claim == null)
+            return NotFound(ApiResponse.ErrorResponse("Claim not found"));
+        
+        return Ok(ApiResponse<Claim>.SuccessResponse(claim));
     }
 
     [HttpGet("policy/{policyId:int}")]
-    [ProducesResponseType(typeof(IEnumerable<Claim>), StatusCodes.Status200OK)]
+    [Authorize(Roles = "Admin,Insurer,Broker,Viewer,ClaimsProcessor")]
+    [ProducesResponseType(typeof(ApiResponse<IEnumerable<Claim>>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetByPolicy(int policyId)
     {
-        try
-        {
-            var claims = await _claimService.GetByPolicyIdAsync(policyId);
-            return Ok(claims);
-        }
-        catch (NotFoundException ex)
-        {
-            return NotFound(new { message = ex.Message });
-        }
+        var claims = await _claimService.GetByPolicyIdAsync(policyId);
+        return Ok(ApiResponse<IEnumerable<Claim>>.SuccessResponse(claims));
     }
 
     [HttpGet("status/{status}")]
-    [ProducesResponseType(typeof(IEnumerable<Claim>), StatusCodes.Status200OK)]
+    [Authorize(Roles = "Admin,Insurer,Broker,Viewer,ClaimsProcessor")]
+    [ProducesResponseType(typeof(ApiResponse<IEnumerable<Claim>>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetByStatus(ClaimStatus status)
     {
         var claims = await _claimService.GetByStatusAsync(status);
-        return Ok(claims);
+        return Ok(ApiResponse<IEnumerable<Claim>>.SuccessResponse(claims));
+    }
+
+    [HttpGet("pending")]
+    [Authorize(Roles = "Admin,Insurer,ClaimsProcessor")]
+    [ProducesResponseType(typeof(ApiResponse<IEnumerable<Claim>>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetPending()
+    {
+        var claims = await _claimService.GetPendingClaimsAsync();
+        return Ok(ApiResponse<IEnumerable<Claim>>.SuccessResponse(claims));
     }
 
     [HttpPost]
-    [ProducesResponseType(typeof(Claim), StatusCodes.Status201Created)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [Authorize(Roles = "Admin,Insurer,Broker,ClaimsProcessor")]
+    [ProducesResponseType(typeof(ApiResponse<Claim>), StatusCodes.Status201Created)]
+    [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> Create([FromBody] Claim claim)
     {
-        try
-        {
-            var created = await _claimService.CreateAsync(claim);
-            return CreatedAtAction(nameof(GetById), new { id = created.Id }, created);
-        }
-        catch (ValidationException ex)
-        {
-            return BadRequest(new { message = ex.Message });
-        }
-        catch (NotFoundException ex)
-        {
-            return NotFound(new { message = ex.Message });
-        }
+        var created = await _claimService.CreateAsync(claim);
+        return CreatedAtAction(nameof(GetById), new { id = created.Id }, 
+            ApiResponse<Claim>.SuccessResponse(created, "Claim created successfully"));
     }
 
     [HttpPut("{id:int}")]
-    [ProducesResponseType(typeof(Claim), StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [Authorize(Roles = "Admin,Insurer,ClaimsProcessor")]
+    [ProducesResponseType(typeof(ApiResponse<Claim>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> Update(int id, [FromBody] Claim claim)
     {
-        try
-        {
-            claim.Id = id;
-            var updated = await _claimService.UpdateAsync(claim);
-            return Ok(updated);
-        }
-        catch (ValidationException ex)
-        {
-            return BadRequest(new { message = ex.Message });
-        }
-        catch (NotFoundException ex)
-        {
-            return NotFound(new { message = ex.Message });
-        }
+        claim.Id = id;
+        var updated = await _claimService.UpdateAsync(claim);
+        return Ok(ApiResponse<Claim>.SuccessResponse(updated, "Claim updated successfully"));
     }
 
     [HttpDelete("{id:int}")]
-    [ProducesResponseType(StatusCodes.Status204NoContent)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [Authorize(Roles = "Admin,Insurer")]
+    [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> Delete(int id)
     {
-        try
-        {
-            await _claimService.DeleteAsync(id);
-            return NoContent();
-        }
-        catch (NotFoundException ex)
-        {
-            return NotFound(new { message = ex.Message });
-        }
-        catch (ValidationException ex)
-        {
-            return BadRequest(new { message = ex.Message });
-        }
+        await _claimService.DeleteAsync(id);
+        return Ok(ApiResponse.SuccessResponse("Claim deleted successfully"));
+    }
+
+    [HttpPost("{id:int}/submit")]
+    [Authorize(Roles = "Admin,Insurer,Broker,ClaimsProcessor")]
+    [ProducesResponseType(typeof(ApiResponse<Claim>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> Submit(int id)
+    {
+        var claim = await _claimService.SubmitAsync(id);
+        return Ok(ApiResponse<Claim>.SuccessResponse(claim, "Claim submitted successfully"));
     }
 
     [HttpPost("{id:int}/approve")]
-    [Authorize(Roles = "Admin,ClaimsManager")]
-    [ProducesResponseType(typeof(Claim), StatusCodes.Status200OK)]
-    public async Task<IActionResult> Approve(int id, [FromQuery] string? notes)
+    [Authorize(Roles = "Admin,Insurer,ClaimsProcessor")]
+    [ProducesResponseType(typeof(ApiResponse<Claim>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> Approve(int id, [FromBody] ApproveClaimRequest request)
     {
-        try
-        {
-            var claim = await _claimService.ApproveAsync(id, notes);
-            return Ok(claim);
-        }
-        catch (NotFoundException ex)
-        {
-            return NotFound(new { message = ex.Message });
-        }
-        catch (ValidationException ex)
-        {
-            return BadRequest(new { message = ex.Message });
-        }
+        var claim = await _claimService.ApproveAsync(id, request.ApprovedAmount, request.Notes);
+        return Ok(ApiResponse<Claim>.SuccessResponse(claim, "Claim approved successfully"));
     }
 
     [HttpPost("{id:int}/reject")]
-    [Authorize(Roles = "Admin,ClaimsManager")]
-    [ProducesResponseType(typeof(Claim), StatusCodes.Status200OK)]
-    public async Task<IActionResult> Reject(int id, [FromQuery] string reason)
+    [Authorize(Roles = "Admin,Insurer,ClaimsProcessor")]
+    [ProducesResponseType(typeof(ApiResponse<Claim>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> Reject(int id, [FromBody] RejectClaimRequest request)
     {
-        try
-        {
-            var claim = await _claimService.RejectAsync(id, reason);
-            return Ok(claim);
-        }
-        catch (NotFoundException ex)
-        {
-            return NotFound(new { message = ex.Message });
-        }
-        catch (ValidationException ex)
-        {
-            return BadRequest(new { message = ex.Message });
-        }
+        var claim = await _claimService.RejectAsync(id, request.Reason);
+        return Ok(ApiResponse<Claim>.SuccessResponse(claim, "Claim rejected successfully"));
     }
 
-    [HttpPost("submit")]
-    [ProducesResponseType(typeof(Claim), StatusCodes.Status201Created)]
-    public async Task<IActionResult> Submit([FromBody] SubmitClaimRequest request)
+    [HttpPost("{id:int}/pay")]
+    [Authorize(Roles = "Admin,Insurer,Accountant")]
+    [ProducesResponseType(typeof(ApiResponse<Claim>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> MarkAsPaid(int id, [FromBody] PayClaimRequest request)
     {
-        try
+        var claim = await _claimService.MarkAsPaidAsync(id, request.PaymentReference);
+        return Ok(ApiResponse<Claim>.SuccessResponse(claim, "Claim marked as paid successfully"));
+    }
+
+    [HttpPost("{id:int}/close")]
+    [Authorize(Roles = "Admin,Insurer,ClaimsProcessor")]
+    [ProducesResponseType(typeof(ApiResponse<Claim>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> Close(int id, [FromBody] CloseClaimRequest? request)
+    {
+        var claim = await _claimService.CloseAsync(id, request?.Notes);
+        return Ok(ApiResponse<Claim>.SuccessResponse(claim, "Claim closed successfully"));
+    }
+
+    [HttpGet("summary/totals")]
+    [Authorize(Roles = "Admin,Insurer,Accountant")]
+    [ProducesResponseType(typeof(ApiResponse<ClaimTotalsDto>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetTotals()
+    {
+        var totalClaimed = await _claimService.GetTotalClaimedAmountAsync();
+        var totalPaid = await _claimService.GetTotalPaidAmountAsync();
+        
+        return Ok(ApiResponse<ClaimTotalsDto>.SuccessResponse(new ClaimTotalsDto
         {
-            var claim = await _claimService.SubmitAsync(
-                request.PolicyId, 
-                request.Amount, 
-                request.Description, 
-                request.DateOfLoss
-            );
-            return CreatedAtAction(nameof(GetById), new { id = claim.Id }, claim);
-        }
-        catch (ValidationException ex)
-        {
-            return BadRequest(new { message = ex.Message });
-        }
+            TotalClaimed = totalClaimed,
+            TotalPaid = totalPaid
+        }));
     }
 }
 
-public record SubmitClaimRequest(int PolicyId, decimal Amount, string Description, DateTime DateOfLoss);
+public class ApproveClaimRequest
+{
+    public decimal ApprovedAmount { get; set; }
+    public string? Notes { get; set; }
+}
+
+public class RejectClaimRequest
+{
+    public string Reason { get; set; } = string.Empty;
+}
+
+public class PayClaimRequest
+{
+    public string PaymentReference { get; set; } = string.Empty;
+}
+
+public class CloseClaimRequest
+{
+    public string? Notes { get; set; }
+}
+
+public class ClaimTotalsDto
+{
+    public decimal TotalClaimed { get; set; }
+    public decimal TotalPaid { get; set; }
+}

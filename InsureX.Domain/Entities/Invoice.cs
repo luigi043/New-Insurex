@@ -1,33 +1,89 @@
-// InsureX.Domain/Entities/Invoice.cs
+using InsureX.Domain.Enums;
+
 namespace InsureX.Domain.Entities;
 
 public class Invoice : BaseEntity
 {
-    public Guid TenantId { get; set; }
     public string InvoiceNumber { get; set; } = string.Empty;
+    public int TenantId { get; set; }
     public int? PolicyId { get; set; }
     public int? PartnerId { get; set; }
+    public InvoiceStatus Status { get; set; } = InvoiceStatus.Draft;
     public decimal Amount { get; set; }
     public decimal TaxAmount { get; set; }
     public decimal TotalAmount => Amount + TaxAmount;
-    public InvoiceStatus Status { get; set; } = InvoiceStatus.DRAFT;
-    public DateTime IssueDate { get; set; } = DateTime.UtcNow;
+    public decimal PaidAmount { get; set; }
+    public decimal Balance => TotalAmount - PaidAmount;
+    public DateTime IssueDate { get; set; }
     public DateTime DueDate { get; set; }
     public DateTime? PaidDate { get; set; }
+    public string? Description { get; set; }
     public string? Notes { get; set; }
+    public string? InternalNotes { get; set; }
+    public int? CreatedById { get; set; }
+    public int? SentById { get; set; }
+    public DateTime? SentAt { get; set; }
+    public string? SentToEmail { get; set; }
+    public string? PdfUrl { get; set; }
+    public bool IsRecurring { get; set; }
+    public string? RecurringFrequency { get; set; }
+    public int? ParentInvoiceId { get; set; }
     
-    // Navigation
+    // Navigation properties
+    public Tenant Tenant { get; set; } = null!;
     public Policy? Policy { get; set; }
     public Partner? Partner { get; set; }
+    public User? CreatedBy { get; set; }
+    public User? SentBy { get; set; }
+    public Invoice? ParentInvoice { get; set; }
+    public ICollection<Invoice> ChildInvoices { get; set; } = new List<Invoice>();
     public ICollection<Payment> Payments { get; set; } = new List<Payment>();
+    public ICollection<InvoiceLineItem> LineItems { get; set; } = new List<InvoiceLineItem>();
+    
+    public bool IsOverdue => Status != InvoiceStatus.Paid && Status != InvoiceStatus.Cancelled && DateTime.UtcNow > DueDate;
+    public bool IsFullyPaid => Balance <= 0;
+    
+    public void MarkAsSent(string sentToEmail, int? sentById = null)
+    {
+        Status = InvoiceStatus.Sent;
+        SentAt = DateTime.UtcNow;
+        SentToEmail = sentToEmail;
+        SentById = sentById;
+    }
+    
+    public void RecordPayment(decimal amount)
+    {
+        PaidAmount += amount;
+        
+        if (IsFullyPaid)
+        {
+            Status = InvoiceStatus.Paid;
+            PaidDate = DateTime.UtcNow;
+        }
+        else if (PaidAmount > 0)
+        {
+            Status = InvoiceStatus.PartiallyPaid;
+        }
+        
+        if (IsOverdue && Status != InvoiceStatus.Paid)
+        {
+            Status = InvoiceStatus.Overdue;
+        }
+    }
 }
 
-public enum InvoiceStatus
+public class InvoiceLineItem : BaseEntity
 {
-    DRAFT,
-    SENT,
-    PARTIAL,
-    PAID,
-    OVERDUE,
-    CANCELLED
+    public int InvoiceId { get; set; }
+    public string Description { get; set; } = string.Empty;
+    public decimal Quantity { get; set; } = 1;
+    public decimal UnitPrice { get; set; }
+    public decimal Discount { get; set; }
+    public decimal TaxRate { get; set; }
+    public decimal Amount => (Quantity * UnitPrice - Discount) * (1 + TaxRate / 100);
+    public string? ItemType { get; set; }
+    public int? ReferenceId { get; set; }
+    
+    // Navigation properties
+    public Invoice Invoice { get; set; } = null!;
 }

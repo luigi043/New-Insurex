@@ -1,32 +1,13 @@
-﻿using InsureX.Domain.Events;
-
 namespace InsureX.Domain.Entities;
 
 public abstract class BaseEntity
 {
-    public int Id { get; protected set; }
-    public DateTime CreatedAt { get; protected set; }
-    public DateTime? UpdatedAt { get; protected set; }
-    public string CreatedBy { get; protected set; } = string.Empty;
-    public string? UpdatedBy { get; protected set; }
-
-    private readonly List<DomainEvent> _domainEvents = new();
-    public IReadOnlyCollection<DomainEvent> DomainEvents => _domainEvents.AsReadOnly();
-
-    public void AddDomainEvent(DomainEvent eventItem)
-    {
-        _domainEvents.Add(eventItem);
-    }
-
-    public void RemoveDomainEvent(DomainEvent eventItem)
-    {
-        _domainEvents.Remove(eventItem);
-    }
-
-    public void ClearDomainEvents()
-    {
-        _domainEvents.Clear();
-    }
+    public int Id { get; set; }
+    public DateTime CreatedAt { get; set; }
+    public DateTime? UpdatedAt { get; set; }
+    public string CreatedBy { get; set; } = string.Empty;
+    public string? UpdatedBy { get; set; }
+    public bool IsDeleted { get; set; }
 
     public void SetCreated(string createdBy)
     {
@@ -38,5 +19,11 @@ public abstract class BaseEntity
     {
         UpdatedAt = DateTime.UtcNow;
         UpdatedBy = updatedBy;
+    }
+
+    public void SoftDelete(string deletedBy)
+    {
+        IsDeleted = true;
+        SetUpdated(deletedBy);
     }
 }

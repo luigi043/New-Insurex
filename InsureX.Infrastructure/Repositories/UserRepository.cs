@@ -1,61 +1,82 @@
 using InsureX.Domain.Entities;
+using InsureX.Domain.Enums;
 using InsureX.Domain.Interfaces;
-using InsureX.Infrastructure.Data;
+using InsureX.Infrastructure.Context;
 using Microsoft.EntityFrameworkCore;
 
-namespace InsureX.Infrastructure.Repositories
+namespace InsureX.Infrastructure.Repositories;
+
+public class UserRepository : Repository<User>, IUserRepository
 {
-    public class UserRepository : IUserRepository
+    public UserRepository(ApplicationDbContext context) : base(context)
     {
-        private readonly ApplicationDbContext _context;
+    }
 
-        public UserRepository(ApplicationDbContext context)
-        {
-            _context = context;
-        }
+    public async Task<User?> GetByEmailAsync(string email)
+    {
+        return await _dbSet
+            .FirstOrDefaultAsync(u => u.Email == email);
+    }
 
-        public async Task<User?> GetByIdAsync(Guid id)
-            => await _context.Users.FindAsync(id);
+    public async Task<User?> GetByEmailWithTenantAsync(string email)
+    {
+        return await _dbSet
+            .Include(u => u.Tenant)
+            .FirstOrDefaultAsync(u => u.Email == email);
+    }
 
-        public async Task<User?> GetByEmailAsync(string email)
-            => await _context.Users.FirstOrDefaultAsync(u => u.Email == email);
+    public async Task<IEnumerable<User>> GetByTenantIdAsync(int tenantId)
+    {
+        return await _dbSet
+            .Where(u => u.TenantId == tenantId)
+            .OrderBy(u => u.LastName)
+            .ThenBy(u => u.FirstName)
+            .ToListAsync();
+    }
 
-        public async Task<User?> GetByRefreshTokenAsync(string refreshToken)
-            => await _context.Users.FirstOrDefaultAsync(u => u.RefreshToken == refreshToken);
+    public async Task<IEnumerable<User>> GetByRoleAsync(UserRole role)
+    {
+        return await _dbSet
+            .Where(u => u.Role == role)
+            .OrderBy(u => u.LastName)
+            .ThenBy(u => u.FirstName)
+            .ToListAsync();
+    }
 
-        public async Task<IEnumerable<User>> GetAllAsync()
-            => await _context.Users.ToListAsync();
+    public async Task<bool> EmailExistsAsync(string email, int? excludeId = null)
+    {
+        var query = _dbSet.Where(u => u.Email == email);
+        
+        if (excludeId.HasValue)
+            query = query.Where(u => u.Id != excludeId.Value);
+        
+        return await query.AnyAsync();
+    }
 
-        public async Task<User> AddAsync(User user)
-        {
-            _context.Users.Add(user);
-            await _context.SaveChangesAsync();
-            return user;
-        }
+    public async Task<User?> GetByRefreshTokenAsync(string token)
+    {
+        return await _dbSet
+            .Include(u => u.RefreshTokens)
+            .FirstOrDefaultAsync(u => u.RefreshTokens.Any(rt => rt.Token == token && !rt.IsRevoked));
+    }
 
-        public async Task UpdateAsync(User user)
-        {
-            _context.Users.Update(user);
-            await _context.SaveChangesAsync();
-        }
+    public async Task<User?> GetByEmailVerificationTokenAsync(string token)
+    {
+        return await _dbSet
+            .FirstOrDefaultAsync(u => u.EmailVerificationToken == token);
+    }
 
-        public async Task DeleteAsync(Guid id)
-        {
-            var user = await GetByIdAsync(id);
-            if (user != null)
-            {
-                _context.Users.Remove(user);
-                await _context.SaveChangesAsync();
-            }
-        }
+    public async Task<User?> GetByPasswordResetTokenAsync(string token)
+    {
+        return await _dbSet
+            .FirstOrDefaultAsync(u => u.PasswordResetToken == token);
+    }
 
-        public async Task<bool> ExistsAsync(string email)
-            => await _context.Users.AnyAsync(u => u.Email == email);
-
-        public async Task<bool> ExistsByEmailAsync(string email)
-            => await _context.Users.AnyAsync(u => u.Email == email);
-
-        public async Task<int> CountAsync()
-            => await _context.Users.CountAsync();
+    public override async Task<User?> GetByIdAsync(int id)
+    {
+        return await _dbSet
+            .Include(u => u.Tenant)
+            .Include(u => u.RefreshTokens)
+            .FirstOrDefaultAsync(u => u.Id == id);
     }
 }

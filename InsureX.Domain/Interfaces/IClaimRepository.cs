@@ -1,21 +1,17 @@
-﻿using InsureX.Domain.Entities;
+using InsureX.Domain.Entities;
 using InsureX.Domain.Enums;
 
 namespace InsureX.Domain.Interfaces;
 
-public interface IClaimRepository
+public interface IClaimRepository : IRepository<Claim>
 {
-    Task<Claim?> GetByIdAsync(int id);
-    Task<Claim?> GetByNumberAsync(string claimNumber);
-    Task<IEnumerable<Claim>> GetAllAsync();
+    Task<Claim?> GetByClaimNumberAsync(string claimNumber);
     Task<IEnumerable<Claim>> GetByPolicyIdAsync(int policyId);
     Task<IEnumerable<Claim>> GetByStatusAsync(ClaimStatus status);
-    Task<IEnumerable<Claim>> GetByTenantIdAsync(int tenantId);
-    Task AddAsync(Claim claim);
-    Task UpdateAsync(Claim claim);
-    Task DeleteAsync(int id);
-    Task<int> CountAsync();
-    Task<int> CountByStatusAsync(ClaimStatus status);
-    Task<decimal> GetTotalClaimedAmountAsync();
-    Task<decimal> GetTotalApprovedAmountAsync(); // Added missing method
+    Task<IEnumerable<Claim>> GetByStatusAndTenantAsync(ClaimStatus status, int tenantId);
+    Task<IEnumerable<Claim>> GetByDateRangeAsync(DateTime from, DateTime to);
+    Task<decimal> GetTotalClaimedAmountAsync(int tenantId);
+    Task<decimal> GetTotalPaidAmountAsync(int tenantId);
+    Task<IEnumerable<Claim>> GetPendingClaimsAsync(int tenantId);
+    Task<IEnumerable<Claim>> GetClaimsByAssetIdAsync(int assetId);
 }

@@ -1,7 +1,15 @@
-﻿using InsureX.Domain.Entities;
+using InsureX.Domain.Entities;
+using InsureX.Domain.Enums;
+
 namespace InsureX.Domain.Interfaces;
-public interface IPartnerRepository {
-    Task<Partner?> GetByIdAsync(int id); Task<Partner?> GetByEmailAsync(string email); Task<IEnumerable<Partner>> GetAllAsync();
-    Task<IEnumerable<Partner>> GetByTypeAsync(string partnerType); Task AddAsync(Partner partner);
-    Task UpdateAsync(Partner partner); Task DeleteAsync(int id);
+
+public interface IPartnerRepository : IRepository<Partner>
+{
+    Task<Partner?> GetByEmailAsync(string email);
+    Task<IEnumerable<Partner>> GetByTypeAsync(PartnerType type);
+    Task<IEnumerable<Partner>> GetByTypeAndTenantAsync(PartnerType type, int tenantId);
+    Task<IEnumerable<Partner>> GetByStatusAsync(PartnerStatus status);
+    Task<Partner?> GetByRegistrationNumberAsync(string registrationNumber);
+    Task<IEnumerable<Partner>> GetActivePartnersAsync(int tenantId);
+    Task<bool> EmailExistsAsync(string email, int? excludeId = null);
 }

@@ -1,10 +1,9 @@
-using InsureX.Domain.Entities;
-
 namespace InsureX.Application.Interfaces;
 
 public interface IEmailService
 {
-    Task SendClaimApprovedNotificationAsync(Claim claim);
-    Task SendClaimRejectedNotificationAsync(Claim claim);
-    Task SendClaimPaidNotificationAsync(Claim claim);
+    Task SendEmailAsync(string to, string subject, string body, bool isHtml = true);
+    Task SendEmailAsync(string to, string subject, string body, string? attachmentPath = null);
+    Task SendTemplatedEmailAsync(string to, string templateName, Dictionary<string, string> placeholders);
+    Task SendBulkEmailAsync(IEnumerable<string> recipients, string subject, string body);
 }

@@ -1,83 +1,135 @@
-using InsureX.Domain.Events;
+using InsureX.Domain.Enums;
 
 namespace InsureX.Domain.Entities;
 
 public class Claim : BaseEntity
 {
-    public string ClaimNumber { get; private set; } = string.Empty;
-    public int PolicyId { get; private set; }
-    public decimal Amount { get; private set; }
-    public string Description { get; private set; } = string.Empty;
-    public string Status { get; private set; } = "Submitted";
-    public DateTime IncidentDate { get; private set; }
-    public string? ResolutionNotes { get; private set; }
-    public DateTime? ResolvedAt { get; private set; }
+    public string ClaimNumber { get; set; } = string.Empty;
+    public int PolicyId { get; set; }
+    public int TenantId { get; set; }
+    public int? AssetId { get; set; }
+    public ClaimType ClaimType { get; set; }
+    public ClaimStatus Status { get; set; } = ClaimStatus.Submitted;
+    public decimal ClaimedAmount { get; set; }
+    public decimal? ApprovedAmount { get; set; }
+    public decimal? DeductibleApplied { get; set; }
+    public string Description { get; set; } = string.Empty;
+    public string? IncidentLocation { get; set; }
+    public DateTime IncidentDate { get; set; }
+    public DateTime? ReportedDate { get; set; }
+    public string? ReporterName { get; set; }
+    public string? ReporterContact { get; set; }
+    public string? PoliceReportNumber { get; set; }
+    public string? DamageDescription { get; set; }
+    public string? ResolutionNotes { get; set; }
+    public DateTime? ResolvedAt { get; set; }
+    public int? ResolvedById { get; set; }
+    public DateTime? ApprovedAt { get; set; }
+    public int? ApprovedById { get; set; }
+    public DateTime? RejectedAt { get; set; }
+    public int? RejectedById { get; set; }
+    public string? RejectionReason { get; set; }
+    public DateTime? PaidAt { get; set; }
+    public int? PaidById { get; set; }
+    public string? PaymentReference { get; set; }
+    public string? Documents { get; set; } // JSON array of document URLs
     
-    public Policy Policy { get; private set; } = null!;
-
-    public static Claim Create(
-        string claimNumber,
-        int policyId,
-        decimal amount,
-        string description,
-        DateTime incidentDate)
+    // Navigation properties
+    public Policy Policy { get; set; } = null!;
+    public Tenant Tenant { get; set; } = null!;
+    public Asset? Asset { get; set; }
+    public User? ResolvedBy { get; set; }
+    public User? ApprovedBy { get; set; }
+    public User? RejectedBy { get; set; }
+    public User? PaidBy { get; set; }
+    public ICollection<ClaimStatusHistory> StatusHistory { get; set; } = new List<ClaimStatusHistory>();
+    
+    // Workflow methods
+    public void Submit()
     {
-        if (amount <= 0)
-            throw new ArgumentException("Claim amount must be positive");
-
-        var claim = new Claim
-        {
-            ClaimNumber = claimNumber,
-            PolicyId = policyId,
-            Amount = amount,
-            Description = description,
-            IncidentDate = incidentDate,
-            Status = "Submitted"
-        };
-
-        claim.SetCreated("system");
-        return claim;
+        if (Status != ClaimStatus.Submitted)
+            throw new InvalidOperationException($"Cannot submit claim with status {Status}");
+        
+        Status = ClaimStatus.UnderReview;
+        ReportedDate = DateTime.UtcNow;
+        AddStatusHistory(ClaimStatus.UnderReview, "Claim submitted and under review");
     }
-
-    public void Approve(string? notes = null)
+    
+    public void Approve(decimal approvedAmount, string? notes = null, int? approvedById = null)
     {
-        if (Status != "Submitted" && Status != "UnderReview")
+        if (Status != ClaimStatus.Submitted && Status != ClaimStatus.UnderReview)
             throw new InvalidOperationException($"Cannot approve claim with status {Status}");
-
-        Status = "Approved";
+        
+        Status = ClaimStatus.Approved;
+        ApprovedAmount = approvedAmount;
+        ApprovedAt = DateTime.UtcNow;
+        ApprovedById = approvedById;
         ResolutionNotes = notes;
-        ResolvedAt = DateTime.UtcNow;
-        SetUpdated("system");
+        AddStatusHistory(ClaimStatus.Approved, $"Claim approved. Amount: {approvedAmount:C}. {notes}");
     }
-
-    public void Reject(string reason)
+    
+    public void Reject(string reason, int? rejectedById = null)
     {
-        if (Status != "Submitted" && Status != "UnderReview")
+        if (Status != ClaimStatus.Submitted && Status != ClaimStatus.UnderReview)
             throw new InvalidOperationException($"Cannot reject claim with status {Status}");
-
+        
         if (string.IsNullOrWhiteSpace(reason))
             throw new ArgumentException("Rejection reason is required");
-
-        Status = "Rejected";
-        ResolutionNotes = reason;
+        
+        Status = ClaimStatus.Rejected;
+        RejectionReason = reason;
+        RejectedAt = DateTime.UtcNow;
+        RejectedById = rejectedById;
+        AddStatusHistory(ClaimStatus.Rejected, $"Claim rejected. Reason: {reason}");
+    }
+    
+    public void MarkAsPaid(string paymentReference, int? paidById = null)
+    {
+        if (Status != ClaimStatus.Approved)
+            throw new InvalidOperationException($"Cannot mark as paid claim with status {Status}");
+        
+        Status = ClaimStatus.Paid;
+        PaidAt = DateTime.UtcNow;
+        PaidById = paidById;
+        PaymentReference = paymentReference;
         ResolvedAt = DateTime.UtcNow;
-        SetUpdated("system");
+        AddStatusHistory(ClaimStatus.Paid, $"Claim paid. Reference: {paymentReference}");
     }
-
-    public void Review()
+    
+    public void Close(string? notes = null)
     {
-        if (Status != "Submitted")
-            throw new InvalidOperationException("Only submitted claims can be put under review");
-
-        Status = "UnderReview";
-        SetUpdated("system");
+        if (Status != ClaimStatus.Paid && Status != ClaimStatus.Rejected)
+            throw new InvalidOperationException($"Cannot close claim with status {Status}");
+        
+        Status = ClaimStatus.Closed;
+        ResolvedAt = DateTime.UtcNow;
+        ResolutionNotes = notes;
+        AddStatusHistory(ClaimStatus.Closed, $"Claim closed. {notes}");
     }
-
-    public void SubmitToPolicy(Policy policy)
+    
+    private void AddStatusHistory(ClaimStatus newStatus, string? notes = null)
     {
-        if (!policy.IsActive())
-            throw new InvalidOperationException("Cannot submit claim to inactive policy");
-
-        AddDomainEvent(new ClaimSubmittedEvent(this, policy));
+        StatusHistory.Add(new ClaimStatusHistory
+        {
+            ClaimId = Id,
+            FromStatus = Status,
+            ToStatus = newStatus,
+            ChangedAt = DateTime.UtcNow,
+            Notes = notes
+        });
     }
+}
+
+public class ClaimStatusHistory : BaseEntity
+{
+    public int ClaimId { get; set; }
+    public ClaimStatus FromStatus { get; set; }
+    public ClaimStatus ToStatus { get; set; }
+    public DateTime ChangedAt { get; set; }
+    public int? ChangedById { get; set; }
+    public string? Notes { get; set; }
+    
+    // Navigation properties
+    public Claim Claim { get; set; } = null!;
+    public User? ChangedBy { get; set; }
 }
