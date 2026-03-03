@@ -1,411 +1,250 @@
-import React, { useState, useEffect, useCallback } from 'react';
-
+import React, { useState, useEffect } from 'react';
 import {
-
-  Paper,
-
-  Typography,
-
   Box,
-
+  Paper,
+  Typography,
   Grid,
-
-  Chip,
-
   LinearProgress,
-
-  Tooltip,
-
+  Chip,
   IconButton,
-
+  Tooltip,
 } from '@mui/material';
-
 import {
-
   CheckCircle,
-
-  Error as ErrorIcon,
-
   Warning,
-
+  Error as ErrorIcon,
   Refresh,
-
   Storage,
-
+  Memory,
   Speed,
-
-  Timer,
-
   Cloud,
-
 } from '@mui/icons-material';
-
 import { dashboardService } from '../../services/dashboard.service';
 
- 
-
-interface HealthStatus {
-
-  api: 'healthy' | 'degraded' | 'down';
-
-  database: 'healthy' | 'degraded' | 'down';
-
-  storage: 'healthy' | 'degraded' | 'down';
-
-  uptime: number;
-
-  responseTime: number;
-
-  memoryUsage: number;
-
-  cpuUsage: number;
-
-  lastChecked: string;
-
+interface SystemMetric {
+  name: string;
+  value: number;
+  status: 'healthy' | 'warning' | 'critical';
+  unit: string;
+  icon: React.ReactNode;
 }
 
- 
-
-const statusColors: Record<string, 'success' | 'warning' | 'error'> = {
-
-  healthy: 'success',
-
-  degraded: 'warning',
-
-  down: 'error',
-
-};
-
- 
-
-const StatusIcon: React.FC<{ status: string }> = ({ status }) => {
-
-  switch (status) {
-
-    case 'healthy':
-
-      return <CheckCircle color="success" fontSize="small" />;
-
-    case 'degraded':
-
-      return <Warning color="warning" fontSize="small" />;
-
-    case 'down':
-
-      return <ErrorIcon color="error" fontSize="small" />;
-
-    default:
-
-      return <CheckCircle color="disabled" fontSize="small" />;
-
-  }
-
-};
-
- 
-
-const formatUptime = (seconds: number): string => {
-
-  const days = Math.floor(seconds / 86400);
-
-  const hours = Math.floor((seconds % 86400) / 3600);
-
-  const minutes = Math.floor((seconds % 3600) / 60);
-
-  if (days > 0) return `${days}d ${hours}h ${minutes}m`;
-
-  if (hours > 0) return `${hours}h ${minutes}m`;
-
-  return `${minutes}m`;
-
-};
-
- 
+interface SystemHealth {
+  overall: 'healthy' | 'warning' | 'critical';
+  uptime: string;
+  lastCheck: string;
+  metrics: {
+    cpu: number;
+    memory: number;
+    disk: number;
+    database: number;
+    apiResponse: number;
+  };
+  services: {
+    name: string;
+    status: 'online' | 'offline' | 'degraded';
+  }[];
+}
 
 export const SystemHealthWidget: React.FC = () => {
-
-  const [health, setHealth] = useState<HealthStatus>({
-
-    api: 'healthy',
-
-    database: 'healthy',
-
-    storage: 'healthy',
-
-    uptime: 0,
-
-    responseTime: 0,
-
-    memoryUsage: 0,
-
-    cpuUsage: 0,
-
-    lastChecked: new Date().toISOString(),
-
-  });
-
+  const [health, setHealth] = useState<SystemHealth | null>(null);
   const [loading, setLoading] = useState(true);
-
- 
-
-  const fetchHealth = useCallback(async () => {
-
-    try {
-
-      const data = await dashboardService.getKPI();
-
-      setHealth({
-
-        api: data?.apiStatus || 'healthy',
-
-        database: data?.dbStatus || 'healthy',
-
-        storage: data?.storageStatus || 'healthy',
-
-        uptime: data?.uptime || 259200,
-
-        responseTime: data?.responseTime || 45,
-
-        memoryUsage: data?.memoryUsage || 62,
-
-        cpuUsage: data?.cpuUsage || 35,
-
-        lastChecked: new Date().toISOString(),
-
-      });
-
-    } catch {
-
-      // If API fails, mark as degraded
-
-      setHealth((prev) => ({
-
-        ...prev,
-
-        api: 'degraded',
-
-        lastChecked: new Date().toISOString(),
-
-      }));
-
-    } finally {
-
-      setLoading(false);
-
-    }
-
-  }, []);
-
- 
+  const [lastUpdate, setLastUpdate] = useState<Date>(new Date());
 
   useEffect(() => {
-
-    fetchHealth();
-
-    const interval = setInterval(fetchHealth, 60000);
-
+    loadSystemHealth();
+    // Auto-refresh every 30 seconds
+    const interval = setInterval(loadSystemHealth, 30000);
     return () => clearInterval(interval);
+  }, []);
 
-  }, [fetchHealth]);
+  const loadSystemHealth = async () => {
+    try {
+      const response = await dashboardService.getSystemHealth();
+      setHealth(response.data);
+      setLastUpdate(new Date());
+    } catch (error) {
+      console.error('Failed to load system health:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
- 
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'healthy':
+      case 'online':
+        return 'success';
+      case 'warning':
+      case 'degraded':
+        return 'warning';
+      case 'critical':
+      case 'offline':
+        return 'error';
+      default:
+        return 'default';
+    }
+  };
 
-  const services = [
+  const getStatusIcon = (status: string) => {
+    switch (status) {
+      case 'healthy':
+      case 'online':
+        return <CheckCircle color="success" />;
+      case 'warning':
+      case 'degraded':
+        return <Warning color="warning" />;
+      case 'critical':
+      case 'offline':
+        return <ErrorIcon color="error" />;
+      default:
+        return null;
+    }
+  };
 
-    { name: 'API Server', status: health.api, icon: <Cloud fontSize="small" /> },
+  const getMetricColor = (value: number): 'success' | 'warning' | 'error' => {
+    if (value < 70) return 'success';
+    if (value < 85) return 'warning';
+    return 'error';
+  };
 
-    { name: 'Database', status: health.database, icon: <Storage fontSize="small" /> },
+  const metrics: SystemMetric[] = health
+    ? [
+        {
+          name: 'CPU Usage',
+          value: health.metrics.cpu,
+          status: health.metrics.cpu < 70 ? 'healthy' : health.metrics.cpu < 85 ? 'warning' : 'critical',
+          unit: '%',
+          icon: <Speed />,
+        },
+        {
+          name: 'Memory',
+          value: health.metrics.memory,
+          status: health.metrics.memory < 70 ? 'healthy' : health.metrics.memory < 85 ? 'warning' : 'critical',
+          unit: '%',
+          icon: <Memory />,
+        },
+        {
+          name: 'Disk Space',
+          value: health.metrics.disk,
+          status: health.metrics.disk < 70 ? 'healthy' : health.metrics.disk < 85 ? 'warning' : 'critical',
+          unit: '%',
+          icon: <Storage />,
+        },
+        {
+          name: 'Database',
+          value: health.metrics.database,
+          status: health.metrics.database < 70 ? 'healthy' : health.metrics.database < 85 ? 'warning' : 'critical',
+          unit: 'ms',
+          icon: <Cloud />,
+        },
+      ]
+    : [];
 
-    { name: 'Storage', status: health.storage, icon: <Storage fontSize="small" /> },
-
-  ];
-
- 
+  if (loading) {
+    return (
+      <Paper sx={{ p: 3 }}>
+        <Typography>Loading system health...</Typography>
+      </Paper>
+    );
+  }
 
   return (
-
-    <Paper sx={{ p: 2.5 }}>
-
+    <Paper sx={{ p: 3 }}>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-
-        <Typography variant="h6" component="h2">System Health</Typography>
-
-        <Tooltip title="Refresh health status">
-
-          <IconButton size="small" onClick={fetchHealth} aria-label="Refresh system health">
-
-            <Refresh fontSize="small" />
-
-          </IconButton>
-
-        </Tooltip>
-
-      </Box>
-
- 
-
-      {/* Service Status */}
-
-      <Box sx={{ mb: 2 }}>
-
-        {services.map((service) => (
-
-          <Box
-
-            key={service.name}
-
-            sx={{
-
-              display: 'flex',
-
-              alignItems: 'center',
-
-              justifyContent: 'space-between',
-
-              py: 0.75,
-
-            }}
-
-          >
-
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-
-              {service.icon}
-
-              <Typography variant="body2">{service.name}</Typography>
-
-            </Box>
-
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+          <Typography variant="h6">System Health</Typography>
+          {health && (
             <Chip
-
-              icon={<StatusIcon status={service.status} />}
-
-              label={service.status}
-
+              icon={getStatusIcon(health.overall)}
+              label={health.overall.toUpperCase()}
+              color={getStatusColor(health.overall) as any}
               size="small"
-
-              color={statusColors[service.status] || 'default'}
-
-              variant="outlined"
-
             />
-
-          </Box>
-
-        ))}
-
+          )}
+        </Box>
+        <Tooltip title="Refresh">
+          <IconButton onClick={loadSystemHealth} size="small">
+            <Refresh />
+          </IconButton>
+        </Tooltip>
       </Box>
 
- 
+      {health && (
+        <>
+          <Grid container spacing={2} sx={{ mb: 3 }}>
+            <Grid item xs={6}>
+              <Typography variant="body2" color="textSecondary">
+                Uptime
+              </Typography>
+              <Typography variant="body1" fontWeight="bold">
+                {health.uptime}
+              </Typography>
+            </Grid>
+            <Grid item xs={6}>
+              <Typography variant="body2" color="textSecondary">
+                Last Check
+              </Typography>
+              <Typography variant="body1" fontWeight="bold">
+                {lastUpdate.toLocaleTimeString()}
+              </Typography>
+            </Grid>
+          </Grid>
 
-      {/* Metrics */}
+          <Typography variant="subtitle2" gutterBottom sx={{ mt: 2, mb: 1 }}>
+            System Metrics
+          </Typography>
+          <Grid container spacing={2}>
+            {metrics.map((metric) => (
+              <Grid item xs={12} sm={6} key={metric.name}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
+                  {metric.icon}
+                  <Typography variant="body2">{metric.name}</Typography>
+                  <Typography variant="body2" fontWeight="bold" sx={{ ml: 'auto' }}>
+                    {metric.value}{metric.unit}
+                  </Typography>
+                </Box>
+                <LinearProgress
+                  variant="determinate"
+                  value={metric.value}
+                  color={getMetricColor(metric.value)}
+                  sx={{ height: 8, borderRadius: 1 }}
+                />
+              </Grid>
+            ))}
+          </Grid>
 
-      <Grid container spacing={2}>
+          <Typography variant="subtitle2" gutterBottom sx={{ mt: 3, mb: 1 }}>
+            Services Status
+          </Typography>
+          <Grid container spacing={1}>
+            {health.services.map((service) => (
+              <Grid item xs={12} sm={6} key={service.name}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  {getStatusIcon(service.status)}
+                  <Typography variant="body2">{service.name}</Typography>
+                  <Chip
+                    label={service.status}
+                    size="small"
+                    color={getStatusColor(service.status) as any}
+                    sx={{ ml: 'auto' }}
+                  />
+                </Box>
+              </Grid>
+            ))}
+          </Grid>
 
-        <Grid item xs={6}>
-
-          <Box>
-
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 0.5 }}>
-
-              <Timer fontSize="small" color="action" />
-
-              <Typography variant="caption" color="text.secondary">Uptime</Typography>
-
+          {health.metrics.apiResponse && (
+            <Box sx={{ mt: 2, p: 1.5, bgcolor: 'background.default', borderRadius: 1 }}>
+              <Typography variant="body2" color="textSecondary">
+                Average API Response Time: <strong>{health.metrics.apiResponse}ms</strong>
+              </Typography>
             </Box>
-
-            <Typography variant="body2" fontWeight="bold">
-
-              {formatUptime(health.uptime)}
-
-            </Typography>
-
-          </Box>
-
-        </Grid>
-
-        <Grid item xs={6}>
-
-          <Box>
-
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 0.5 }}>
-
-              <Speed fontSize="small" color="action" />
-
-              <Typography variant="caption" color="text.secondary">Response Time</Typography>
-
-            </Box>
-
-            <Typography variant="body2" fontWeight="bold">
-
-              {health.responseTime}ms
-
-            </Typography>
-
-          </Box>
-
-        </Grid>
-
-        <Grid item xs={12}>
-
-          <Typography variant="caption" color="text.secondary">Memory Usage</Typography>
-
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-
-            <LinearProgress
-
-              variant="determinate"
-
-              value={health.memoryUsage}
-
-              sx={{ flexGrow: 1, height: 6, borderRadius: 3 }}
-
-              color={health.memoryUsage > 80 ? 'error' : health.memoryUsage > 60 ? 'warning' : 'primary'}
-
-            />
-
-            <Typography variant="caption" fontWeight="bold">{health.memoryUsage}%</Typography>
-
-          </Box>
-
-        </Grid>
-
-        <Grid item xs={12}>
-
-          <Typography variant="caption" color="text.secondary">CPU Usage</Typography>
-
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-
-            <LinearProgress
-
-              variant="determinate"
-
-              value={health.cpuUsage}
-
-              sx={{ flexGrow: 1, height: 6, borderRadius: 3 }}
-
-              color={health.cpuUsage > 80 ? 'error' : health.cpuUsage > 60 ? 'warning' : 'primary'}
-
-            />
-
-            <Typography variant="caption" fontWeight="bold">{health.cpuUsage}%</Typography>
-
-          </Box>
-
-        </Grid>
-
-      </Grid>
-
- 
-
-      <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 1.5, textAlign: 'right' }}>
-
-        Last checked: {new Date(health.lastChecked).toLocaleTimeString()}
-
-      </Typography>
-
+          )}
+        </>
+      )}
     </Paper>
-
   );
-
 };
+
+export default SystemHealthWidget;

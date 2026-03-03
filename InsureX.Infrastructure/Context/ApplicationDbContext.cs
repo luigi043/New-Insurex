@@ -36,13 +36,8 @@ public class ApplicationDbContext : DbContext, IUnitOfWork
     public DbSet<Transaction> Transactions => Set<Transaction>();
     public DbSet<ClaimInvestigationNote> ClaimInvestigationNotes => Set<ClaimInvestigationNote>();
     public DbSet<TenantSettings> TenantSettings => Set<TenantSettings>();
-    public DbSet<AuditEntry> AuditEntries => Set<AuditEntry>();
-    public DbSet<WorkflowDefinition> WorkflowDefinitions => Set<WorkflowDefinition>();
-    public DbSet<WorkflowStep> WorkflowSteps => Set<WorkflowStep>();
-    public DbSet<WorkflowInstance> WorkflowInstances => Set<WorkflowInstance>();
-    public DbSet<WorkflowHistory> WorkflowHistories => Set<WorkflowHistory>();
-    public DbSet<WorkflowApproval> WorkflowApprovals => Set<WorkflowApproval>();
-    public DbSet<ReportDefinition> ReportDefinitions => Set<ReportDefinition>();
+    public DbSet<TenantOnboarding> TenantOnboardings => Set<TenantOnboarding>();
+    public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -86,11 +81,9 @@ public class ApplicationDbContext : DbContext, IUnitOfWork
         ConfigureClaim(modelBuilder);
         ConfigurePartner(modelBuilder);
         ConfigureInvoice(modelBuilder);
-        ConfigureInvestigationNotes(modelBuilder);
+        ConfigureClaimInvestigationNote(modelBuilder);
         ConfigureTenantSettings(modelBuilder);
-        ConfigureAuditEntry(modelBuilder);
-        ConfigureWorkflow(modelBuilder);
-        ConfigureReportDefinition(modelBuilder);
+        ConfigureAuditLog(modelBuilder);
     }
 
     private static void SetSoftDeleteFilter<TEntity>(ModelBuilder builder) where TEntity : BaseEntity
@@ -234,20 +227,25 @@ public class ApplicationDbContext : DbContext, IUnitOfWork
         });
     }
 
-    private void ConfigureInvestigationNotes(ModelBuilder modelBuilder)
+    private void ConfigureClaimInvestigationNote(ModelBuilder modelBuilder)
     {
         modelBuilder.Entity<ClaimInvestigationNote>(entity =>
         {
             entity.HasIndex(e => e.ClaimId);
             entity.HasIndex(e => e.TenantId);
-            entity.HasIndex(e => e.AuthorId);
-            entity.HasIndex(e => e.Priority);
-            entity.HasIndex(e => e.IsResolved);
-            entity.Property(e => e.Title).HasMaxLength(200);
-            entity.HasOne(e => e.Claim).WithMany(c => c.InvestigationNotes).HasForeignKey(e => e.ClaimId);
-            entity.HasOne(e => e.Tenant).WithMany().HasForeignKey(e => e.TenantId).OnDelete(DeleteBehavior.NoAction);
-            entity.HasOne(e => e.Author).WithMany().HasForeignKey(e => e.AuthorId).OnDelete(DeleteBehavior.NoAction);
-            entity.HasOne(e => e.ResolvedBy).WithMany().HasForeignKey(e => e.ResolvedById).OnDelete(DeleteBehavior.NoAction);
+            entity.HasIndex(e => e.NoteType);
+            entity.HasIndex(e => e.IsInternal);
+            entity.HasIndex(e => e.NoteDate);
+            entity.Property(e => e.Subject).HasMaxLength(500);
+            entity.Property(e => e.NoteType).HasMaxLength(100);
+            entity.HasOne(e => e.Claim)
+                .WithMany(c => c.InvestigationNotes)
+                .HasForeignKey(e => e.ClaimId)
+                .OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne(e => e.CreatedByUser)
+                .WithMany()
+                .HasForeignKey(e => e.CreatedByUserId)
+                .OnDelete(DeleteBehavior.Restrict);
         });
     }
 
@@ -255,99 +253,31 @@ public class ApplicationDbContext : DbContext, IUnitOfWork
     {
         modelBuilder.Entity<TenantSettings>(entity =>
         {
+            entity.HasIndex(e => e.TenantId);
             entity.HasIndex(e => new { e.TenantId, e.SettingKey }).IsUnique();
-            entity.Property(e => e.SettingKey).HasMaxLength(100);
-            entity.Property(e => e.SettingValue).HasMaxLength(2000);
-            entity.Property(e => e.Category).HasMaxLength(50);
-            entity.HasOne(e => e.Tenant).WithMany(t => t.Settings).HasForeignKey(e => e.TenantId);
-        });
-    }
-
-    private void ConfigureAuditEntry(ModelBuilder modelBuilder)
-    {
-        modelBuilder.Entity<AuditEntry>(entity =>
-        {
-            entity.ToTable("AuditEntries");
-            entity.HasIndex(e => e.TenantId);
-            entity.HasIndex(e => e.UserId);
-            entity.HasIndex(e => e.EntityType);
-            entity.HasIndex(e => e.Timestamp);
-            entity.HasIndex(e => new { e.EntityType, e.EntityId });
-            entity.Property(e => e.EntityType).HasMaxLength(100);
-            entity.Property(e => e.EntityId).HasMaxLength(50);
-            entity.Property(e => e.Action).HasMaxLength(50);
-            entity.Property(e => e.UserEmail).HasMaxLength(255);
-            entity.Property(e => e.IpAddress).HasMaxLength(50);
-            entity.Property(e => e.RequestPath).HasMaxLength(500);
-            entity.Property(e => e.CorrelationId).HasMaxLength(100);
-        });
-    }
-
-    private void ConfigureWorkflow(ModelBuilder modelBuilder)
-    {
-        modelBuilder.Entity<WorkflowDefinition>(entity =>
-        {
-            entity.HasIndex(e => e.TenantId);
-            entity.HasIndex(e => e.EntityType);
-            entity.Property(e => e.Name).HasMaxLength(200);
-            entity.Property(e => e.EntityType).HasMaxLength(100);
-            entity.HasOne(e => e.Tenant).WithMany().HasForeignKey(e => e.TenantId).OnDelete(DeleteBehavior.NoAction);
-        });
-
-        modelBuilder.Entity<WorkflowStep>(entity =>
-        {
-            entity.HasIndex(e => e.WorkflowDefinitionId);
-            entity.Property(e => e.Name).HasMaxLength(200);
-            entity.Property(e => e.FromStatus).HasMaxLength(50);
-            entity.Property(e => e.ToStatus).HasMaxLength(50);
-            entity.Property(e => e.RequiredRole).HasMaxLength(50);
-            entity.HasOne(e => e.WorkflowDefinition).WithMany(d => d.Steps).HasForeignKey(e => e.WorkflowDefinitionId);
-        });
-
-        modelBuilder.Entity<WorkflowInstance>(entity =>
-        {
-            entity.HasIndex(e => e.TenantId);
-            entity.HasIndex(e => new { e.EntityType, e.EntityId });
-            entity.Property(e => e.EntityType).HasMaxLength(100);
-            entity.Property(e => e.CurrentStatus).HasMaxLength(50);
-            entity.HasOne(e => e.WorkflowDefinition).WithMany(d => d.Instances).HasForeignKey(e => e.WorkflowDefinitionId);
-            entity.HasOne(e => e.Tenant).WithMany().HasForeignKey(e => e.TenantId).OnDelete(DeleteBehavior.NoAction);
-            entity.HasOne(e => e.CurrentStep).WithMany().HasForeignKey(e => e.CurrentStepId).OnDelete(DeleteBehavior.NoAction);
-        });
-
-        modelBuilder.Entity<WorkflowHistory>(entity =>
-        {
-            entity.HasIndex(e => e.WorkflowInstanceId);
-            entity.Property(e => e.FromStatus).HasMaxLength(50);
-            entity.Property(e => e.ToStatus).HasMaxLength(50);
-            entity.Property(e => e.Action).HasMaxLength(100);
-            entity.HasOne(e => e.WorkflowInstance).WithMany(i => i.History).HasForeignKey(e => e.WorkflowInstanceId);
-            entity.HasOne(e => e.WorkflowStep).WithMany().HasForeignKey(e => e.WorkflowStepId).OnDelete(DeleteBehavior.NoAction);
-            entity.HasOne(e => e.PerformedBy).WithMany().HasForeignKey(e => e.PerformedById).OnDelete(DeleteBehavior.NoAction);
-        });
-
-        modelBuilder.Entity<WorkflowApproval>(entity =>
-        {
-            entity.HasIndex(e => e.WorkflowInstanceId);
-            entity.HasIndex(e => e.ApproverId);
-            entity.HasOne(e => e.WorkflowInstance).WithMany(i => i.Approvals).HasForeignKey(e => e.WorkflowInstanceId);
-            entity.HasOne(e => e.WorkflowStep).WithMany().HasForeignKey(e => e.WorkflowStepId).OnDelete(DeleteBehavior.NoAction);
-            entity.HasOne(e => e.Approver).WithMany().HasForeignKey(e => e.ApproverId).OnDelete(DeleteBehavior.NoAction);
-        });
-    }
-
-    private void ConfigureReportDefinition(ModelBuilder modelBuilder)
-    {
-        modelBuilder.Entity<ReportDefinition>(entity =>
-        {
-            entity.HasIndex(e => e.TenantId);
             entity.HasIndex(e => e.Category);
-            entity.Property(e => e.Name).HasMaxLength(200);
-            entity.Property(e => e.Category).HasMaxLength(50);
-            entity.Property(e => e.DefaultSortColumn).HasMaxLength(100);
-            entity.Property(e => e.CronExpression).HasMaxLength(100);
-            entity.Property(e => e.ScheduledFormat).HasMaxLength(20);
-            entity.HasOne(e => e.Tenant).WithMany().HasForeignKey(e => e.TenantId).OnDelete(DeleteBehavior.NoAction);
+            entity.Property(e => e.SettingKey).HasMaxLength(200);
+            entity.Property(e => e.SettingType).HasMaxLength(50);
+            entity.Property(e => e.Category).HasMaxLength(100);
+            entity.HasOne(e => e.Tenant)
+                .WithMany()
+                .HasForeignKey(e => e.TenantId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<TenantOnboarding>(entity =>
+        {
+            entity.HasIndex(e => e.TenantId).IsUnique();
+            entity.HasIndex(e => e.OnboardingStatus);
+            entity.HasIndex(e => e.ContactEmail);
+            entity.Property(e => e.CompanyName).HasMaxLength(200);
+            entity.Property(e => e.ContactPersonName).HasMaxLength(200);
+            entity.Property(e => e.ContactEmail).HasMaxLength(255);
+            entity.Property(e => e.OnboardingStatus).HasMaxLength(50);
+            entity.HasOne(e => e.Tenant)
+                .WithMany()
+                .HasForeignKey(e => e.TenantId)
+                .OnDelete(DeleteBehavior.Cascade);
         });
     }
 
