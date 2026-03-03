@@ -1,12 +1,11 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 
 import { BrowserRouter, MemoryRouter } from 'react-router-dom';
 
 import React from 'react';
 
- 
+
 
 // Mock auth service
 
@@ -18,7 +17,7 @@ const mockLogout = vi.fn();
 
 const mockForgotPassword = vi.fn();
 
- 
+
 
 vi.mock('../../services/auth.service', () => ({
 
@@ -42,7 +41,7 @@ vi.mock('../../services/auth.service', () => ({
 
 }));
 
- 
+
 
 vi.mock('../../hooks/useNotification', () => ({
 
@@ -70,7 +69,7 @@ vi.mock('../../hooks/useNotification', () => ({
 
 }));
 
- 
+
 
 describe('Authentication Flow', () => {
 
@@ -82,7 +81,7 @@ describe('Authentication Flow', () => {
 
   });
 
- 
+
 
   describe('Login Flow', () => {
 
@@ -90,7 +89,7 @@ describe('Authentication Flow', () => {
 
       const isValidEmail = (email: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 
- 
+
 
       expect(isValidEmail('user@example.com')).toBe(true);
 
@@ -100,13 +99,13 @@ describe('Authentication Flow', () => {
 
     });
 
- 
+
 
     it('should validate password is not empty', () => {
 
       const isValidPassword = (password: string) => password.trim().length > 0;
 
- 
+
 
       expect(isValidPassword('password123')).toBe(true);
 
@@ -116,7 +115,7 @@ describe('Authentication Flow', () => {
 
     });
 
- 
+
 
     it('should store tokens after successful login', async () => {
 
@@ -130,17 +129,17 @@ describe('Authentication Flow', () => {
 
       });
 
- 
+
 
       const result = await mockLogin({ email: 'test@test.com', password: 'password' });
 
- 
+
 
       localStorage.setItem('accessToken', result.accessToken);
 
       localStorage.setItem('refreshToken', result.refreshToken);
 
- 
+
 
       expect(localStorage.getItem('accessToken')).toBe('access-token-123');
 
@@ -148,7 +147,7 @@ describe('Authentication Flow', () => {
 
     });
 
- 
+
 
     it('should handle login failure', async () => {
 
@@ -158,7 +157,7 @@ describe('Authentication Flow', () => {
 
       });
 
- 
+
 
       try {
 
@@ -174,7 +173,7 @@ describe('Authentication Flow', () => {
 
   });
 
- 
+
 
   describe('Registration Flow', () => {
 
@@ -206,7 +205,7 @@ describe('Authentication Flow', () => {
 
       };
 
- 
+
 
       expect(validateRegistration({
 
@@ -220,7 +219,7 @@ describe('Authentication Flow', () => {
 
       })).toHaveLength(0);
 
- 
+
 
       expect(validateRegistration({
 
@@ -236,7 +235,7 @@ describe('Authentication Flow', () => {
 
     });
 
- 
+
 
     it('should handle successful registration', async () => {
 
@@ -250,7 +249,7 @@ describe('Authentication Flow', () => {
 
       });
 
- 
+
 
       const result = await mockRegister({
 
@@ -264,7 +263,7 @@ describe('Authentication Flow', () => {
 
       });
 
- 
+
 
       expect(result.user.email).toBe('new@test.com');
 
@@ -274,7 +273,7 @@ describe('Authentication Flow', () => {
 
   });
 
- 
+
 
   describe('Logout Flow', () => {
 
@@ -286,13 +285,13 @@ describe('Authentication Flow', () => {
 
       localStorage.setItem('user', '{"id":"1"}');
 
- 
+
 
       mockLogout.mockResolvedValue(undefined);
 
       await mockLogout();
 
- 
+
 
       localStorage.removeItem('accessToken');
 
@@ -300,7 +299,7 @@ describe('Authentication Flow', () => {
 
       localStorage.removeItem('user');
 
- 
+
 
       expect(localStorage.getItem('accessToken')).toBeNull();
 
@@ -312,7 +311,7 @@ describe('Authentication Flow', () => {
 
   });
 
- 
+
 
   describe('Password Reset Flow', () => {
 
@@ -326,7 +325,7 @@ describe('Authentication Flow', () => {
 
     });
 
- 
+
 
     it('should validate new password requirements', () => {
 
@@ -348,7 +347,7 @@ describe('Authentication Flow', () => {
 
       };
 
- 
+
 
       expect(validateNewPassword('StrongPass1', 'StrongPass1')).toHaveLength(0);
 
@@ -360,7 +359,7 @@ describe('Authentication Flow', () => {
 
   });
 
- 
+
 
   describe('Token Refresh', () => {
 
@@ -384,283 +383,13 @@ describe('Authentication Flow', () => {
 
       };
 
- 
+
 
       expect(isTokenExpired(null)).toBe(true);
 
       expect(isTokenExpired('')).toBe(true);
 
       expect(isTokenExpired('invalid-token')).toBe(true);
-
-    });
-
-  });
-
-});
-new file mode 100644
-@@ -0,0 +1,134 @@
-
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-
-import { render, screen, waitFor } from '@testing-library/react';
-
-import { BrowserRouter } from 'react-router-dom';
-
-import React from 'react';
-
- 
-
-// Mock services
-
-vi.mock('../../services/policy.service', () => ({
-
-  policyService: {
-
-    getPolicyStats: vi.fn().mockResolvedValue({
-
-      totalPolicies: 150,
-
-      activePolicies: 120,
-
-      totalPremium: 500000,
-
-    }),
-
-    getExpiringPolicies: vi.fn().mockResolvedValue([]),
-
-  },
-
-}));
-
- 
-
-vi.mock('../../services/claim.service', () => ({
-
-  claimService: {
-
-    getClaimStats: vi.fn().mockResolvedValue({
-
-      totalClaims: 45,
-
-      claimsByStatus: { submitted: 5 },
-
-      totalPaid: 150000,
-
-    }),
-
-    getClaims: vi.fn().mockResolvedValue({ items: [] }),
-
-  },
-
-}));
-
- 
-
-vi.mock('../../services/asset.service', () => ({
-
-  assetService: {
-
-    getAssetStats: vi.fn().mockResolvedValue({
-
-      totalAssets: 200,
-
-      totalValue: 1000000,
-
-    }),
-
-  },
-
-}));
-
- 
-
-vi.mock('../../services/dashboard.service', () => ({
-
-  dashboardService: {
-
-    getSummary: vi.fn().mockResolvedValue({
-
-      pendingClaims: 5,
-
-      expiringPolicies: 3,
-
-      overdueInvoices: 2,
-
-      pendingReviews: 1,
-
-    }),
-
-    getKPI: vi.fn().mockResolvedValue({
-
-      apiStatus: 'healthy',
-
-      dbStatus: 'healthy',
-
-      storageStatus: 'healthy',
-
-      uptime: 259200,
-
-      responseTime: 45,
-
-      memoryUsage: 62,
-
-      cpuUsage: 35,
-
-    }),
-
-  },
-
-}));
-
- 
-
-// Mock hooks
-
-vi.mock('../../hooks/useNotification', () => ({
-
-  useNotification: () => ({
-
-    showSuccess: vi.fn(),
-
-    showError: vi.fn(),
-
-    showNotification: vi.fn(),
-
-    notifications: [],
-
-    hideNotification: vi.fn(),
-
-    clearAll: vi.fn(),
-
-  }),
-
-}));
-
- 
-
-vi.mock('../../hooks/useAuth', () => ({
-
-  useAuth: () => ({
-
-    user: { firstName: 'Test', lastName: 'User', email: 'test@test.com' },
-
-    isAuthenticated: true,
-
-    isLoading: false,
-
-  }),
-
-}));
-
- 
-
-// Import after mocks
-
-import { Dashboard } from '../../pages/Dashboard/Dashboard';
-
- 
-
-const renderDashboard = () => {
-
-  return render(
-
-    <BrowserRouter>
-
-      <Dashboard />
-
-    </BrowserRouter>
-
-  );
-
-};
-
- 
-
-describe('Dashboard Page', () => {
-
-  beforeEach(() => {
-
-    vi.clearAllMocks();
-
-  });
-
- 
-
-  it('should render the dashboard title', async () => {
-
-    renderDashboard();
-
-    await waitFor(() => {
-
-      expect(screen.getByText('Dashboard')).toBeInTheDocument();
-
-    });
-
-  });
-
- 
-
-  it('should show loading state initially', () => {
-
-    renderDashboard();
-
-    // CircularProgress is rendered during loading
-
-    expect(document.querySelector('.MuiCircularProgress-root')).toBeTruthy();
-
-  });
-
- 
-
-  it('should render auto-refresh controls', async () => {
-
-    renderDashboard();
-
-    await waitFor(() => {
-
-      expect(screen.getByLabelText('Auto-refresh interval')).toBeInTheDocument();
-
-    });
-
-  });
-
- 
-
-  it('should render refresh button', async () => {
-
-    renderDashboard();
-
-    await waitFor(() => {
-
-      expect(screen.getByLabelText('Refresh dashboard data')).toBeInTheDocument();
-
-    });
-
-  });
-
- 
-
-  it('should render system health widget', async () => {
-
-    renderDashboard();
-
-    await waitFor(() => {
-
-      expect(screen.getByText('System Health')).toBeInTheDocument();
-
-    });
-
-  });
-
- 
-
-  it('should render task summary cards', async () => {
-
-    renderDashboard();
-
-    await waitFor(() => {
-
-      expect(screen.getByText('Task Summary')).toBeInTheDocument();
 
     });
 

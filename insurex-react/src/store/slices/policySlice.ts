@@ -1,6 +1,6 @@
 ﻿import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
 import { policyService } from '../../services/policy.service';
-import { Policy, PolicyFilter } from '../../types/policy.types';
+import { Policy, PolicyFilters } from '../../types/policy.types';
 
 interface PolicyState {
   policies: Policy[];
@@ -10,7 +10,7 @@ interface PolicyState {
   totalItems: number;
   currentPage: number;
   pageSize: number;
-  filters: PolicyFilter;
+  filters: PolicyFilters;
 }
 
 const initialState: PolicyState = {
@@ -26,8 +26,8 @@ const initialState: PolicyState = {
 
 export const fetchPolicies = createAsyncThunk(
   'policy/fetchPolicies',
-  async ({ page, pageSize, filters }: { page: number; pageSize: number; filters: PolicyFilter }) => {
-    const response = await policyService.getPolicies(page, pageSize, filters);
+  async ({ page, pageSize, filters }: { page: number; pageSize: number; filters: PolicyFilters }) => {
+    const response = await policyService.getAll(filters, page, pageSize);
     return response;
   }
 );
@@ -35,7 +35,7 @@ export const fetchPolicies = createAsyncThunk(
 export const fetchPolicyById = createAsyncThunk(
   'policy/fetchPolicyById',
   async (id: string) => {
-    const response = await policyService.getPolicy(id);
+    const response = await policyService.getById(id);
     return response;
   }
 );
@@ -43,7 +43,7 @@ export const fetchPolicyById = createAsyncThunk(
 export const createPolicy = createAsyncThunk(
   'policy/createPolicy',
   async (data: any) => {
-    const response = await policyService.createPolicy(data);
+    const response = await policyService.create(data);
     return response;
   }
 );
@@ -51,7 +51,7 @@ export const createPolicy = createAsyncThunk(
 export const updatePolicy = createAsyncThunk(
   'policy/updatePolicy',
   async ({ id, data }: { id: string; data: any }) => {
-    const response = await policyService.updatePolicy(id, data);
+    const response = await policyService.update(id, data);
     return response;
   }
 );
@@ -59,7 +59,7 @@ export const updatePolicy = createAsyncThunk(
 export const deletePolicy = createAsyncThunk(
   'policy/deletePolicy',
   async (id: string) => {
-    await policyService.deletePolicy(id);
+    await policyService.delete(id);
     return id;
   }
 );
@@ -68,7 +68,7 @@ const policySlice = createSlice({
   name: 'policy',
   initialState,
   reducers: {
-    setFilters: (state, action: PayloadAction<PolicyFilter>) => {
+    setFilters: (state, action: PayloadAction<PolicyFilters>) => {
       state.filters = action.payload;
     },
     clearFilters: (state) => {
@@ -93,8 +93,8 @@ const policySlice = createSlice({
       })
       .addCase(fetchPolicies.fulfilled, (state, action) => {
         state.loading = false;
-        state.policies = action.payload.items;
-        state.totalItems = action.payload.totalItems;
+        state.policies = action.payload.data;
+        state.totalItems = action.payload.total;
       })
       .addCase(fetchPolicies.rejected, (state, action) => {
         state.loading = false;

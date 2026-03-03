@@ -1,6 +1,15 @@
 import { useState, useCallback, useEffect } from 'react';
 import { assetService } from '../services/asset.service';
-import { Asset, CreateAssetData, UpdateAssetData, AssetFilters, AssetStats } from '../types/asset.types';
+import {
+  Asset,
+  CreateAssetData,
+  UpdateAssetData,
+  AssetFilters,
+  AssetStats,
+  AssetValuation,
+  Inspection,
+  CreateInspectionData
+} from '../types/asset.types';
 import { PaginatedResponse } from '../services/policy.service';
 
 interface UseAssetsOptions {
@@ -12,7 +21,7 @@ interface UseAssetsOptions {
 
 export const useAssets = (options: UseAssetsOptions = {}) => {
   const { page = 1, limit = 10, filters, autoFetch = true } = options;
-  
+
   const [assets, setAssets] = useState<Asset[]>([]);
   const [pagination, setPagination] = useState({
     page,
@@ -24,8 +33,8 @@ export const useAssets = (options: UseAssetsOptions = {}) => {
   const [error, setError] = useState<string | null>(null);
 
   const fetchAssets = useCallback(async (
-    fetchPage = page, 
-    fetchLimit = limit, 
+    fetchPage = page,
+    fetchLimit = limit,
     fetchFilters = filters
   ) => {
     setIsLoading(true);
@@ -116,6 +125,45 @@ export const useAssets = (options: UseAssetsOptions = {}) => {
     }
   }, []);
 
+  const getValuationHistory = useCallback(async (id: string) => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      return await assetService.getValuationHistory(id);
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Failed to fetch valuation history');
+      throw err;
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  const getInspections = useCallback(async (id: string) => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      return await assetService.getInspections(id);
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Failed to fetch inspections');
+      throw err;
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  const scheduleInspection = useCallback(async (data: CreateInspectionData) => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      return await assetService.scheduleInspection(data);
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Failed to schedule inspection');
+      throw err;
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
   return {
     assets,
     pagination,
@@ -126,6 +174,9 @@ export const useAssets = (options: UseAssetsOptions = {}) => {
     updateAsset,
     deleteAsset,
     getAsset,
+    getValuationHistory,
+    getInspections,
+    scheduleInspection,
   };
 };
 

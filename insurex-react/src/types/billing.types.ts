@@ -109,6 +109,10 @@ export interface Billing {
   type: BillingType;
   dueDate: string;
   createdAt: string;
+  invoiceNumber: string;
+  policyNumber?: string;
+  claimNumber?: string;
+  holderName: string;
 }
 
 // ==========================
@@ -142,8 +146,8 @@ export interface CreatePaymentData {
 
 export interface BillingFilters {
   search?: string;
-  status?: InvoiceStatus;
-  type?: InvoiceType;
+  status?: InvoiceStatus | BillingStatus;
+  type?: InvoiceType | BillingType;
   policyId?: string;
   holderId?: string;
   dueDateFrom?: string;

@@ -1,6 +1,14 @@
 import { useState, useCallback, useEffect } from 'react';
 import { partnerService } from '../services/partner.service';
-import { Partner, CreatePartnerData, UpdatePartnerData, PartnerFilters, PartnerStats } from '../types/partner.types';
+import {
+  Partner,
+  CreatePartnerData,
+  UpdatePartnerData,
+  PartnerFilters,
+  PartnerStats,
+  CreateCommissionRateData,
+  CreateContractData
+} from '../types/partner.types';
 import { PaginatedResponse } from '../services/policy.service';
 
 interface UsePartnersOptions {
@@ -12,7 +20,7 @@ interface UsePartnersOptions {
 
 export const usePartners = (options: UsePartnersOptions = {}) => {
   const { page = 1, limit = 10, filters, autoFetch = true } = options;
-  
+
   const [partners, setPartners] = useState<Partner[]>([]);
   const [pagination, setPagination] = useState({
     page,
@@ -24,8 +32,8 @@ export const usePartners = (options: UsePartnersOptions = {}) => {
   const [error, setError] = useState<string | null>(null);
 
   const fetchPartners = useCallback(async (
-    fetchPage = page, 
-    fetchLimit = limit, 
+    fetchPage = page,
+    fetchLimit = limit,
     fetchFilters = filters
   ) => {
     setIsLoading(true);
@@ -150,6 +158,58 @@ export const usePartners = (options: UsePartnersOptions = {}) => {
     }
   }, []);
 
+  const getCommissions = useCallback(async (partnerId: string) => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      return await partnerService.getCommissions(partnerId);
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Failed to fetch commissions');
+      throw err;
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  const addCommission = useCallback(async (data: CreateCommissionRateData) => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      return await partnerService.addCommission(data);
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Failed to add commission');
+      throw err;
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  const getContracts = useCallback(async (partnerId: string) => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      return await partnerService.getContracts(partnerId);
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Failed to fetch contracts');
+      throw err;
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  const addContract = useCallback(async (data: CreateContractData) => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      return await partnerService.addContract(data);
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Failed to add contract');
+      throw err;
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
   return {
     partners,
     pagination,
@@ -162,6 +222,10 @@ export const usePartners = (options: UsePartnersOptions = {}) => {
     getPartner,
     activatePartner,
     deactivatePartner,
+    getCommissions,
+    addCommission,
+    getContracts,
+    addContract,
   };
 };
 

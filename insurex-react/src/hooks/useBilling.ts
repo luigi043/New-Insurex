@@ -12,8 +12,8 @@ interface UseBillingOptions {
 
 export const useBilling = (options: UseBillingOptions = {}) => {
   const { page = 1, limit = 10, filters, autoFetch = true } = options;
-  
-  const [invoices, setInvoices] = useState<Invoice[]>([]);
+
+  const [billings, setBillings] = useState<Invoice[]>([]);
   const [pagination, setPagination] = useState({
     page,
     limit,
@@ -23,10 +23,10 @@ export const useBilling = (options: UseBillingOptions = {}) => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchInvoices = useCallback(async (
-    fetchPage = page, 
-    fetchLimit = limit, 
-    fetchFilters = filters
+  const fetchBillings = useCallback(async (
+    fetchFilters = filters,
+    fetchPage = page,
+    fetchLimit = limit
   ) => {
     setIsLoading(true);
     setError(null);
@@ -36,7 +36,7 @@ export const useBilling = (options: UseBillingOptions = {}) => {
         fetchPage,
         fetchLimit
       );
-      setInvoices(response.data);
+      setBillings(response.data);
       setPagination({
         page: response.page,
         limit: response.limit,
@@ -44,7 +44,7 @@ export const useBilling = (options: UseBillingOptions = {}) => {
         totalPages: response.totalPages,
       });
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Failed to fetch invoices');
+      setError(err.response?.data?.message || 'Failed to fetch billings');
     } finally {
       setIsLoading(false);
     }
@@ -52,16 +52,16 @@ export const useBilling = (options: UseBillingOptions = {}) => {
 
   useEffect(() => {
     if (autoFetch) {
-      fetchInvoices();
+      fetchBillings();
     }
-  }, [autoFetch, fetchInvoices]);
+  }, [autoFetch, fetchBillings]);
 
   const createInvoice = useCallback(async (data: CreateInvoiceData) => {
     setIsLoading(true);
     setError(null);
     try {
       const newInvoice = await billingService.create(data);
-      setInvoices((prev) => [newInvoice, ...prev]);
+      setBillings((prev) => [newInvoice, ...prev]);
       return newInvoice;
     } catch (err: any) {
       setError(err.response?.data?.message || 'Failed to create invoice');
@@ -76,7 +76,7 @@ export const useBilling = (options: UseBillingOptions = {}) => {
     setError(null);
     try {
       const updatedInvoice = await billingService.update(id, data);
-      setInvoices((prev) =>
+      setBillings((prev) =>
         prev.map((invoice) => (invoice.id === id ? updatedInvoice : invoice))
       );
       return updatedInvoice;
@@ -93,7 +93,7 @@ export const useBilling = (options: UseBillingOptions = {}) => {
     setError(null);
     try {
       await billingService.delete(id);
-      setInvoices((prev) => prev.filter((invoice) => invoice.id !== id));
+      setBillings((prev) => prev.filter((invoice) => invoice.id !== id));
     } catch (err: any) {
       setError(err.response?.data?.message || 'Failed to delete invoice');
       throw err;
@@ -121,7 +121,7 @@ export const useBilling = (options: UseBillingOptions = {}) => {
     setError(null);
     try {
       const sentInvoice = await billingService.sendInvoice(id);
-      setInvoices((prev) =>
+      setBillings((prev) =>
         prev.map((invoice) => (invoice.id === id ? sentInvoice : invoice))
       );
       return sentInvoice;
@@ -138,7 +138,7 @@ export const useBilling = (options: UseBillingOptions = {}) => {
     setError(null);
     try {
       const paidInvoice = await billingService.recordPayment(id, data);
-      setInvoices((prev) =>
+      setBillings((prev) =>
         prev.map((invoice) => (invoice.id === id ? paidInvoice : invoice))
       );
       return paidInvoice;
@@ -155,7 +155,7 @@ export const useBilling = (options: UseBillingOptions = {}) => {
     setError(null);
     try {
       const cancelledInvoice = await billingService.cancelInvoice(id, reason);
-      setInvoices((prev) =>
+      setBillings((prev) =>
         prev.map((invoice) => (invoice.id === id ? cancelledInvoice : invoice))
       );
       return cancelledInvoice;
@@ -181,12 +181,34 @@ export const useBilling = (options: UseBillingOptions = {}) => {
     }
   }, []);
 
+  const generateInvoice = useCallback(async (id: string) => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const blob = await billingService.generatePdf(id);
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `invoice-${id}.pdf`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Failed to generate invoice PDF');
+      throw err;
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
   return {
-    invoices,
+    billings,
     pagination,
+    totalBillings: pagination.total,
     isLoading,
+    loading: isLoading,
     error,
-    fetchInvoices,
+    fetchBillings,
     createInvoice,
     updateInvoice,
     deleteInvoice,
@@ -195,6 +217,7 @@ export const useBilling = (options: UseBillingOptions = {}) => {
     recordPayment,
     cancelInvoice,
     getOverdueInvoices,
+    generateInvoice,
   };
 };
 

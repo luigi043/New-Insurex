@@ -108,3 +108,37 @@ export interface AssetStats {
   byType: Record<AssetType, number>;
   byStatus: Record<AssetStatus, number>;
 }
+export interface AssetValuation {
+  id: string;
+  assetId: string;
+  value: number;
+  date: string;
+  source?: string;
+  notes?: string;
+}
+
+export interface Inspection {
+  id: string;
+  assetId: string;
+  inspectorName: string;
+  scheduledDate: string;
+  completedDate?: string;
+  status: InspectionStatus;
+  result?: string;
+  notes?: string;
+  documents?: AssetDocument[];
+}
+
+export enum InspectionStatus {
+  SCHEDULED = 'SCHEDULED',
+  IN_PROGRESS = 'IN_PROGRESS',
+  COMPLETED = 'COMPLETED',
+  CANCELLED = 'CANCELLED'
+}
+
+export interface CreateInspectionData {
+  assetId: string;
+  inspectorName: string;
+  scheduledDate: string;
+  notes?: string;
+}

@@ -1,10 +1,14 @@
 import apiClient from './api.service';
-import { 
-  Partner, 
-  CreatePartnerData, 
-  UpdatePartnerData, 
-  PartnerFilters, 
-  PartnerStats 
+import {
+  Partner,
+  CreatePartnerData,
+  UpdatePartnerData,
+  PartnerFilters,
+  PartnerStats,
+  CommissionRate,
+  PartnerContract,
+  CreateCommissionRateData,
+  CreateContractData
 } from '../types/partner.types';
 import { PaginatedResponse } from './policy.service';
 
@@ -13,7 +17,7 @@ class PartnerService {
     const params = new URLSearchParams();
     params.append('page', page.toString());
     params.append('limit', limit.toString());
-    
+
     if (filters) {
       Object.entries(filters).forEach(([key, value]) => {
         if (value !== undefined && value !== null && value !== '') {
@@ -21,7 +25,7 @@ class PartnerService {
         }
       });
     }
-    
+
     const response = await apiClient.get<PaginatedResponse<Partner>>(`/partners?${params.toString()}`);
     return response.data;
   }
@@ -64,7 +68,7 @@ class PartnerService {
     const formData = new FormData();
     formData.append('file', file);
     formData.append('name', name);
-    
+
     await apiClient.post(`/partners/${id}/documents`, formData, {
       headers: {
         'Content-Type': 'multipart/form-data',
@@ -74,6 +78,26 @@ class PartnerService {
 
   async deleteDocument(id: string, documentId: string): Promise<void> {
     await apiClient.delete(`/partners/${id}/documents/${documentId}`);
+  }
+
+  async getCommissions(partnerId: string): Promise<CommissionRate[]> {
+    const response = await apiClient.get<CommissionRate[]>(`/partners/${partnerId}/commissions`);
+    return response.data;
+  }
+
+  async addCommission(data: CreateCommissionRateData): Promise<CommissionRate> {
+    const response = await apiClient.post<CommissionRate>(`/partners/${data.partnerId}/commissions`, data);
+    return response.data;
+  }
+
+  async getContracts(partnerId: string): Promise<PartnerContract[]> {
+    const response = await apiClient.get<PartnerContract[]>(`/partners/${partnerId}/contracts`);
+    return response.data;
+  }
+
+  async addContract(data: CreateContractData): Promise<PartnerContract> {
+    const response = await apiClient.post<PartnerContract>(`/partners/${data.partnerId}/contracts`, data);
+    return response.data;
   }
 }
 

@@ -96,6 +96,20 @@ export interface UpdateClaimData extends Partial<CreateClaimData> {
   settlementDate?: string;
 }
 
+export interface ClaimFormData {
+  policyId: string;
+  assetId?: string;
+  type: ClaimType;
+  status: ClaimStatus;
+  description: string;
+  incidentDate: string;
+  incidentLocation?: string;
+  claimedAmount: number;
+  approvedAmount?: number;
+  documents?: any[];
+  notes?: string;
+}
+
 export interface ClaimFilters {
   search?: string;
   status?: ClaimStatus;

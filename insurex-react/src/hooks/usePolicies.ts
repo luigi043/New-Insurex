@@ -11,7 +11,7 @@ interface UsePoliciesOptions {
 
 export const usePolicies = (options: UsePoliciesOptions = {}) => {
   const { page = 1, limit = 10, filters, autoFetch = true } = options;
-  
+
   const [policies, setPolicies] = useState<Policy[]>([]);
   const [pagination, setPagination] = useState({
     page,
@@ -23,8 +23,8 @@ export const usePolicies = (options: UsePoliciesOptions = {}) => {
   const [error, setError] = useState<string | null>(null);
 
   const fetchPolicies = useCallback(async (
-    fetchPage = page, 
-    fetchLimit = limit, 
+    fetchPage = page,
+    fetchLimit = limit,
     fetchFilters = filters
   ) => {
     setIsLoading(true);
@@ -132,6 +132,59 @@ export const usePolicies = (options: UsePoliciesOptions = {}) => {
     }
   }, []);
 
+  const approvePolicy = useCallback(async (id: string) => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const approvedPolicy = await policyService.approve(id);
+      setPolicies((prev) =>
+        prev.map((policy) => (policy.id === id ? approvedPolicy : policy))
+      );
+      return approvedPolicy;
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Failed to approve policy');
+      throw err;
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  const suspendPolicy = useCallback(async (id: string, reason?: string) => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const suspendedPolicy = await policyService.suspend(id, reason);
+      setPolicies((prev) =>
+        prev.map((policy) => (policy.id === id ? suspendedPolicy : policy))
+      );
+      return suspendedPolicy;
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Failed to suspend policy');
+      throw err;
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  const renewPolicy = useCallback(async (id: string, data: Partial<CreatePolicyData>) => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const renewedPolicy = await policyService.renew(id, data);
+      setPolicies((prev) => [renewedPolicy, ...prev]);
+      return renewedPolicy;
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Failed to renew policy');
+      throw err;
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  const clearError = useCallback(() => {
+    setError(null);
+  }, []);
+
   return {
     policies,
     pagination,
@@ -143,6 +196,11 @@ export const usePolicies = (options: UsePoliciesOptions = {}) => {
     deletePolicy,
     getPolicy,
     cancelPolicy,
+    approvePolicy,
+    suspendPolicy,
+    renewPolicy,
+    getHistory: policyService.getHistory,
+    clearError,
   };
 };
 

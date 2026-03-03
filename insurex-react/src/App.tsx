@@ -1,4 +1,4 @@
-import React, { Suspense, lazy } from 'react';
+import { Suspense, lazy } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { CircularProgress, Box } from '@mui/material';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
@@ -28,7 +28,9 @@ const ClaimForm = lazy(() => import('./pages/claims/ClaimForm').then(m => ({ def
 const ClaimDetails = lazy(() => import('./pages/claims/ClaimDetails').then(m => ({ default: m.ClaimDetails })));
 const PartnerList = lazy(() => import('./pages/partners/PartnerList').then(m => ({ default: m.PartnerList })));
 const PartnerForm = lazy(() => import('./pages/partners/PartnerForm').then(m => ({ default: m.PartnerForm })));
+const PartnerDetails = lazy(() => import('./pages/partners/PartnerDetails').then(m => ({ default: m.PartnerDetails })));
 const BillingList = lazy(() => import('./pages/billing/BillingList').then(m => ({ default: m.BillingList })));
+const BillingDetails = lazy(() => import('./pages/billing/BillingDetails').then(m => ({ default: m.BillingDetails })));
 const Reports = lazy(() => import('./pages/reports/Reports').then(m => ({ default: m.Reports })));
 const Profile = lazy(() => import('./pages/profile/Profile').then(m => ({ default: m.Profile })));
 const Settings = lazy(() => import('./pages/settings/Settings').then(m => ({ default: m.Settings })));
@@ -53,25 +55,58 @@ const theme = createTheme({
   palette: {
     mode: 'light',
     primary: {
-      main: '#1976d2',
+      main: '#2563eb', // Modern Blue
+      light: '#60a5fa',
+      dark: '#1e40af',
     },
     secondary: {
-      main: '#dc004e',
+      main: '#7c3aed', // Modern Purple
+      light: '#a78bfa',
+      dark: '#5b21b6',
     },
     background: {
-      default: '#f5f5f5',
+      default: '#f8fafc',
+      paper: '#ffffff',
+    },
+    text: {
+      primary: '#1e293b',
+      secondary: '#64748b',
     },
   },
   typography: {
-    fontFamily: [
-      '-apple-system',
-      'BlinkMacSystemFont',
-      '"Segoe UI"',
-      'Roboto',
-      '"Helvetica Neue"',
-      'Arial',
-      'sans-serif',
-    ].join(','),
+    fontFamily: '"Inter", "Roboto", "Helvetica", "Arial", sans-serif',
+    h1: { fontWeight: 700 },
+    h2: { fontWeight: 700 },
+    h3: { fontWeight: 700 },
+    h4: { fontWeight: 600 },
+    h5: { fontWeight: 600 },
+    h6: { fontWeight: 600 },
+    button: { textTransform: 'none', fontWeight: 500 },
+  },
+  shape: {
+    borderRadius: 8,
+  },
+  components: {
+    MuiButton: {
+      styleOverrides: {
+        root: {
+          boxShadow: 'none',
+          '&:hover': {
+            boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)',
+          },
+        },
+        containedPrimary: {
+          background: 'var(--primary-gradient)',
+        },
+      },
+    },
+    MuiPaper: {
+      styleOverrides: {
+        root: {
+          boxShadow: 'var(--surface-shadow)',
+        },
+      },
+    },
   },
 });
 
@@ -132,11 +167,15 @@ function App() {
                   <Route path="partners">
                     <Route index element={<PartnerList />} />
                     <Route path="new" element={<PartnerForm />} />
-                    <Route path=":id" element={<PartnerForm />} />
+                    <Route path=":id" element={<PartnerDetails />} />
+                    <Route path="edit/:id" element={<PartnerForm />} />
                   </Route>
 
                   {/* Billing */}
-                  <Route path="billing" element={<BillingList />} />
+                  <Route path="billing">
+                    <Route index element={<BillingList />} />
+                    <Route path=":id" element={<BillingDetails />} />
+                  </Route>
 
                   {/* Reports */}
                   <Route path="reports" element={<Reports />} />

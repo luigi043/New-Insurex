@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-
 import { useNavigate } from 'react-router-dom';
 import {
   Box,
@@ -36,16 +35,15 @@ import {
   FilterList,
   Payment,
   Receipt,
-  CheckCircle,
-  Warning,
-  Cancel,
   Schedule,
   PictureAsPdf
 } from '@mui/icons-material';
 import { useBilling } from '../../hooks/useBilling';
-import { BillingStatus, BillingType } from '../../types/billing.types';
+import { BillingStatus, BillingType, InvoiceStatus } from '../../types/billing.types';
 import { formatCurrency, formatDate } from '../../utils/formatters';
 import { useNotification } from '../../hooks/useNotification';
+import { PaymentReminderDialog } from '../../components/Billing/PaymentReminderDialog';
+import { generateInvoicePDF as generatePDFUtility } from '../../utils/InvoicePDFGenerator';
 
 const billingStatuses = [
   { value: '', label: 'Todos' },
@@ -55,23 +53,28 @@ const billingStatuses = [
   { value: BillingStatus.CANCELLED, label: 'Cancelado' }
 ];
 
-const billingStatusColors: Record<BillingStatus, 'success' | 'error' | 'warning' | 'default' | 'info'> = {
+const billingStatusColors: Record<string, 'success' | 'error' | 'warning' | 'default' | 'info'> = {
   [BillingStatus.PENDING]: 'warning',
   [BillingStatus.PAID]: 'success',
   [BillingStatus.OVERDUE]: 'error',
   [BillingStatus.CANCELLED]: 'default',
-  [BillingStatus.PARTIAL]: 'info'
+  [BillingStatus.PARTIAL]: 'info',
+  [InvoiceStatus.SENT]: 'info',
+  // Deduplicated duplicates (PAID and OVERDUE are same strings)
 };
 
-const billingStatusLabels: Record<BillingStatus, string> = {
+const billingStatusLabels: Record<string, string> = {
   [BillingStatus.PENDING]: 'Pendente',
   [BillingStatus.PAID]: 'Pago',
   [BillingStatus.OVERDUE]: 'Vencido',
   [BillingStatus.CANCELLED]: 'Cancelado',
-  [BillingStatus.PARTIAL]: 'Parcial'
+  [BillingStatus.PARTIAL]: 'Parcial',
+  [InvoiceStatus.SENT]: 'Enviado',
+  [InvoiceStatus.DRAFT]: 'Rascunho'
+  // Deduplicated PAID and OVERDUE
 };
 
-const billingTypeLabels: Record<BillingType, string> = {
+const billingTypeLabels: Record<string, string> = {
   [BillingType.PREMIUM]: 'Prêmio',
   [BillingType.COMMISSION]: 'Comissão',
   [BillingType.FEE]: 'Taxa',
@@ -81,14 +84,15 @@ const billingTypeLabels: Record<BillingType, string> = {
 
 export const BillingList: React.FC = () => {
   const navigate = useNavigate();
-  const { showSuccess, showError } = useNotification();
+  const { showNotification } = useNotification();
   const { billings, loading, error, fetchBillings, totalBillings, generateInvoice } = useBilling();
 
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState<BillingStatus | ''>('');
+  const [statusFilter, setStatusFilter] = useState<any>('');
   const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
+  const [reminderDialogOpen, setReminderDialogOpen] = useState(false);
   const [selectedBilling, setSelectedBilling] = useState<any>(null);
 
   useEffect(() => {
@@ -98,13 +102,11 @@ export const BillingList: React.FC = () => {
   const loadBillings = async () => {
     try {
       await fetchBillings({
-        page: page + 1,
-        limit: rowsPerPage,
+        search: searchTerm || undefined,
         status: statusFilter || undefined,
-        search: searchTerm || undefined
-      });
+      }, page + 1, rowsPerPage);
     } catch (err) {
-      showError('Erro ao carregar faturas');
+      showNotification('error', 'Erro ao carregar faturas');
     }
   };
 
@@ -132,9 +134,9 @@ export const BillingList: React.FC = () => {
   const handleGenerateInvoice = async (billingId: string) => {
     try {
       await generateInvoice(billingId);
-      showSuccess('Fatura gerada com sucesso!');
+      showNotification('success', 'Fatura gerada com sucesso!');
     } catch (err) {
-      showError('Erro ao gerar fatura');
+      showNotification('error', 'Erro ao gerar fatura');
     }
   };
 
@@ -143,15 +145,25 @@ export const BillingList: React.FC = () => {
     setPaymentDialogOpen(true);
   };
 
+  const openReminderDialog = (billing: any) => {
+    setSelectedBilling(billing);
+    setReminderDialogOpen(true);
+  };
+
+  const handleClientSidePdf = (billing: any) => {
+    generatePDFUtility(billing);
+    showNotification('success', 'PDF gerado localmente com sucesso!');
+  };
+
   const pendingAmount = billings
-    .filter(b => b.status === BillingStatus.PENDING || b.status === BillingStatus.OVERDUE)
-    .reduce((sum, b) => sum + b.amount, 0);
-  
-  const paidAmount = billings
-    .filter(b => b.status === BillingStatus.PAID)
+    .filter(b => b.status === BillingStatus.PENDING || (b.status as string) === InvoiceStatus.OVERDUE)
     .reduce((sum, b) => sum + b.amount, 0);
 
-  const overdueCount = billings.filter(b => b.status === BillingStatus.OVERDUE).length;
+  const paidAmount = billings
+    .filter(b => b.status === BillingStatus.PAID || (b.status as string) === InvoiceStatus.PAID)
+    .reduce((sum, b) => sum + b.amount, 0);
+
+  const overdueCount = billings.filter(b => (b.status as string) === BillingStatus.OVERDUE || (b.status as string) === InvoiceStatus.OVERDUE).length;
 
   return (
     <Box>
@@ -210,7 +222,7 @@ export const BillingList: React.FC = () => {
               select
               label="Status"
               value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value as BillingStatus | '')}
+              onChange={(e) => setStatusFilter(e.target.value)}
             >
               {billingStatuses.map((status) => (
                 <MenuItem key={status.value} value={status.value}>
@@ -265,19 +277,19 @@ export const BillingList: React.FC = () => {
                 </TableCell>
               </TableRow>
             ) : (
-              billings.map((billing) => (
+              billings.map((billing: any) => (
                 <TableRow key={billing.id} hover>
                   <TableCell>{billing.invoiceNumber}</TableCell>
-                  <TableCell>{billingTypeLabels[billing.type]}</TableCell>
+                  <TableCell>{billingTypeLabels[billing.type] || billing.type}</TableCell>
                   <TableCell>
-                    {billing.policy?.policyNumber || billing.claim?.claimNumber || 'N/A'}
+                    {billing.policyNumber || billing.claimNumber || 'N/A'}
                   </TableCell>
                   <TableCell>{formatDate(billing.dueDate)}</TableCell>
                   <TableCell>{formatCurrency(billing.amount)}</TableCell>
                   <TableCell>
                     <Chip
-                      label={billingStatusLabels[billing.status]}
-                      color={billingStatusColors[billing.status]}
+                      label={billingStatusLabels[billing.status] || billing.status}
+                      color={billingStatusColors[billing.status] || 'default'}
                       size="small"
                     />
                   </TableCell>
@@ -290,7 +302,7 @@ export const BillingList: React.FC = () => {
                         <Visibility />
                       </IconButton>
                     </Tooltip>
-                    <Tooltip title="Gerar PDF">
+                    <Tooltip title="Gerar PDF (Servidor)">
                       <IconButton
                         size="small"
                         onClick={() => handleGenerateInvoice(billing.id)}
@@ -298,7 +310,15 @@ export const BillingList: React.FC = () => {
                         <PictureAsPdf />
                       </IconButton>
                     </Tooltip>
-                    {billing.status === BillingStatus.PENDING && (
+                    <Tooltip title="Gerar PDF (Local)">
+                      <IconButton
+                        size="small"
+                        onClick={() => handleClientSidePdf(billing)}
+                      >
+                        <Receipt />
+                      </IconButton>
+                    </Tooltip>
+                    {(billing.status === BillingStatus.PENDING || billing.status === (InvoiceStatus.SENT as any)) && (
                       <Tooltip title="Registrar Pagamento">
                         <IconButton
                           size="small"
@@ -306,6 +326,17 @@ export const BillingList: React.FC = () => {
                           onClick={() => openPaymentDialog(billing)}
                         >
                           <Payment />
+                        </IconButton>
+                      </Tooltip>
+                    )}
+                    {(billing.status === BillingStatus.OVERDUE || billing.status === (InvoiceStatus.OVERDUE as any)) && (
+                      <Tooltip title="Enviar Lembrete">
+                        <IconButton
+                          size="small"
+                          color="warning"
+                          onClick={() => openReminderDialog(billing)}
+                        >
+                          <Schedule />
                         </IconButton>
                       </Tooltip>
                     )}
@@ -351,12 +382,12 @@ export const BillingList: React.FC = () => {
             sx={{ mt: 2 }}
             defaultValue=""
           >
-            <MenuItem value="credit_card">Cartão de Crédito</MenuItem>
-            <MenuItem value="debit_card">Cartão de Débito</MenuItem>
-            <MenuItem value="bank_transfer">Transferência Bancária</MenuItem>
-            <MenuItem value="boleto">Boleto</MenuItem>
-            <MenuItem value="cash">Dinheiro</MenuItem>
-            <MenuItem value="pix">PIX</MenuItem>
+            <MenuItem value="CREDIT_CARD">Cartão de Crédito</MenuItem>
+            <MenuItem value="DEBIT_CARD">Cartão de Débito</MenuItem>
+            <MenuItem value="BANK_TRANSFER">Transferência Bancária</MenuItem>
+            <MenuItem value="BOLETO">Boleto</MenuItem>
+            <MenuItem value="CASH">Dinheiro</MenuItem>
+            <MenuItem value="PIX">PIX</MenuItem>
           </TextField>
           <TextField
             fullWidth
@@ -373,6 +404,12 @@ export const BillingList: React.FC = () => {
           </Button>
         </DialogActions>
       </Dialog>
+
+      <PaymentReminderDialog
+        open={reminderDialogOpen}
+        onClose={() => setReminderDialogOpen(false)}
+        invoice={selectedBilling}
+      />
     </Box>
   );
 };

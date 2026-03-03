@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import {
   Box,
@@ -48,6 +48,9 @@ import { AssetStatus, AssetType } from '../../types/asset.types';
 import { formatCurrency, formatDate } from '../../utils/formatters';
 import { ConfirmDialog } from '../../components/Common/ConfirmDialog';
 import { useNotification } from '../../hooks/useNotification';
+import { AssetValuationChart } from '../../components/Assets/AssetValuationChart';
+import { AssetInspectionScheduler } from '../../components/Assets/AssetInspectionScheduler';
+import { TrendingUp } from '@mui/icons-material';
 
 const assetTypeLabels: Record<AssetType, string> = {
   [AssetType.VEHICLE]: 'Veículo',
@@ -56,55 +59,91 @@ const assetTypeLabels: Record<AssetType, string> = {
   [AssetType.OTHER]: 'Outro'
 };
 
-const assetStatusColors: Record<AssetStatus, 'success' | 'error' | 'warning' | 'default'> = {
+const assetStatusColors: Record<AssetStatus, 'success' | 'error' | 'warning' | 'default' | 'info'> = {
   [AssetStatus.ACTIVE]: 'success',
-  [AssetStatus.INACTIVE]: 'error',
-  [AssetStatus.UNDER_MAINTENANCE]: 'warning',
-  [AssetStatus.DISPOSED]: 'default'
+  [AssetStatus.INSURED]: 'info',
+  [AssetStatus.PENDING]: 'warning',
+  [AssetStatus.SOLD]: 'default',
+  [AssetStatus.DISPOSED]: 'default',
+  [AssetStatus.DAMAGED]: 'error',
+  [AssetStatus.LOST]: 'error'
 };
 
 const assetStatusLabels: Record<AssetStatus, string> = {
   [AssetStatus.ACTIVE]: 'Ativo',
-  [AssetStatus.INACTIVE]: 'Inativo',
-  [AssetStatus.UNDER_MAINTENANCE]: 'Em Manutenção',
-  [AssetStatus.DISPOSED]: 'Descartado'
+  [AssetStatus.INSURED]: 'Segurado',
+  [AssetStatus.PENDING]: 'Pendente',
+  [AssetStatus.SOLD]: 'Vendido',
+  [AssetStatus.DISPOSED]: 'Baixado',
+  [AssetStatus.DAMAGED]: 'Danificado',
+  [AssetStatus.LOST]: 'Extraviado'
 };
 
 export const AssetDetails: React.FC = () => {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
-  const { showSuccess, showError } = useNotification();
-  
-  const { getAssetById, deleteAsset, loading, error } = useAssets();
+  const { showNotification } = useNotification();
+
+  const {
+    getAsset,
+    deleteAsset,
+    getValuationHistory,
+    getInspections,
+    scheduleInspection,
+    isLoading
+  } = useAssets({ autoFetch: false });
+
   const [asset, setAsset] = useState<any>(null);
+  const [valuationHistory, setValuationHistory] = useState<any[]>([]);
+  const [inspections, setInspections] = useState<any[]>([]);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [imageDialogOpen, setImageDialogOpen] = useState(false);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const [localLoading, setLocalLoading] = useState(true);
+
+  const loadAsset = useCallback(async (assetId: string) => {
+    try {
+      setLocalLoading(true);
+      const [assetData, historyData, inspectionsData] = await Promise.all([
+        getAsset(assetId),
+        getValuationHistory(assetId),
+        getInspections(assetId)
+      ]);
+      setAsset(assetData);
+      setValuationHistory(historyData || []);
+      setInspections(inspectionsData || []);
+    } catch (err) {
+      showNotification('error', 'Erro ao carregar detalhes do bem');
+    } finally {
+      setLocalLoading(false);
+    }
+  }, [getAsset, getValuationHistory, getInspections, showNotification]);
 
   useEffect(() => {
     if (id) {
       loadAsset(id);
     }
-  }, [id]);
+  }, [id, loadAsset]);
 
-  const loadAsset = async (assetId: string) => {
+  const handleScheduleInspection = async (data: any) => {
     try {
-      const data = await getAssetById(assetId);
-      setAsset(data);
+      const newInspection = await scheduleInspection(data);
+      setInspections(prev => [newInspection, ...prev]);
+      return newInspection;
     } catch (err) {
-      showError('Erro ao carregar detalhes do bem');
+      throw err;
     }
   };
 
   const handleDelete = async () => {
     if (!id) return;
-    
+
     try {
       await deleteAsset(id);
-      showSuccess('Bem excluído com sucesso!');
+      showNotification('success', 'Bem excluído com sucesso!');
       navigate('/assets');
     } catch (err) {
-      showError('Erro ao excluir bem');
+      showNotification('error', 'Erro ao excluir bem');
     }
   };
 
@@ -113,7 +152,7 @@ export const AssetDetails: React.FC = () => {
     setImageDialogOpen(true);
   };
 
-  if (loading) {
+  if (localLoading || isLoading) {
     return (
       <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
         <CircularProgress />
@@ -121,14 +160,14 @@ export const AssetDetails: React.FC = () => {
     );
   }
 
-  if (error || !asset) {
+  if (!asset) {
     return (
       <Box>
         <Button startIcon={<ArrowBack />} onClick={() => navigate('/assets')} sx={{ mb: 2 }}>
           Voltar
         </Button>
         <Alert severity="error">
-          {error || 'Bem não encontrado'}
+          Bem não encontrado
         </Alert>
       </Box>
     );
@@ -143,8 +182,8 @@ export const AssetDetails: React.FC = () => {
           </Button>
           <Typography variant="h4">{asset.name}</Typography>
           <Chip
-            label={assetStatusLabels[asset.status]}
-            color={assetStatusColors[asset.status]}
+            label={assetStatusLabels[asset.status as AssetStatus] || asset.status}
+            color={assetStatusColors[asset.status as AssetStatus] || 'default'}
             size="small"
           />
         </Box>
@@ -178,7 +217,7 @@ export const AssetDetails: React.FC = () => {
             <Grid container spacing={2}>
               <Grid item xs={12} sm={6}>
                 <Typography variant="subtitle2" color="text.secondary">Tipo</Typography>
-                <Typography>{assetTypeLabels[asset.type]}</Typography>
+                <Typography>{assetTypeLabels[asset.type as AssetType] || asset.type}</Typography>
               </Grid>
               <Grid item xs={12} sm={6}>
                 <Typography variant="subtitle2" color="text.secondary">Valor</Typography>
@@ -233,7 +272,7 @@ export const AssetDetails: React.FC = () => {
           </Paper>
 
           {asset.documents && asset.documents.length > 0 && (
-            <Paper sx={{ p: 3 }}>
+            <Paper sx={{ p: 3, mb: 3 }}>
               <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                 <Description />
                 Documentos
@@ -251,7 +290,7 @@ export const AssetDetails: React.FC = () => {
                         src={doc.url}
                         alt={doc.name}
                         loading="lazy"
-                        style={{ height: 150, objectFit: 'cover', borderRadius: 8 }}
+                        style={{ height: 150, width: '100%', objectFit: 'cover', borderRadius: 8 }}
                       />
                     ) : (
                       <Box
@@ -276,6 +315,17 @@ export const AssetDetails: React.FC = () => {
               </ImageList>
             </Paper>
           )}
+
+          <Paper sx={{ p: 3, mb: 3 }}>
+            <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <TrendingUp />
+              Histórico de Valorização
+            </Typography>
+            <Divider sx={{ mb: 2 }} />
+            <Box sx={{ px: 2 }}>
+              <AssetValuationChart data={valuationHistory} />
+            </Box>
+          </Paper>
         </Grid>
 
         <Grid item xs={12} lg={4}>
@@ -286,12 +336,9 @@ export const AssetDetails: React.FC = () => {
                 Apólice Vinculada
               </Typography>
               <Divider sx={{ mb: 2 }} />
-              {asset.policy ? (
+              {asset.policyId ? (
                 <Box>
-                  <Typography variant="subtitle1">{asset.policy.name}</Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    Nº: {asset.policy.policyNumber}
-                  </Typography>
+                  <Typography variant="subtitle1">{asset.policyNumber || 'Apólice'}</Typography>
                   <Button
                     size="small"
                     sx={{ mt: 1 }}
@@ -308,6 +355,16 @@ export const AssetDetails: React.FC = () => {
             </CardContent>
           </Card>
 
+          <Card sx={{ mb: 3 }}>
+            <CardContent>
+              <AssetInspectionScheduler
+                assetId={id || ''}
+                inspections={inspections}
+                onSchedule={handleScheduleInspection}
+              />
+            </CardContent>
+          </Card>
+
           <Card>
             <CardContent>
               <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
@@ -320,15 +377,15 @@ export const AssetDetails: React.FC = () => {
                   {asset.claims.map((claim: any) => (
                     <ListItem
                       key={claim.id}
-                      button
+                      sx={{ cursor: 'pointer', '&:hover': { bgcolor: 'action.hover' } }}
                       onClick={() => navigate(`/claims/${claim.id}`)}
                     >
-                      <ListItemIcon>
+                      <ListItemIcon sx={{ minWidth: 40 }}>
                         <Warning color={claim.status === 'APPROVED' ? 'success' : 'warning'} />
                       </ListItemIcon>
                       <ListItemText
                         primary={claim.description}
-                        secondary={formatDate(claim.date)}
+                        secondary={formatDate(claim.incidentDate || claim.date)}
                       />
                     </ListItem>
                   ))}

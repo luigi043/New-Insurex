@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, createContext, useContext } from 'react';
 import { authService } from '../services/auth.service';
-import { User, LoginCredentials, RegisterData, UpdateProfileData, ChangePasswordData } from '../types/auth.types';
+import { User, LoginCredentials, RegisterData, UpdateProfileData, ChangePasswordData, ResetPasswordData } from '../types/auth.types';
 
 interface AuthContextType {
   user: User | null;
@@ -15,6 +15,8 @@ interface AuthContextType {
   verifyEmail: (token: string) => Promise<void>;
   resendVerificationEmail: (email: string) => Promise<void>;
   verify2FA: (code: string) => Promise<void>;
+  forgotPassword: (email: string) => Promise<void>;
+  resetPassword: (data: ResetPasswordData) => Promise<void>;
   clearError: () => void;
 }
 
@@ -149,6 +151,32 @@ export const useAuthProvider = () => {
     }
   }, []);
 
+  const forgotPassword = useCallback(async (email: string) => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      await authService.forgotPassword({ email });
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Failed to send reset email.');
+      throw err;
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  const resetPassword = useCallback(async (data: ResetPasswordData) => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      await authService.resetPassword(data);
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Failed to reset password.');
+      throw err;
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
   const clearError = useCallback(() => {
     setError(null);
   }, []);
@@ -164,8 +192,10 @@ export const useAuthProvider = () => {
     updateProfile,
     changePassword,
     verifyEmail,
-    resendVerificationEmail,
+    verifyVerificationEmail: resendVerificationEmail, // Alias if needed or just use original
     verify2FA,
+    forgotPassword,
+    resetPassword,
     clearError,
   };
 };

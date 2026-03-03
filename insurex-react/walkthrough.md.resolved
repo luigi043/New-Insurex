@@ -1,0 +1,56 @@
+# Walkthrough - React Frontend Completion
+
+I have completed the requested frontend tasks, focusing on finishing the authentication flow, enhancing the user profile, and establishing a testing framework.
+
+## Changes Made
+
+### Authentication & Security
+- **Auth Service**: Added [verifyEmail](file:///c:/Users/cluiz/source/repos/New%20folder/New-Insurex/insurex-react/src/pages/auth/EmailVerification.tsx#79-102), [resendVerificationEmail](file:///c:/Users/cluiz/source/repos/New%20folder/New-Insurex/insurex-react/src/services/auth.service.ts#70-73), and [verify2FA](file:///c:/Users/cluiz/source/repos/New%20folder/New-Insurex/insurex-react/src/services/auth.service.ts#74-77) methods to [auth.service.ts](file:///c:/Users/cluiz/source/repos/New folder/New-Insurex/insurex-react/src/services/auth.service.ts).
+- **Custom Hook**: Extended [useAuth.ts](file:///c:/Users/cluiz/source/repos/New folder/New-Insurex/insurex-react/src/hooks/useAuth.ts) to expose these new methods.
+- **2FA UI**: Created a new [TwoFactorAuth.tsx](file:///c:/Users/cluiz/source/repos/New folder/New-Insurex/insurex-react/src/pages/auth/TwoFactorAuth.tsx) page and integrated it into the routing in [App.tsx](file:///c:/Users/cluiz/source/repos/New folder/New-Insurex/insurex-react/src/App.tsx).
+- **Profile Page**: Updated the 'Segurança' tab in [Profile.tsx](file:///c:/Users/cluiz/source/repos/New folder/New-Insurex/insurex-react/src/pages/profile/Profile.tsx) to include a 2FA toggle button and status indicator.
+
+### Claims Module
+- **Processing Interface**: Implemented full claim lifecycle management (approve, reject, request info, settle) in [ClaimDetails.tsx](file:///c:/Users/cluiz/source/repos/New folder/New-Insurex/insurex-react/src/pages/claims/ClaimDetails.tsx).
+- **Payment & Notes**: Added payment processing modal and a comprehensive timeline for status history and internal notes.
+- **Hook Integration**: Updated [useClaims.ts](file:///c:/Users/cluiz/source/repos/New folder/New-Insurex/insurex-react/src/hooks/useClaims.ts) with new state management logic for status transitions.
+
+### Assets Module
+- **Valuation Chart**: Created [AssetValuationChart.tsx](file:///c:/Users/cluiz/source/repos/New folder/New-Insurex/insurex-react/src/components/Assets/AssetValuationChart.tsx) using Recharts to visualize asset value over time.
+- **Inspection Scheduler**: Developed [AssetInspectionScheduler.tsx](file:///c:/Users/cluiz/source/repos/New folder/New-Insurex/insurex-react/src/components/Assets/AssetInspectionScheduler.tsx) for managing maintenance and safety checks.
+- **Multi-Step Wizard**: Refined [AssetForm.tsx](file:///c:/Users/cluiz/source/repos/New folder/New-Insurex/insurex-react/src/pages/assets/AssetForm.tsx) into a clear 4-step creation process.
+- **Service Layer**: Enhanced [AssetService.ts](file:///c:/Users/cluiz/source/repos/New folder/New-Insurex/insurex-react/src/services/asset.service.ts) and [useAssets.ts](file:///c:/Users/cluiz/source/repos/New folder/New-Insurex/insurex-react/src/hooks/useAssets.ts) to support historical data and scheduling.
+
+### Partners Module
+- **Dashboard**: Created [PartnerDashboard.tsx](file:///c:/Users/cluiz/source/repos/New folder/New-Insurex/insurex-react/src/components/Partners/PartnerDashboard.tsx) for performance overview.
+- **Commission Config**: Implemented [CommissionConfig.tsx](file:///c:/Users/cluiz/source/repos/New folder/New-Insurex/insurex-react/src/components/Partners/CommissionConfig.tsx) for rate management.
+- **Contract Management**: Added contract list and details integration in the dashboard.
+
+### Billing Module
+- **PDF Generation**: Added client-side PDF export in [InvoicePDFGenerator.ts](file:///c:/Users/cluiz/source/repos/New folder/New-Insurex/insurex-react/src/utils/InvoicePDFGenerator.ts).
+- **Payment Reminders**: Developed [PaymentReminderDialog.tsx](file:///c:/Users/cluiz/source/repos/New folder/New-Insurex/insurex-react/src/components/Billing/PaymentReminderDialog.tsx) for overdue invoices.
+- **Fatura Detalhada**: Created [BillingDetails.tsx](file:///c:/Users/cluiz/source/repos/New folder/New-Insurex/insurex-react/src/pages/billing/BillingDetails.tsx) for itemized viewing.
+- **Service Integration**: Synchronized types and updated [useBilling.ts](file:///c:/Users/cluiz/source/repos/New folder/New-Insurex/insurex-react/src/hooks/useBilling.ts).
+
+### Testing Suite
+- **Cypress Setup**: Installed and configured Cypress in the project.
+- **E2E Test**: Added an initial E2E test suite [login.cy.ts](file:///c:/Users/cluiz/source/repos/New folder/New-Insurex/insurex-react/cypress/e2e/login.cy.ts) to verify the login flow.
+
+## Verification Results
+
+### Automated Tests
+- **Cypress**: Configuration validated. The login test is ready to be run with `npx cypress open` or `npx cypress run`.
+
+### Manual Testing Points
+1. **Login & 2FA**:
+   - The `/auth/two-factor` route is now accessible.
+   - The UI correctly handles 6-digit input and provides visual feedback.
+2. **Profile Security**:
+   - Users can now toggle 2FA directly from their profile page.
+   - Success/Error notifications are integrated.
+3. **Email Verification**:
+   - The `/verify-email` page is now fully functional with backend integration for both token verification and link resending.
+
+## Next Steps
+- Continue adding E2E tests for core modules (Policies, Assets, Claims).
+- Run a final Lighthouse audit to ensure accessibility targets (95+) are met.

@@ -1,10 +1,10 @@
 import apiClient from './api.service';
-import { 
-  Policy, 
-  CreatePolicyData, 
-  UpdatePolicyData, 
-  PolicyFilters, 
-  PolicyStats 
+import {
+  Policy,
+  CreatePolicyData,
+  UpdatePolicyData,
+  PolicyFilters,
+  PolicyStats
 } from '../types/policy.types';
 
 export interface PaginatedResponse<T> {
@@ -20,7 +20,7 @@ class PolicyService {
     const params = new URLSearchParams();
     params.append('page', page.toString());
     params.append('limit', limit.toString());
-    
+
     if (filters) {
       Object.entries(filters).forEach(([key, value]) => {
         if (value !== undefined && value !== null && value !== '') {
@@ -28,7 +28,7 @@ class PolicyService {
         }
       });
     }
-    
+
     const response = await apiClient.get<PaginatedResponse<Policy>>(`/policies?${params.toString()}`);
     return response.data;
   }
@@ -77,11 +77,21 @@ class PolicyService {
     return response.data;
   }
 
+  async approve(id: string): Promise<Policy> {
+    const response = await apiClient.post<Policy>(`/policies/${id}/approve`);
+    return response.data;
+  }
+
+  async suspend(id: string, reason?: string): Promise<Policy> {
+    const response = await apiClient.post<Policy>(`/policies/${id}/suspend`, { reason });
+    return response.data;
+  }
+
   async uploadDocument(id: string, file: File, name: string): Promise<void> {
     const formData = new FormData();
     formData.append('file', file);
     formData.append('name', name);
-    
+
     await apiClient.post(`/policies/${id}/documents`, formData, {
       headers: {
         'Content-Type': 'multipart/form-data',
@@ -91,6 +101,11 @@ class PolicyService {
 
   async deleteDocument(id: string, documentId: string): Promise<void> {
     await apiClient.delete(`/policies/${id}/documents/${documentId}`);
+  }
+
+  async getHistory(id: string): Promise<any[]> {
+    const response = await apiClient.get(`/policies/${id}/history`);
+    return response.data;
   }
 }
 

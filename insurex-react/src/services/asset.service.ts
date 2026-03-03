@@ -1,10 +1,13 @@
 import apiClient from './api.service';
-import { 
-  Asset, 
-  CreateAssetData, 
-  UpdateAssetData, 
-  AssetFilters, 
-  AssetStats 
+import {
+  Asset,
+  AssetFilters,
+  AssetStats,
+  AssetValuation,
+  Inspection,
+  CreateInspectionData,
+  CreateAssetData,
+  UpdateAssetData
 } from '../types/asset.types';
 import { PaginatedResponse } from './policy.service';
 
@@ -13,7 +16,7 @@ class AssetService {
     const params = new URLSearchParams();
     params.append('page', page.toString());
     params.append('limit', limit.toString());
-    
+
     if (filters) {
       Object.entries(filters).forEach(([key, value]) => {
         if (value !== undefined && value !== null && value !== '') {
@@ -21,7 +24,7 @@ class AssetService {
         }
       });
     }
-    
+
     const response = await apiClient.get<PaginatedResponse<Asset>>(`/assets?${params.toString()}`);
     return response.data;
   }
@@ -64,7 +67,7 @@ class AssetService {
     const formData = new FormData();
     formData.append('file', file);
     formData.append('name', name);
-    
+
     await apiClient.post(`/assets/${id}/documents`, formData, {
       headers: {
         'Content-Type': 'multipart/form-data',
@@ -82,7 +85,7 @@ class AssetService {
     if (caption) {
       formData.append('caption', caption);
     }
-    
+
     await apiClient.post(`/assets/${id}/images`, formData, {
       headers: {
         'Content-Type': 'multipart/form-data',
@@ -92,6 +95,21 @@ class AssetService {
 
   async deleteImage(id: string, imageId: string): Promise<void> {
     await apiClient.delete(`/assets/${id}/images/${imageId}`);
+  }
+
+  async getValuationHistory(id: string): Promise<AssetValuation[]> {
+    const response = await apiClient.get<AssetValuation[]>(`/assets/${id}/valuation-history`);
+    return response.data;
+  }
+
+  async getInspections(id: string): Promise<Inspection[]> {
+    const response = await apiClient.get<Inspection[]>(`/assets/${id}/inspections`);
+    return response.data;
+  }
+
+  async scheduleInspection(data: CreateInspectionData): Promise<Inspection> {
+    const response = await apiClient.post<Inspection>('/assets/inspections', data);
+    return response.data;
   }
 }
 

@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 
 
 import { InvestigationNotes } from '../../components/Claims/InvestigationNotes';
+import { ClaimPaymentModal } from '../../components/Claims/ClaimPaymentModal';
 import {
   Box,
   Typography,
@@ -13,9 +14,6 @@ import {
   Divider,
   Card,
   CardContent,
-  List,
-  ListItem,
-  ListItemText,
   CircularProgress,
   Alert,
   Dialog,
@@ -28,28 +26,21 @@ import {
   Stepper,
   Step,
   StepLabel,
+} from '@mui/material';
+import {
   Timeline,
   TimelineItem,
   TimelineSeparator,
   TimelineConnector,
   TimelineContent,
   TimelineDot
-} from '@mui/material';
+} from '@mui/lab';
 import {
   Edit,
   ArrowBack,
   Delete,
-  CalendarToday,
-  AttachMoney,
-  ConfirmationNumber,
   LocationOn,
   Description,
-  Image as ImageIcon,
-  CheckCircle,
-  Pending,
-  Cancel,
-  Warning,
-  Visibility
 } from '@mui/icons-material';
 import { useClaims } from '../../hooks/useClaims';
 import { ClaimStatus, ClaimType } from '../../types/claim.types';
@@ -58,32 +49,47 @@ import { ConfirmDialog } from '../../components/Common/ConfirmDialog';
 import { useNotification } from '../../hooks/useNotification';
 
 const claimTypeLabels: Record<ClaimType, string> = {
-  [ClaimType.THEFT]: 'Roubo/Furto',
   [ClaimType.ACCIDENT]: 'Acidente',
-  [ClaimType.DAMAGE]: 'Danos',
-  [ClaimType.LOSS]: 'Perda',
+  [ClaimType.THEFT]: 'Roubo/Furto',
+  [ClaimType.FIRE]: 'Incêndio',
+  [ClaimType.NATURAL_DISASTER]: 'Desastre Natural',
+  [ClaimType.LIABILITY]: 'Responsabilidade Civil',
+  [ClaimType.MEDICAL]: 'Médico/Saúde',
+  [ClaimType.DEATH]: 'Óbito',
+  [ClaimType.DISABILITY]: 'Invalidez',
+  [ClaimType.PROPERTY_DAMAGE]: 'Danos Materiais',
   [ClaimType.OTHER]: 'Outro'
 };
 
 const claimStatusColors: Record<ClaimStatus, 'default' | 'warning' | 'info' | 'success' | 'error'> = {
-  [ClaimStatus.PENDING]: 'warning',
+  [ClaimStatus.DRAFT]: 'default',
+  [ClaimStatus.SUBMITTED]: 'warning',
   [ClaimStatus.UNDER_REVIEW]: 'info',
+  [ClaimStatus.PENDING_INFO]: 'warning',
   [ClaimStatus.APPROVED]: 'success',
+  [ClaimStatus.PARTIALLY_APPROVED]: 'info',
   [ClaimStatus.REJECTED]: 'error',
-  [ClaimStatus.SETTLED]: 'default'
+  [ClaimStatus.SETTLED]: 'success',
+  [ClaimStatus.CLOSED]: 'default',
+  [ClaimStatus.APPEALED]: 'warning'
 };
 
 const claimStatusLabels: Record<ClaimStatus, string> = {
-  [ClaimStatus.PENDING]: 'Pendente',
+  [ClaimStatus.DRAFT]: 'Rascunho',
+  [ClaimStatus.SUBMITTED]: 'Enviado',
   [ClaimStatus.UNDER_REVIEW]: 'Em Análise',
+  [ClaimStatus.PENDING_INFO]: 'Pendente de Infos',
   [ClaimStatus.APPROVED]: 'Aprovado',
+  [ClaimStatus.PARTIALLY_APPROVED]: 'Parcialmente Aprovado',
   [ClaimStatus.REJECTED]: 'Rejeitado',
-  [ClaimStatus.SETTLED]: 'Liquidado'
+  [ClaimStatus.SETTLED]: 'Liquidado',
+  [ClaimStatus.CLOSED]: 'Fechado',
+  [ClaimStatus.APPEALED]: 'Recorrido'
 };
 
 const getStatusStep = (status: ClaimStatus): number => {
   switch (status) {
-    case ClaimStatus.PENDING: return 0;
+    case ClaimStatus.SUBMITTED: return 0;
     case ClaimStatus.UNDER_REVIEW: return 1;
     case ClaimStatus.APPROVED: return 2;
     case ClaimStatus.REJECTED: return 2;
@@ -95,16 +101,27 @@ const getStatusStep = (status: ClaimStatus): number => {
 export const ClaimDetails: React.FC = () => {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
-  const { showSuccess, showError } = useNotification();
-  
-  const { getClaimById, deleteClaim, updateClaim, loading, error } = useClaims();
+  const { showNotification } = useNotification();
+
+  const {
+    getClaim,
+    deleteClaim,
+    approveClaim,
+    rejectClaim,
+    isLoading
+  } = useClaims({ autoFetch: false });
+
   const [claim, setClaim] = useState<any>(null);
+  const [localLoading, setLocalLoading] = useState(true);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [imageDialogOpen, setImageDialogOpen] = useState(false);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
-  const [statusDialogOpen, setStatusDialogOpen] = useState(false);
-  const [newStatus, setNewStatus] = useState<ClaimStatus>(ClaimStatus.PENDING);
+  const [approveDialogOpen, setApproveDialogOpen] = useState(false);
+  const [rejectDialogOpen, setRejectDialogOpen] = useState(false);
+  const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
   const [statusNotes, setStatusNotes] = useState('');
+  const [approvedAmount, setApprovedAmount] = useState<number>(0);
+  const [rejectReason, setRejectReason] = useState('');
 
   useEffect(() => {
     if (id) {
@@ -113,39 +130,51 @@ export const ClaimDetails: React.FC = () => {
   }, [id]);
 
   const loadClaim = async (claimId: string) => {
+    setLocalLoading(true);
     try {
-      const data = await getClaimById(claimId);
+      const data = await getClaim(claimId);
       setClaim(data);
+      setApprovedAmount(data.claimedAmount);
     } catch (err) {
-      showError('Erro ao carregar detalhes do sinistro');
+      showNotification('error', 'Erro ao carregar detalhes do sinistro');
+    } finally {
+      setLocalLoading(false);
     }
   };
 
   const handleDelete = async () => {
     if (!id) return;
-    
+
     try {
       await deleteClaim(id);
-      showSuccess('Sinistro excluído com sucesso!');
+      showNotification('success', 'Sinistro excluído com sucesso!');
       navigate('/claims');
     } catch (err) {
-      showError('Erro ao excluir sinistro');
+      showNotification('error', 'Erro ao excluir sinistro');
     }
   };
 
-  const handleStatusChange = async () => {
+  const handleApproveAction = async () => {
     if (!id) return;
-    
     try {
-      await updateClaim(id, { 
-        status: newStatus,
-        notes: statusNotes 
-      });
-      showSuccess('Status atualizado com sucesso!');
+      await approveClaim(id, approvedAmount, statusNotes);
+      showNotification('success', 'Sinistro aprovado com sucesso!');
+      setApproveDialogOpen(false);
       loadClaim(id);
-      setStatusDialogOpen(false);
     } catch (err) {
-      showError('Erro ao atualizar status');
+      showNotification('error', 'Erro ao aprovar sinistro');
+    }
+  };
+
+  const handleRejectAction = async () => {
+    if (!id) return;
+    try {
+      await rejectClaim(id, rejectReason);
+      showNotification('success', 'Sinistro rejeitado');
+      setRejectDialogOpen(false);
+      loadClaim(id);
+    } catch (err) {
+      showNotification('error', 'Erro ao rejeitar sinistro');
     }
   };
 
@@ -154,13 +183,7 @@ export const ClaimDetails: React.FC = () => {
     setImageDialogOpen(true);
   };
 
-  const openStatusDialog = () => {
-    setNewStatus(claim?.status || ClaimStatus.PENDING);
-    setStatusNotes('');
-    setStatusDialogOpen(true);
-  };
-
-  if (loading) {
+  if (localLoading || isLoading) {
     return (
       <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
         <CircularProgress />
@@ -168,14 +191,19 @@ export const ClaimDetails: React.FC = () => {
     );
   }
 
-  if (error || !claim) {
+  if (!claim) {
     return (
       <Box>
         <Button startIcon={<ArrowBack />} onClick={() => navigate('/claims')} sx={{ mb: 2 }}>
           Voltar
         </Button>
+        {isLoading && (
+          <Alert severity="info" sx={{ mb: 3 }}>
+            Salvando...
+          </Alert>
+        )}
         <Alert severity="error">
-          {error || 'Sinistro não encontrado'}
+          Sinistro não encontrado
         </Alert>
       </Box>
     );
@@ -206,11 +234,26 @@ export const ClaimDetails: React.FC = () => {
           >
             Editar
           </Button>
+          {claim.status === ClaimStatus.SUBMITTED && (
+            <Button variant="contained" color="primary" onClick={() => setApproveDialogOpen(true)}>
+              Aprovar
+            </Button>
+          )}
+          {claim.status === ClaimStatus.SUBMITTED && (
+            <Button variant="outlined" color="error" onClick={() => setRejectDialogOpen(true)}>
+              Rejeitar
+            </Button>
+          )}
+          {claim.status === ClaimStatus.APPROVED && (
+            <Button variant="contained" color="success" onClick={() => setPaymentDialogOpen(true)}>
+              Pagar
+            </Button>
+          )}
           <Button
             variant="outlined"
-            onClick={openStatusDialog}
+            onClick={() => navigate(`/policies/${claim.policyId}`)}
           >
-            Alterar Status
+            Status
           </Button>
           <Button
             variant="outlined"
@@ -226,7 +269,7 @@ export const ClaimDetails: React.FC = () => {
       <Paper sx={{ p: 3, mb: 3 }}>
         <Stepper activeStep={currentStep} alternativeLabel>
           {statusSteps.map((label, index) => (
-            <Step key={label} completed={index < currentStep}>
+            <Step key={index} completed={index < currentStep}>
               <StepLabel>{label}</StepLabel>
             </Step>
           ))}
@@ -239,15 +282,15 @@ export const ClaimDetails: React.FC = () => {
             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
               <Typography variant="h6">Informações do Sinistro</Typography>
               <Chip
-                label={claimStatusLabels[claim.status]}
-                color={claimStatusColors[claim.status]}
+                label={claimStatusLabels[claim.status as ClaimStatus] || claim.status}
+                color={claimStatusColors[claim.status as ClaimStatus] || 'default'}
               />
             </Box>
             <Divider sx={{ mb: 2 }} />
             <Grid container spacing={2}>
               <Grid item xs={12} sm={6}>
                 <Typography variant="subtitle2" color="text.secondary">Tipo</Typography>
-                <Typography>{claimTypeLabels[claim.type]}</Typography>
+                <Typography>{claimTypeLabels[claim.type as ClaimType] || claim.type}</Typography>
               </Grid>
               <Grid item xs={12} sm={6}>
                 <Typography variant="subtitle2" color="text.secondary">Data do Ocorrido</Typography>
@@ -326,7 +369,7 @@ export const ClaimDetails: React.FC = () => {
             </Paper>
           )}
         </Grid>
- {/* Investigation Notes - Full Width */}
+        {/* Investigation Notes - Full Width */}
 
         <Grid item xs={12} lg={8}>
 
@@ -334,7 +377,7 @@ export const ClaimDetails: React.FC = () => {
 
         </Grid>
 
- 
+
         <Grid item xs={12} lg={4}>
           <Card sx={{ mb: 3 }}>
             <CardContent>
@@ -377,20 +420,24 @@ export const ClaimDetails: React.FC = () => {
             <CardContent>
               <Typography variant="h6" gutterBottom>Histórico</Typography>
               <Divider sx={{ mb: 2 }} />
-              <Timeline sx={{ p: 0 }}>
-                <TimelineItem>
-                  <TimelineSeparator>
-                    <TimelineDot color="primary" />
-                    <TimelineConnector />
-                  </TimelineSeparator>
-                  <TimelineContent>
-                    <Typography variant="body2">Sinistro registrado</Typography>
-                    <Typography variant="caption" color="text.secondary">
-                      {formatDate(claim.createdAt)}
-                    </Typography>
-                  </TimelineContent>
-                </TimelineItem>
-                {claim.status !== ClaimStatus.PENDING && (
+              {claim.status === ClaimStatus.SUBMITTED && (
+                <Timeline sx={{ p: 0 }}>
+                  <TimelineItem>
+                    <TimelineSeparator>
+                      <TimelineDot color="primary" />
+                      <TimelineConnector />
+                    </TimelineSeparator>
+                    <TimelineContent>
+                      <Typography variant="body2">Sinistro enviado</Typography>
+                      <Typography variant="caption" color="text.secondary">
+                        {formatDate(claim.createdAt)}
+                      </Typography>
+                    </TimelineContent>
+                  </TimelineItem>
+                </Timeline>
+              )}
+              {claim.status !== ClaimStatus.DRAFT && claim.status !== ClaimStatus.SUBMITTED && (
+                <Timeline sx={{ p: 0 }}>
                   <TimelineItem>
                     <TimelineSeparator>
                       <TimelineDot color="info" />
@@ -403,37 +450,37 @@ export const ClaimDetails: React.FC = () => {
                       </Typography>
                     </TimelineContent>
                   </TimelineItem>
-                )}
-                {(claim.status === ClaimStatus.APPROVED || claim.status === ClaimStatus.REJECTED) && (
-                  <TimelineItem>
-                    <TimelineSeparator>
-                      <TimelineDot color={claim.status === ClaimStatus.APPROVED ? 'success' : 'error'} />
-                      {claim.status === ClaimStatus.SETTLED && <TimelineConnector />}
-                    </TimelineSeparator>
-                    <TimelineContent>
-                      <Typography variant="body2">
-                        {claim.status === ClaimStatus.APPROVED ? 'Aprovado' : 'Rejeitado'}
-                      </Typography>
-                      <Typography variant="caption" color="text.secondary">
-                        Decisão finalizada
-                      </Typography>
-                    </TimelineContent>
-                  </TimelineItem>
-                )}
-                {claim.status === ClaimStatus.SETTLED && (
-                  <TimelineItem>
-                    <TimelineSeparator>
-                      <TimelineDot color="default" />
-                    </TimelineSeparator>
-                    <TimelineContent>
-                      <Typography variant="body2">Liquidado</Typography>
-                      <Typography variant="caption" color="text.secondary">
-                        Pagamento realizado
-                      </Typography>
-                    </TimelineContent>
-                  </TimelineItem>
-                )}
-              </Timeline>
+                  {(claim.status === ClaimStatus.APPROVED || claim.status === ClaimStatus.REJECTED) && (
+                    <TimelineItem>
+                      <TimelineSeparator>
+                        <TimelineDot color={claim.status === ClaimStatus.APPROVED ? 'success' : 'error'} />
+                        {claim.status === ClaimStatus.SETTLED && <TimelineConnector />}
+                      </TimelineSeparator>
+                      <TimelineContent>
+                        <Typography variant="body2">
+                          {claim.status === ClaimStatus.APPROVED ? 'Aprovado' : 'Rejeitado'}
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary">
+                          Decisão finalizada
+                        </Typography>
+                      </TimelineContent>
+                    </TimelineItem>
+                  )}
+                  {claim.status === ClaimStatus.SETTLED && (
+                    <TimelineItem>
+                      <TimelineSeparator>
+                        <TimelineDot color="success" />
+                      </TimelineSeparator>
+                      <TimelineContent>
+                        <Typography variant="body2">Liquidado</Typography>
+                        <Typography variant="caption" color="text.secondary">
+                          Pagamento realizado
+                        </Typography>
+                      </TimelineContent>
+                    </TimelineItem>
+                  )}
+                </Timeline>
+              )}
             </CardContent>
           </Card>
         </Grid>
@@ -449,23 +496,18 @@ export const ClaimDetails: React.FC = () => {
         confirmColor="error"
       />
 
-      <Dialog open={statusDialogOpen} onClose={() => setStatusDialogOpen(false)} maxWidth="sm" fullWidth>
-        <DialogTitle>Alterar Status do Sinistro</DialogTitle>
-        <DialogContent>
+      <Dialog open={approveDialogOpen} onClose={() => setApproveDialogOpen(false)} maxWidth="sm" fullWidth>
+        <DialogTitle>Aprovar Sinistro</DialogTitle>
+        <DialogContent dividers>
+          <Typography variant="body2" gutterBottom>Defina o valor aprovado para o pagamento.</Typography>
           <TextField
-            select
             fullWidth
-            label="Novo Status"
-            value={newStatus}
-            onChange={(e) => setNewStatus(e.target.value as ClaimStatus)}
+            label="Valor Aprovado"
+            type="number"
+            value={approvedAmount}
+            onChange={(e) => setApprovedAmount(Number(e.target.value))}
             sx={{ mb: 2, mt: 1 }}
-          >
-            {Object.entries(claimStatusLabels).map(([value, label]) => (
-              <MenuItem key={value} value={value}>
-                {label}
-              </MenuItem>
-            ))}
-          </TextField>
+          />
           <TextField
             fullWidth
             multiline
@@ -473,16 +515,49 @@ export const ClaimDetails: React.FC = () => {
             label="Observações"
             value={statusNotes}
             onChange={(e) => setStatusNotes(e.target.value)}
-            placeholder="Motivo da alteração de status..."
           />
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setStatusDialogOpen(false)}>Cancelar</Button>
-          <Button variant="contained" onClick={handleStatusChange}>
-            Confirmar
+          <Button onClick={() => setApproveDialogOpen(false)}>Cancelar</Button>
+          <Button variant="contained" color="success" onClick={handleApproveAction}>
+            Confirmar Aprovação
           </Button>
         </DialogActions>
       </Dialog>
+
+      <Dialog open={rejectDialogOpen} onClose={() => setRejectDialogOpen(false)} maxWidth="sm" fullWidth>
+        <DialogTitle>Rejeitar Sinistro</DialogTitle>
+        <DialogContent dividers>
+          <TextField
+            fullWidth
+            multiline
+            rows={4}
+            label="Motivo da Rejeição"
+            value={rejectReason}
+            onChange={(e) => setRejectReason(e.target.value)}
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setRejectDialogOpen(false)}>Cancelar</Button>
+          <Button variant="contained" color="error" onClick={handleRejectAction}>
+            Confirmar Rejeição
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {
+        paymentDialogOpen && (
+          <ClaimPaymentModal
+            open={paymentDialogOpen}
+            onClose={() => setPaymentDialogOpen(false)}
+            claim={claim}
+            onSuccess={() => {
+              showNotification('success', 'Pagamento processado com sucesso');
+              loadClaim(claim.id);
+            }}
+          />
+        )
+      }
 
       <Dialog
         open={imageDialogOpen}
@@ -503,7 +578,7 @@ export const ClaimDetails: React.FC = () => {
           <Button onClick={() => setImageDialogOpen(false)}>Fechar</Button>
         </DialogActions>
       </Dialog>
-    </Box>
+    </Box >
   );
 };
 

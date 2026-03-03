@@ -85,4 +85,44 @@ export interface PartnerStats {
   total: number;
   byType: Record<PartnerType, number>;
   byStatus: Record<PartnerStatus, number>;
+  totalCommissionPaid: number;
+  activeContracts: number;
+}
+
+export interface CommissionRate {
+  id: string;
+  partnerId: string;
+  category: string;
+  rate: number; // percentage
+  effectiveDate: string;
+  notes?: string;
+}
+
+export interface PartnerContract {
+  id: string;
+  partnerId: string;
+  contractNumber: string;
+  type: string;
+  startDate: string;
+  endDate: string;
+  status: 'ACTIVE' | 'EXPIRED' | 'TERMINATED' | 'PENDING';
+  terms?: string;
+  documentUrl?: string;
+}
+
+export interface CreateCommissionRateData {
+  partnerId: string;
+  category: string;
+  rate: number;
+  effectiveDate: string;
+  notes?: string;
+}
+
+export interface CreateContractData {
+  partnerId: string;
+  contractNumber: string;
+  type: string;
+  startDate: string;
+  endDate: string;
+  terms?: string;
 }

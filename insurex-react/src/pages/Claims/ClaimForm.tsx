@@ -20,9 +20,6 @@ import {
   Card,
   CardContent,
   IconButton,
-  List,
-  ListItem,
-  ListItemText
 } from '@mui/material';
 import {
   Save,
@@ -41,16 +38,23 @@ import { useNotification } from '../../hooks/useNotification';
 const steps = ['Informações do Sinistro', 'Detalhes do Ocorrido', 'Documentação', 'Revisão'];
 
 const claimTypes = [
-  { value: ClaimType.THEFT, label: 'Roubo/Furto' },
   { value: ClaimType.ACCIDENT, label: 'Acidente' },
-  { value: ClaimType.DAMAGE, label: 'Danos' },
-  { value: ClaimType.LOSS, label: 'Perda' },
+  { value: ClaimType.THEFT, label: 'Roubo/Furto' },
+  { value: ClaimType.FIRE, label: 'Incêndio' },
+  { value: ClaimType.NATURAL_DISASTER, label: 'Desastre Natural' },
+  { value: ClaimType.LIABILITY, label: 'Responsabilidade Civil' },
+  { value: ClaimType.MEDICAL, label: 'Médico/Saúde' },
+  { value: ClaimType.DEATH, label: 'Óbito' },
+  { value: ClaimType.DISABILITY, label: 'Invalidez' },
+  { value: ClaimType.PROPERTY_DAMAGE, label: 'Danos Materiais' },
   { value: ClaimType.OTHER, label: 'Outro' }
 ];
 
 const claimStatuses = [
-  { value: ClaimStatus.PENDING, label: 'Pendente' },
+  { value: ClaimStatus.DRAFT, label: 'Rascunho' },
+  { value: ClaimStatus.SUBMITTED, label: 'Enviado' },
   { value: ClaimStatus.UNDER_REVIEW, label: 'Em Análise' },
+  { value: ClaimStatus.PENDING_INFO, label: 'Pendente de Infos' },
   { value: ClaimStatus.APPROVED, label: 'Aprovado' },
   { value: ClaimStatus.REJECTED, label: 'Rejeitado' },
   { value: ClaimStatus.SETTLED, label: 'Liquidado' }
@@ -60,9 +64,9 @@ export const ClaimForm: React.FC = () => {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
   const isEditMode = Boolean(id);
-  const { showSuccess, showError } = useNotification();
-  
-  const { createClaim, updateClaim, getClaimById, loading, error } = useClaims();
+  const { showNotification } = useNotification();
+
+  const { createClaim, updateClaim, getClaim, isLoading, error } = useClaims({ autoFetch: false });
   const { policies } = usePolicies();
   const { assets } = useAssets();
 
@@ -71,7 +75,7 @@ export const ClaimForm: React.FC = () => {
     policyId: '',
     assetId: '',
     type: ClaimType.OTHER,
-    status: ClaimStatus.PENDING,
+    status: ClaimStatus.SUBMITTED,
     description: '',
     incidentDate: '',
     incidentLocation: '',
@@ -92,16 +96,16 @@ export const ClaimForm: React.FC = () => {
 
   const loadClaim = async (claimId: string) => {
     try {
-      const claim = await getClaimById(claimId);
+      const claim = await getClaim(claimId);
       if (claim) {
         setFormData({
           policyId: claim.policyId,
-          assetId: claim.assetId || '',
+          assetId: (claim as any).assetId || '',
           type: claim.type,
           status: claim.status,
           description: claim.description,
           incidentDate: claim.incidentDate ? claim.incidentDate.split('T')[0] : '',
-          incidentLocation: claim.incidentLocation || '',
+          incidentLocation: (claim as any).incidentLocation || '',
           claimedAmount: claim.claimedAmount || 0,
           approvedAmount: claim.approvedAmount || 0,
           documents: claim.documents || [],
@@ -109,7 +113,7 @@ export const ClaimForm: React.FC = () => {
         });
       }
     } catch (err) {
-      showError('Erro ao carregar dados do sinistro');
+      showNotification('error', 'Erro ao carregar dados do sinistro');
     }
   };
 
@@ -122,7 +126,7 @@ export const ClaimForm: React.FC = () => {
     if (files) {
       const newFiles = Array.from(files);
       setDocuments(prev => [...prev, ...newFiles]);
-      
+
       newFiles.forEach(file => {
         const reader = new FileReader();
         reader.onloadend = () => {
@@ -174,14 +178,14 @@ export const ClaimForm: React.FC = () => {
 
       if (isEditMode && id) {
         await updateClaim(id, submitData);
-        showSuccess('Sinistro atualizado com sucesso!');
+        showNotification('success', 'Sinistro atualizado com sucesso!');
       } else {
-        await createClaim(submitData);
-        showSuccess('Sinistro registrado com sucesso!');
+        await createClaim(submitData as any);
+        showNotification('success', 'Sinistro registrado com sucesso!');
       }
       navigate('/claims');
     } catch (err) {
-      showError('Erro ao salvar sinistro');
+      showNotification('error', 'Erro ao salvar sinistro');
     }
   };
 
@@ -199,7 +203,7 @@ export const ClaimForm: React.FC = () => {
                 >
                   {policies.map(policy => (
                     <MenuItem key={policy.id} value={policy.id}>
-                      {policy.policyNumber} - {policy.name}
+                      {policy.policyNumber}
                     </MenuItem>
                   ))}
                 </Select>
@@ -356,7 +360,7 @@ export const ClaimForm: React.FC = () => {
                 onChange={handleFileUpload}
               />
             </Button>
-            
+
             <Grid container spacing={2}>
               {previewUrls.map((url, index) => (
                 <Grid item xs={12} sm={6} md={4} key={index}>
@@ -383,7 +387,7 @@ export const ClaimForm: React.FC = () => {
                 </Grid>
               ))}
             </Grid>
-            
+
             {documents.length === 0 && (
               <Box sx={{ textAlign: 'center', py: 4, color: 'text.secondary' }}>
                 <AddPhotoAlternate sx={{ fontSize: 48, mb: 2 }} />
@@ -405,7 +409,6 @@ export const ClaimForm: React.FC = () => {
               <CardContent>
                 <Grid container spacing={2}>
                   <Grid item xs={12} md={6}>
-                    <Typography variant="subtitle2" color="text.secondary">Apólice</Typography>
                     <Typography>
                       {policies.find(p => p.id === formData.policyId)?.policyNumber || 'N/A'}
                     </Typography>
@@ -447,7 +450,7 @@ export const ClaimForm: React.FC = () => {
     }
   };
 
-  if (loading && isEditMode) {
+  if (isLoading && isEditMode) {
     return (
       <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
         <CircularProgress />
@@ -503,9 +506,9 @@ export const ClaimForm: React.FC = () => {
                 variant="contained"
                 startIcon={<Save />}
                 onClick={handleSubmit}
-                disabled={loading}
+                disabled={isLoading}
               >
-                {loading ? <CircularProgress size={24} /> : (isEditMode ? 'Atualizar' : 'Salvar')}
+                {isLoading ? <CircularProgress size={24} color="inherit" /> : (isEditMode ? 'Atualizar' : 'Salvar')}
               </Button>
             ) : (
               <Button
