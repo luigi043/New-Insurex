@@ -20,7 +20,6 @@ public class Invoice : BaseEntity
     public string? Description { get; set; }
     public string? Notes { get; set; }
     public string? InternalNotes { get; set; }
-    public int? CreatedById { get; set; }
     public int? SentById { get; set; }
     public DateTime? SentAt { get; set; }
     public string? SentToEmail { get; set; }
@@ -33,7 +32,6 @@ public class Invoice : BaseEntity
     public Tenant Tenant { get; set; } = null!;
     public Policy? Policy { get; set; }
     public Partner? Partner { get; set; }
-    public User? CreatedBy { get; set; }
     public User? SentBy { get; set; }
     public Invoice? ParentInvoice { get; set; }
     public ICollection<Invoice> ChildInvoices { get; set; } = new List<Invoice>();
@@ -87,3 +85,6 @@ public class InvoiceLineItem : BaseEntity
     // Navigation properties
     public Invoice Invoice { get; set; } = null!;
 }
+
+
+

@@ -1,22 +1,23 @@
-﻿using InsureX.Domain.Entities;
+using InsureX.Domain.Entities;
 
 namespace InsureX.Domain.Events;
 
-public class ClaimSubmittedEvent : DomainEvent
+public class ClaimSubmittedEvent
 {
-    public int ClaimId { get; }
-    public int PolicyId { get; }
-    public string PolicyNumber { get; }
-    public decimal ClaimAmount { get; }
-    public int TenantId { get; }
+    public Claim Claim { get; }
+    public DateTime SubmittedAt { get; }
+    public string SubmittedBy { get; }
 
-    public ClaimSubmittedEvent(Claim claim, Policy policy)
+    public ClaimSubmittedEvent(Claim claim, string submittedBy)
     {
-        EventType = nameof(ClaimSubmittedEvent);
-        ClaimId = claim.Id;
-        PolicyId = policy.Id;
-        PolicyNumber = policy.PolicyNumber;
-        ClaimAmount = claim.Amount;
-        TenantId = policy.TenantId;
+        Claim = claim;
+        SubmittedAt = DateTime.UtcNow;
+        SubmittedBy = submittedBy;
     }
+
+    public int ClaimId => Claim.Id;
+    public string ClaimNumber => Claim.ClaimNumber;
+    public decimal ClaimedAmount => Claim.ClaimedAmount;
+    public int PolicyId => Claim.PolicyId;
+    public int TenantId => Claim.TenantId;
 }

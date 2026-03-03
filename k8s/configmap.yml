@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: insurex-api-config
+  namespace: insurex
+data:
+  ASPNETCORE_ENVIRONMENT: "Production"
+  ASPNETCORE_URLS: "http://+:8080"
+  Serilog__MinimumLevel__Default: "Information"
+  Serilog__MinimumLevel__Override__Microsoft: "Warning"
+  Cors__AllowedOrigins__0: "https://app.insurex.com"
+  EmailSettings__SmtpServer: "smtp.gmail.com"
+  EmailSettings__SmtpPort: "587"
+  EmailSettings__SenderEmail: "noreply@insurex.com"
+  EmailSettings__SenderName: "InsureX"
+  EmailSettings__UseSsl: "true"

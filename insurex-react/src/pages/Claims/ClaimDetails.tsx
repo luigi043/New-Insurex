@@ -1,5 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+
+
+import { InvestigationNotes } from '../../components/Claims/InvestigationNotes';
 import {
   Box,
   Typography,
@@ -323,7 +326,15 @@ export const ClaimDetails: React.FC = () => {
             </Paper>
           )}
         </Grid>
+ {/* Investigation Notes - Full Width */}
 
+        <Grid item xs={12} lg={8}>
+
+          <InvestigationNotes claimId={id || ''} />
+
+        </Grid>
+
+ 
         <Grid item xs={12} lg={4}>
           <Card sx={{ mb: 3 }}>
             <CardContent>

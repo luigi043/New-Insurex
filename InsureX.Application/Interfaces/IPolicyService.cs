@@ -1,3 +1,4 @@
+using InsureX.Application.DTOs.Filters;
 using InsureX.Application.DTOs;
 using InsureX.Domain.Entities;
 using InsureX.Domain.Enums;
@@ -23,3 +24,4 @@ public interface IPolicyService
     Task<decimal> GetTotalCoverageAsync();
     Task<int> GetActivePolicyCountAsync();
 }
+

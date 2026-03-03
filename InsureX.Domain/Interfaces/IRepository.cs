@@ -21,10 +21,4 @@ public interface IRepository<T> where T : BaseEntity
     IQueryable<T> QueryByTenant(int tenantId);
 }
 
-public interface IUnitOfWork : IDisposable
-{
-    Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
-    Task BeginTransactionAsync();
-    Task CommitTransactionAsync();
-    Task RollbackTransactionAsync();
-}
+

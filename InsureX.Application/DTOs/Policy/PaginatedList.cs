@@ -1,4 +1,7 @@
-﻿namespace InsureX.Application.DTOs.Policy;
+using System;
+using System.Collections.Generic;
+
+namespace InsureX.Application.DTOs.Policy;
 
 public class PaginatedList<T>
 {

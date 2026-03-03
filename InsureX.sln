@@ -2,13 +2,19 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.0.31903.59
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "InsureX.Domain", "InsureX.Domain\InsureX.Domain.csproj", "{A1B2C3D4-E5F6-7890-ABCD-EF1234567890}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "InsureX.API", "InsureX.API\InsureX.API.csproj", "{API-GUID}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "InsureX.Application", "InsureX.Application\InsureX.Application.csproj", "{B2C3D4E5-F6A7-8901-BCDE-F23456789012}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "InsureX.Application", "InsureX.Application\InsureX.Application.csproj", "{APP-GUID}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "InsureX.Infrastructure", "InsureX.Infrastructure\InsureX.Infrastructure.csproj", "{C3D4E5F6-A7B8-9012-CDEF-345678901234}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "InsureX.Domain", "InsureX.Domain\InsureX.Domain.csproj", "{DOMAIN-GUID}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "InsureX.API", "InsureX.API\InsureX.API.csproj", "{D4E5F6A7-B8C9-0123-DEFA-456789012345}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "InsureX.Infrastructure", "InsureX.Infrastructure\InsureX.Infrastructure.csproj", "{INFRA-GUID}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "InsureX.Shared", "InsureX.Shared\InsureX.Shared.csproj", "{SHARED-GUID}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "InsureX.Tests", "InsureX.Tests\InsureX.Tests.csproj", "{TESTS-GUID}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "InsureX.SeedTool", "InsureX.SeedTool\InsureX.SeedTool.csproj", "{SEED-GUID}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -16,21 +22,36 @@ Global
 		Release|Any CPU = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{A1B2C3D4-E5F6-7890-ABCD-EF1234567890}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{A1B2C3D4-E5F6-7890-ABCD-EF1234567890}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{A1B2C3D4-E5F6-7890-ABCD-EF1234567890}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{A1B2C3D4-E5F6-7890-ABCD-EF1234567890}.Release|Any CPU.Build.0 = Release|Any CPU
-		{B2C3D4E5-F6A7-8901-BCDE-F23456789012}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{B2C3D4E5-F6A7-8901-BCDE-F23456789012}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{B2C3D4E5-F6A7-8901-BCDE-F23456789012}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{B2C3D4E5-F6A7-8901-BCDE-F23456789012}.Release|Any CPU.Build.0 = Release|Any CPU
-		{C3D4E5F6-A7B8-9012-CDEF-345678901234}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{C3D4E5F6-A7B8-9012-CDEF-345678901234}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{C3D4E5F6-A7B8-9012-CDEF-345678901234}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{C3D4E5F6-A7B8-9012-CDEF-345678901234}.Release|Any CPU.Build.0 = Release|Any CPU
-		{D4E5F6A7-B8C9-0123-DEFA-456789012345}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{D4E5F6A7-B8C9-0123-DEFA-456789012345}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{D4E5F6A7-B8C9-0123-DEFA-456789012345}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{D4E5F6A7-B8C9-0123-DEFA-456789012345}.Release|Any CPU.Build.0 = Release|Any CPU
+		{API-GUID}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{API-GUID}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{API-GUID}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{API-GUID}.Release|Any CPU.Build.0 = Release|Any CPU
+		{APP-GUID}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{APP-GUID}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{APP-GUID}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{APP-GUID}.Release|Any CPU.Build.0 = Release|Any CPU
+		{DOMAIN-GUID}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{DOMAIN-GUID}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{DOMAIN-GUID}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{DOMAIN-GUID}.Release|Any CPU.Build.0 = Release|Any CPU
+		{INFRA-GUID}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{INFRA-GUID}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{INFRA-GUID}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{INFRA-GUID}.Release|Any CPU.Build.0 = Release|Any CPU
+		{SHARED-GUID}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{SHARED-GUID}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{SHARED-GUID}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{SHARED-GUID}.Release|Any CPU.Build.0 = Release|Any CPU
+		{TESTS-GUID}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{TESTS-GUID}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{TESTS-GUID}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{TESTS-GUID}.Release|Any CPU.Build.0 = Release|Any CPU
+		{SEED-GUID}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{SEED-GUID}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{SEED-GUID}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{SEED-GUID}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
 	EndGlobalSection
 EndGlobal

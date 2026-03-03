@@ -1,4 +1,4 @@
-﻿using InsureX.Application.Commands.PolicyCommands;
+using InsureX.Application.Commands.PolicyCommands;
 using InsureX.Domain.Entities;
 using InsureX.Domain.Interfaces;
 using MediatR;
@@ -20,15 +20,16 @@ public class CreatePolicyCommandHandler : IRequestHandler<CreatePolicyCommand, P
 
     public async Task<Policy> Handle(CreatePolicyCommand request, CancellationToken cancellationToken)
     {
-        var policy = Policy.Create(
-            request.PolicyNumber,
-            request.PolicyType,
-            request.Premium,
-            request.StartDate,
-            request.EndDate,
-            request.TenantId,
-            request.AssetId,
-            request.PartnerId);
+        var policy = new Policy
+        {
+            PolicyNumber = request.PolicyNumber,
+            Type = Enum.Parse<PolicyType>(request.PolicyType),
+            PremiumAmount = request.Premium,
+            StartDate = request.StartDate,
+            EndDate = request.EndDate,
+            TenantId = request.TenantId,
+            Status = PolicyStatus.Draft
+        };
 
         await _policyRepository.AddAsync(policy);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
@@ -36,3 +37,4 @@ public class CreatePolicyCommandHandler : IRequestHandler<CreatePolicyCommand, P
         return policy;
     }
 }
+

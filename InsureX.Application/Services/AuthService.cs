@@ -1,100 +1,147 @@
-﻿using InsureX.Application.DTOs.Auth;
 using InsureX.Application.Interfaces;
 using InsureX.Domain.Entities;
 using InsureX.Domain.Interfaces;
+using InsureX.Application.DTOs;
+using Microsoft.Extensions.Logging;
 
 namespace InsureX.Application.Services;
 
 public class AuthService : IAuthService
 {
     private readonly IUserRepository _userRepository;
-    private readonly IJwtService _jwtService;
     private readonly IPasswordHasher _passwordHasher;
-    private readonly IUnitOfWork _unitOfWork;
+    private readonly IJwtService _jwtService;
+    private readonly ILogger<AuthService> _logger;
 
     public AuthService(
         IUserRepository userRepository,
-        IJwtService jwtService,
         IPasswordHasher passwordHasher,
-        IUnitOfWork unitOfWork)
+        IJwtService jwtService,
+        ILogger<AuthService> logger)
     {
         _userRepository = userRepository;
-        _jwtService = jwtService;
         _passwordHasher = passwordHasher;
-        _unitOfWork = unitOfWork;
+        _jwtService = jwtService;
+        _logger = logger;
     }
 
     public async Task<AuthResponseDto> LoginAsync(LoginRequestDto request)
     {
         var user = await _userRepository.GetByEmailAsync(request.Email);
-        if (user == null)
-            throw new UnauthorizedAccessException("Invalid credentials");
+        if (user == null || !_passwordHasher.VerifyPassword(request.Password, user.PasswordHash))
+        {
+            throw new UnauthorizedAccessException("Invalid email or password");
+        }
 
-        // Simplified - check properties directly if methods don't exist
-        if (user.PasswordHash != _passwordHasher.HashPassword(request.Password))
-            throw new UnauthorizedAccessException("Invalid credentials");
+        var token = _jwtService.GenerateToken(user);
+        var refreshToken = _jwtService.GenerateRefreshToken();
 
-        var roles = new[] { "User" }; // Simplified
-        var token = _jwtService.GenerateToken(user, roles);
+        user.RefreshTokens.Add(new RefreshToken
+        {
+            Token = refreshToken,
+            ExpiresAt = DateTime.UtcNow.AddDays(7),
+            UserId = user.Id
+        });
+
+        await _userRepository.UpdateAsync(user);
 
         return new AuthResponseDto
         {
-            AccessToken = token,
-            RefreshToken = "refresh-token-placeholder",
-            UserName = user.Email, // Use Email if UserName doesn't exist
-            Email = user.Email,
-            Roles = roles,
-            ExpiresAt = DateTime.UtcNow.AddMinutes(15)
-        };
+            Token = token,
+            RefreshToken = refreshToken,
+            ExpiresAt = DateTime.UtcNow.AddHours(24),
+            User = new UserDto { Id = user.Id,    Role = user.Role } };
     }
 
     public async Task<AuthResponseDto> RegisterAsync(RegisterRequestDto request)
     {
-        if (await _userRepository.ExistsByEmailAsync(request.Email))
-            throw new InvalidOperationException("Email already registered");
+        // Check if user exists
+        var existingUser = await _userRepository.GetByEmailAsync(request.Email);
+        if (existingUser != null)
+        {
+            throw new InvalidOperationException("User with this email already exists");
+        }
 
-        // Create user with minimal required fields
         var user = new User
         {
             Email = request.Email,
+            FirstName = request.FirstName,
+            LastName = request.LastName,
             PasswordHash = _passwordHasher.HashPassword(request.Password),
-            TenantId = request.TenantId
+            Role = Domain.Enums.UserRole.Viewer,
+            Status = Domain.Enums.UserStatus.Active,
+            TenantId = 1 // Default tenant
         };
 
         await _userRepository.AddAsync(user);
-        await _unitOfWork.SaveChangesAsync();
 
-        var roles = new[] { "User" };
-        var token = _jwtService.GenerateToken(user, roles);
+        var token = _jwtService.GenerateToken(user);
+        var refreshToken = _jwtService.GenerateRefreshToken();
 
         return new AuthResponseDto
         {
-            AccessToken = token,
-            RefreshToken = "refresh-token-placeholder",
-            UserName = request.Email, // Use Email
-            Email = request.Email,
-            Roles = roles,
-            ExpiresAt = DateTime.UtcNow.AddMinutes(15)
-        };
+            Token = token,
+            RefreshToken = refreshToken,
+            ExpiresAt = DateTime.UtcNow.AddHours(24),
+            User = new UserDto { Id = user.Id,    Role = user.Role } };
     }
 
-    public Task<AuthResponseDto> RefreshTokenAsync(string refreshToken)
+    public async Task<AuthResponseDto> RefreshTokenAsync(string refreshToken)
     {
-        throw new NotImplementedException();
+        var user = await _userRepository.GetByRefreshTokenAsync(refreshToken);
+        if (user == null)
+        {
+            throw new UnauthorizedAccessException("Invalid refresh token");
+        }
+
+        var token = _jwtService.GenerateToken(user);
+        var newRefreshToken = _jwtService.GenerateRefreshToken();
+
+        // Revoke old token
+        var oldToken = user.RefreshTokens.FirstOrDefault(rt => rt.Token == refreshToken);
+        if (oldToken != null)
+        {
+            oldToken.IsRevoked = true;
+            oldToken.ReplacedByToken = newRefreshToken;
+        }
+
+        // Add new token
+        user.RefreshTokens.Add(new RefreshToken
+        {
+            Token = newRefreshToken,
+            ExpiresAt = DateTime.UtcNow.AddDays(7),
+            UserId = user.Id
+        });
+
+        await _userRepository.UpdateAsync(user);
+
+        return new AuthResponseDto
+        {
+            Token = token,
+            RefreshToken = newRefreshToken,
+            ExpiresAt = DateTime.UtcNow.AddHours(24),
+            User = new UserDto { Id = user.Id,    Role = user.Role } };
     }
 
-    public Task LogoutAsync(string refreshToken)
+    public async Task RevokeTokenAsync(string refreshToken)
     {
-        return Task.CompletedTask;
+        var user = await _userRepository.GetByRefreshTokenAsync(refreshToken);
+        if (user == null) return;
+
+        var token = user.RefreshTokens.FirstOrDefault(rt => rt.Token == refreshToken);
+        if (token != null)
+        {
+            token.IsRevoked = true;
+            await _userRepository.UpdateAsync(user);
+        }
     }
 
-    public Task LogoutAllDevicesAsync(int userId)
-    {
-        return Task.CompletedTask;
-    }
-
-    public Task<bool> ValidateTokenAsync(string token)
-    {
-        return Task.FromResult(true);
-    }
+    public async Task<bool> VerifyEmailAsync(string token) => await Task.FromResult(true);
+    public async Task<bool> RequestPasswordResetAsync(string email) => await Task.FromResult(true);
+    public async Task<bool> ResetPasswordAsync(string token, string newPassword) => await Task.FromResult(true);
+    public async Task<bool> ChangePasswordAsync(int userId, string currentPassword, string newPassword) => await Task.FromResult(true);
+    public async Task LogoutAsync(int userId) => await Task.CompletedTask;
 }
+
+
+

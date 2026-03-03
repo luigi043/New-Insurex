@@ -1,4 +1,4 @@
-﻿using InsureX.Application.DTOs.Policy;
+using InsureX.Application.DTOs.Policy;
 using InsureX.Application.Queries.PolicyQueries;
 using InsureX.Domain.Interfaces;
 using MediatR;
@@ -33,3 +33,4 @@ public class GetPolicyByIdQueryHandler : IRequestHandler<GetPolicyByIdQuery, Pol
         };
     }
 }
+

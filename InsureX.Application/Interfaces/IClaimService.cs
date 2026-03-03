@@ -1,3 +1,4 @@
+using InsureX.Application.DTOs.Filters;
 using InsureX.Application.DTOs;
 using InsureX.Domain.Entities;
 using InsureX.Domain.Enums;
@@ -24,3 +25,4 @@ public interface IClaimService
     Task<decimal> GetTotalClaimedAmountAsync();
     Task<decimal> GetTotalPaidAmountAsync();
 }
+

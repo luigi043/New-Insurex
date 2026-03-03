@@ -11,20 +11,20 @@ export interface User {
   phone?: string;
   avatar?: string;
 }
-
 export enum UserRole {
-  ADMIN = 'ADMIN',
-  MANAGER = 'MANAGER',
-  AGENT = 'AGENT',
-  VIEWER = 'VIEWER'
+  Admin = 'Admin',
+  Insurer = 'Insurer',
+  Broker = 'Broker',
+  Viewer = 'Viewer',
+  Underwriter = 'Underwriter',
+  ClaimsProcessor = 'ClaimsProcessor',
+  Accountant = 'Accountant',
 }
-
 export interface LoginCredentials {
   email: string;
   password: string;
   rememberMe?: boolean;
 }
-
 export interface RegisterData {
   email: string;
   password: string;
@@ -32,29 +32,24 @@ export interface RegisterData {
   lastName: string;
   phone?: string;
 }
-
 export interface AuthResponse {
   user: User;
   accessToken: string;
   refreshToken: string;
 }
-
 export interface ForgotPasswordData {
   email: string;
 }
-
 export interface ResetPasswordData {
   token: string;
   password: string;
   confirmPassword: string;
 }
-
 export interface ChangePasswordData {
   currentPassword: string;
   newPassword: string;
   confirmPassword: string;
 }
-
 export interface UpdateProfileData {
   firstName?: string;
   lastName?: string;

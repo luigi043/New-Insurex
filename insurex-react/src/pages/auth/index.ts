@@ -6,3 +6,6 @@ export { default as LoginDefault } from './Login';
 export { default as RegisterDefault } from './Register';
 export { default as ForgotPasswordDefault } from './ForgotPassword';
 export { default as ResetPasswordDefault } from './ResetPassword';
+export { EmailVerification } from './EmailVerification';
+
+export { default as EmailVerificationDefault } from './EmailVerification';

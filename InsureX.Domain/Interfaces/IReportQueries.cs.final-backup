@@ -1,0 +1,12 @@
+using ExportFormatEnum = InsureX.Shared.Enums.ExportFormatEnum;
+using InsureX.Shared.DTOs;
+using InsureX.Shared.Enums;
+
+namespace InsureX.Domain.Interfaces;
+
+public interface IReportQueries
+{
+    Task<ComplianceDashboardDto> GetComplianceDashboardAsync(DateTime? startDate = null, DateTime? endDate = null);
+    Task<byte[]> ExportReportAsync(string reportType, ExportFormatEnum format, Dictionary<string, object> parameters);
+}
+

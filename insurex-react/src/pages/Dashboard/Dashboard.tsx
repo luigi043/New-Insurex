@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Box,
@@ -16,6 +16,13 @@ import {
   Tooltip,
   CircularProgress,
   Button,
+  FormControl,
+
+  Select,
+
+  MenuItem,
+
+  SelectChangeEvent,
 } from '@mui/material';
 import {
   TrendingUp,
@@ -25,11 +32,17 @@ import {
   AttachMoney,
   Inventory,
   Claim,
+   Autorenew,
   ArrowForward,
   Refresh,
 } from '@mui/icons-material';
 import { policyService } from '../../services/policy.service';
 import { claimService } from '../../services/claim.service';
+
+
+import { SystemHealthWidget } from '../../components/Dashboard/SystemHealthWidget';
+
+import { TaskSummaryCards } from '../../components/Dashboard/TaskSummaryCards';
 import { assetService } from '../../services/asset.service';
 import { PolicyStats } from '../../types/policy.types';
 import { ClaimStats } from '../../types/claim.types';
@@ -43,7 +56,53 @@ interface DashboardStats {
   assets: AssetStats | null;
   recentClaims: any[];
   expiringPolicies: any[];
-}
+} const [refreshInterval, setRefreshInterval] = useState<number>(0);
+
+  const [lastRefreshed, setLastRefreshed] = useState<Date>(new Date());
+
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+ 
+
+  const handleRefreshIntervalChange = (event: SelectChangeEvent<number>) => {
+
+    setRefreshInterval(Number(event.target.value));
+
+  };
+
+ 
+
+  useEffect(() => {
+
+    if (intervalRef.current) {
+
+      clearInterval(intervalRef.current);
+
+      intervalRef.current = null;
+
+    }
+
+    if (refreshInterval > 0) {
+
+      intervalRef.current = setInterval(() => {
+
+        fetchDashboardData();
+
+      }, refreshInterval * 1000);
+
+    }
+
+    return () => {
+
+      if (intervalRef.current) {
+
+        clearInterval(intervalRef.current);
+
+      }
+
+    };
+
+  }, [refreshInterval]);
 
 export const Dashboard: React.FC = () => {
   const navigate = useNavigate();

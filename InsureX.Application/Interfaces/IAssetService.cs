@@ -1,3 +1,4 @@
+using InsureX.Application.DTOs.Filters;
 using InsureX.Application.DTOs;
 using InsureX.Domain.Entities;
 using InsureX.Domain.Enums;
@@ -17,3 +18,4 @@ public interface IAssetService
     Task<decimal> GetTotalValueAsync();
     Task<IEnumerable<Asset>> GetExpiringWarrantyAsync(DateTime beforeDate);
 }
+

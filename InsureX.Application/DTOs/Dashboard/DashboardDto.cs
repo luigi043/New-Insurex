@@ -1,19 +1,7 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 
 namespace InsureX.Application.DTOs.Dashboard;
-
-public class DashboardSummaryDto
-{
-    public int TotalPolicies { get; set; }
-    public int ActivePolicies { get; set; }
-    public int ExpiringSoon { get; set; }
-    public int TotalAssets { get; set; }
-    public decimal TotalInsuredValue { get; set; }
-    public int PendingClaims { get; set; }
-    public decimal OutstandingPremiums { get; set; }
-    public int UninsuredAssets { get; set; }
-}
 
 public class ChartDataDto
 {
@@ -37,3 +25,4 @@ public class RecentActivityDto
     public DateTime Timestamp { get; set; }
     public string User { get; set; } = string.Empty;
 }
+
