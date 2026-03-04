@@ -56,7 +56,7 @@ apiClient.interceptors.response.use(
         localStorage.removeItem('accessToken');
         localStorage.removeItem('refreshToken');
         localStorage.removeItem('user');
-        window.location.href = '/login';
+        window.location.href = `${import.meta.env.BASE_URL}login`;
         return Promise.reject(refreshError);
       }
     }

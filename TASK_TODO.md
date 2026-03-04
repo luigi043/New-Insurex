@@ -16,3 +16,25 @@
 
 ## Build Status
 ✅ `npm run build:demo` — 13,582 modules transformed, built in 45.95s — ZERO ERRORS
+
+## CI / Deployment History
+| Run | Commit | Result | Root Cause |
+|-----|--------|--------|------------|
+| #12 | initial | ❌ | `package-lock.json` not tracked → removed `cache: npm`, `npm ci` → `npm install` |
+| #13 | deps fix | ❌ | ERESOLVE `@mui/lab@7` vs `@mui/material@^5` → added `--legacy-peer-deps` |
+| #14 | peer-deps | ❌ | Concurrency group `pages` conflict → renamed to unique group |
+| #15 | concurrency | ❌ | Linux case-sensitivity: git tracked `pages/Assets/` but App.tsx imported `./pages/assets/` |
+| #16 | `ec9ef8b` | ✅ **SUCCESS** | `git mv` two-step rename for Assets/Billing/Claims/Reports → all lowercase |
+
+## 🚀 DEPLOYED
+- **URL:** https://luigi043.github.io/New-Insurex/
+- **Branch:** `blackboxai/github-pages-demo`
+- **Commit:** `ec9ef8b`
+- **Run:** #16 (22660904427) — `conclusion: success`
+
+## Demo Credentials
+| Role | Email | Password | Name |
+|------|-------|----------|------|
+| Admin | admin@insurex.co.za | Admin1234! | Thabo Nkosi |
+| Employee | employee@insurex.co.za | Employee1234! | Nomsa Dlamini |
+| Client | client@insurex.co.za | Client1234! | Sipho Mthembu |

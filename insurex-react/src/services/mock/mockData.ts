@@ -256,7 +256,7 @@ export const MOCK_ASSETS = [
     currency: 'ZAR', createdAt: '2025-01-01T09:00:00Z', updatedAt: '2025-01-01T09:00:00Z',
   },
   {
-    id: 'ast-002', assetNumber: 'AST-2025-0002', name: 'Residential Property - 14 Acacia Ave, Sandton', type: 'REAL_ESTATE', status: 'ACTIVE',
+    id: 'ast-002', assetNumber: 'AST-2025-0002', name: 'Residential Property - 14 Acacia Ave, Sandton', type: 'PROPERTY', status: 'ACTIVE',
     description: '4-bedroom, 3-bathroom home, 350m2, double garage, swimming pool', value: 3200000, purchaseDate: '2023-06-01', purchasePrice: 2950000,
     location: '14 Acacia Avenue, Sandton, Johannesburg, 2196', ownerId: 'holder-002', ownerName: 'Jennifer Botha',
     policyId: 'pol-002', policyNumber: 'POL-2025-0002',
@@ -373,7 +373,7 @@ export const MOCK_CLAIM_STATS = {
 
 export const MOCK_ASSET_STATS = {
   totalAssets: 5, total: 5, totalValue: 7980000,
-  byType: { VEHICLE: 2, REAL_ESTATE: 1, EQUIPMENT: 2 },
+  byType: { VEHICLE: 2, PROPERTY: 1, EQUIPMENT: 2 },
 };
 
 export const MOCK_EXPIRING_POLICIES = MOCK_POLICIES.filter(
