@@ -34,7 +34,7 @@ const BillingDetails = lazy(() => import('./pages/billing/BillingDetails').then(
 const Reports = lazy(() => import('./pages/reports/Reports').then(m => ({ default: m.Reports })));
 const Profile = lazy(() => import('./pages/profile/Profile').then(m => ({ default: m.Profile })));
 const Settings = lazy(() => import('./pages/settings/Settings').then(m => ({ default: m.Settings })));
-const NotFound = lazy(() => import('./pages/NotFound').then(m => ({ default: m.NotFound })));
+const NotFound = lazy(() => import('./pages/not-found').then(m => ({ default: m.NotFound })));
 
 // Loading fallback component
 const LoadingFallback = () => (

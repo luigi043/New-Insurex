@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { useState, useCallback, useEffect } from 'react';
 import { policyService, PaginatedResponse } from '../services/policy.service';
 import { Policy, CreatePolicyData, UpdatePolicyData, PolicyFilters, PolicyStats } from '../types/policy.types';
@@ -47,7 +48,8 @@ export const usePolicies = (options: UsePoliciesOptions = {}) => {
     } finally {
       setIsLoading(false);
     }
-  }, [page, limit, filters]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [page, limit, JSON.stringify(filters)]);
 
   useEffect(() => {
     if (autoFetch) {

@@ -3,6 +3,8 @@ import axios, { InternalAxiosRequestConfig, AxiosResponse } from 'axios';
 import apiClient from '../api.service';
 import {
   DEMO_AUTH_RESPONSE,
+  DEMO_AUTH_EMPLOYEE,
+  DEMO_AUTH_CLIENT,
   DEMO_USER,
   MOCK_POLICIES,
   MOCK_CLAIMS,
@@ -49,7 +51,14 @@ export function setupMockInterceptor() {
 
     // ── Auth ────────────────────────────────────────────────────────────────
     if (path.includes('/auth/login') || path.includes('/auth/register')) {
-      return makeResponse(DEMO_AUTH_RESPONSE, config);
+      // Route to correct user based on email in request body
+      let authResponse = DEMO_AUTH_RESPONSE;
+      try {
+        const body = config.data ? JSON.parse(config.data) : {};
+        if (body.email === 'employee@insurex.co.za') authResponse = DEMO_AUTH_EMPLOYEE;
+        else if (body.email === 'client@insurex.co.za') authResponse = DEMO_AUTH_CLIENT;
+      } catch { /* use default */ }
+      return makeResponse(authResponse, config);
     }
     if (path.includes('/auth/logout') || path.includes('/auth/forgot-password') ||
         path.includes('/auth/reset-password') || path.includes('/auth/change-password') ||
@@ -61,6 +70,10 @@ export function setupMockInterceptor() {
       return makeResponse({ accessToken: 'demo-access-token-refreshed', refreshToken: 'demo-refresh-token-refreshed' }, config);
     }
     if (path.includes('/auth/me') || path.includes('/auth/profile')) {
+      // Return user based on token
+      const token = (config.headers?.Authorization as string | undefined) || '';
+      if (token.includes('employee')) return makeResponse(DEMO_AUTH_EMPLOYEE.user, config);
+      if (token.includes('client')) return makeResponse(DEMO_AUTH_CLIENT.user, config);
       return makeResponse(DEMO_USER, config);
     }
 
@@ -89,6 +102,30 @@ export function setupMockInterceptor() {
     // ── Claims ───────────────────────────────────────────────────────────────
     if (path.includes('/claims/summary') || path.includes('/claims/stats')) {
       return makeResponse(MOCK_CLAIM_STATS, config);
+    }
+    // Sub-resources: /claims/:id/notes, /claims/:id/documents, etc.
+    if (/\/claims\/[^/]+\/notes\/[^/]+/.test(path) && method === 'delete') {
+      return makeResponse({ success: true }, config);
+    }
+    if (/\/claims\/[^/]+\/notes/.test(path) && method === 'post') {
+      const body = config.data ? JSON.parse(config.data) : {};
+      return makeResponse({
+        id: `note-${Date.now()}`,
+        content: body.content || '',
+        category: body.category || 'investigation',
+        isInternal: body.isInternal ?? true,
+        author: { id: 'demo-user-001', name: 'Alex Johnson' },
+        createdAt: new Date().toISOString(),
+      }, config);
+    }
+    if (/\/claims\/[^/]+\/notes/.test(path) && method === 'get') {
+      return makeResponse([], config);
+    }
+    if (/\/claims\/[^/]+\/documents/.test(path)) {
+      return makeResponse([], config);
+    }
+    if (/\/claims\/[^/]+\/[^/]+/.test(path) && method === 'get') {
+      return makeResponse([], config);
     }
     if (/\/claims\/[^/]+$/.test(path) && method === 'get') {
       const id = path.split('/').pop();
