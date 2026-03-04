@@ -8,35 +8,32 @@ import {
 import { Add, Edit, Delete, Visibility, Search, Refresh } from '@mui/icons-material';
 import { useAssets } from '../../hooks/useAssets';
 import { AssetStatus, AssetType } from '../../types/asset.types';
-import { formatCurrency, formatDate } from '../../utils/formatters';
+import { formatCurrency } from '../../utils/formatters';
 import { ConfirmDialog } from '../../components/Common/ConfirmDialog';
 import { useNotification } from '../../hooks/useNotification';
 
-const assetStatuses: { value: AssetStatus | ''; label: string; color: any }[] = [
+const assetStatuses: { value: AssetStatus | ''; label: string; color: 'default' | 'warning' | 'success' | 'error' | 'info' | 'primary' | 'secondary' }[] = [
   { value: '', label: 'All Statuses', color: 'default' },
-  { value: 'active', label: 'Active', color: 'success' },
-  { value: 'inactive', label: 'Inactive', color: 'default' },
-  { value: 'sold', label: 'Sold', color: 'info' },
-  { value: 'disposed', label: 'Disposed', color: 'error' },
-  { value: 'under_maintenance', label: 'Maintenance', color: 'warning' },
+  { value: AssetStatus.ACTIVE, label: 'Active', color: 'success' },
+  { value: AssetStatus.INSURED, label: 'Insured', color: 'info' },
+  { value: AssetStatus.PENDING, label: 'Pending', color: 'warning' },
+  { value: AssetStatus.SOLD, label: 'Sold', color: 'default' },
+  { value: AssetStatus.DISPOSED, label: 'Disposed', color: 'error' },
+  { value: AssetStatus.DAMAGED, label: 'Damaged', color: 'error' },
+  { value: AssetStatus.LOST, label: 'Lost', color: 'error' },
 ];
 
 const assetTypes: { value: AssetType | ''; label: string }[] = [
   { value: '', label: 'All Types' },
-  { value: 'vehicle', label: 'Vehicle' },
-  { value: 'property', label: 'Property' },
-  { value: 'equipment', label: 'Equipment' },
-  { value: 'machinery', label: 'Machinery' },
-  { value: 'inventory', label: 'Inventory' },
-  { value: 'electronics', label: 'Electronics' },
-  { value: 'furniture', label: 'Furniture' },
-  { value: 'art', label: 'Art' },
-  { value: 'jewelry', label: 'Jewelry' },
-  { value: 'livestock', label: 'Livestock' },
-  { value: 'crop', label: 'Crop' },
-  { value: 'vessel', label: 'Vessel' },
-  { value: 'aircraft', label: 'Aircraft' },
-  { value: 'other', label: 'Other' },
+  { value: AssetType.VEHICLE, label: 'Vehicle' },
+  { value: AssetType.PROPERTY, label: 'Property' },
+  { value: AssetType.EQUIPMENT, label: 'Equipment' },
+  { value: AssetType.INVENTORY, label: 'Inventory' },
+  { value: AssetType.ELECTRONICS, label: 'Electronics' },
+  { value: AssetType.JEWELRY, label: 'Jewelry' },
+  { value: AssetType.ART, label: 'Art' },
+  { value: AssetType.COLLECTIBLE, label: 'Collectible' },
+  { value: AssetType.OTHER, label: 'Other' },
 ];
 
 export const AssetList: React.FC = () => {
@@ -51,7 +48,8 @@ export const AssetList: React.FC = () => {
   const [assetToDelete, setAssetToDelete] = useState<string | null>(null);
 
   const { assets, totalItems, isLoading, error, refetch, deleteAsset } = useAssets({
-    page: page + 1, pageSize,
+    page: page + 1,
+    pageSize,
     filters: { search: searchQuery || undefined, status: statusFilter || undefined, type: typeFilter || undefined },
   });
 
@@ -67,8 +65,12 @@ export const AssetList: React.FC = () => {
   const handleDeleteClick = (id: string) => { setAssetToDelete(id); setDeleteDialogOpen(true); };
   const handleConfirmDelete = async () => {
     if (assetToDelete) {
-      const success = await deleteAsset(assetToDelete);
-      success ? showSuccess('Asset deleted successfully') : showError('Failed to delete asset');
+      try {
+        const success = await deleteAsset(assetToDelete);
+        success ? showSuccess('Asset deleted successfully') : showError('Failed to delete asset');
+      } catch {
+        showError('Failed to delete asset');
+      }
     }
     setDeleteDialogOpen(false);
     setAssetToDelete(null);
@@ -125,7 +127,7 @@ export const AssetList: React.FC = () => {
                assets.length === 0 ? (<TableRow><TableCell colSpan={7} align="center" sx={{ py: 4 }}><Typography color="textSecondary">No assets found</Typography></TableCell></TableRow>) :
                (assets.map((asset) => (
                 <TableRow key={asset.id} hover>
-                  <TableCell>{asset.assetId}</TableCell>
+                  <TableCell>{asset.assetNumber || asset.id}</TableCell>
                   <TableCell>{asset.name}</TableCell>
                   <TableCell>{assetTypes.find((t) => t.value === asset.type)?.label || asset.type}</TableCell>
                   <TableCell><Chip label={assetStatuses.find((s) => s.value === asset.status)?.label || asset.status} color={getStatusColor(asset.status)} size="small" /></TableCell>

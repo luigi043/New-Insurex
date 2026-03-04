@@ -1,13 +1,12 @@
 import { useState, useCallback, useEffect } from 'react';
 import { assetService } from '../services/asset.service';
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import {
   Asset,
   CreateAssetData,
   UpdateAssetData,
   AssetFilters,
   AssetStats,
-  AssetValuation,
-  Inspection,
   CreateInspectionData
 } from '../types/asset.types';
 import { PaginatedResponse } from '../services/policy.service';
@@ -15,12 +14,14 @@ import { PaginatedResponse } from '../services/policy.service';
 interface UseAssetsOptions {
   page?: number;
   limit?: number;
+  pageSize?: number; // alias for limit
   filters?: AssetFilters;
   autoFetch?: boolean;
 }
 
 export const useAssets = (options: UseAssetsOptions = {}) => {
-  const { page = 1, limit = 10, filters, autoFetch = true } = options;
+  const { page = 1, limit, pageSize, filters, autoFetch = true } = options;
+  const resolvedLimit = limit ?? pageSize ?? 10;
 
   const [assets, setAssets] = useState<Asset[]>([]);
   const [pagination, setPagination] = useState({
@@ -34,7 +35,7 @@ export const useAssets = (options: UseAssetsOptions = {}) => {
 
   const fetchAssets = useCallback(async (
     fetchPage = page,
-    fetchLimit = limit,
+    fetchLimit = resolvedLimit,
     fetchFilters = filters
   ) => {
     setIsLoading(true);
@@ -57,7 +58,8 @@ export const useAssets = (options: UseAssetsOptions = {}) => {
     } finally {
       setIsLoading(false);
     }
-  }, [page, limit, filters]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [page, resolvedLimit, JSON.stringify(filters)]);
 
   useEffect(() => {
     if (autoFetch) {
@@ -97,15 +99,16 @@ export const useAssets = (options: UseAssetsOptions = {}) => {
     }
   }, []);
 
-  const deleteAsset = useCallback(async (id: string) => {
+  const deleteAsset = useCallback(async (id: string): Promise<boolean> => {
     setIsLoading(true);
     setError(null);
     try {
       await assetService.delete(id);
       setAssets((prev) => prev.filter((asset) => asset.id !== id));
+      return true;
     } catch (err: any) {
       setError(err.response?.data?.message || 'Failed to delete asset');
-      throw err;
+      return false;
     } finally {
       setIsLoading(false);
     }
@@ -167,9 +170,11 @@ export const useAssets = (options: UseAssetsOptions = {}) => {
   return {
     assets,
     pagination,
+    totalItems: pagination.total,
     isLoading,
     error,
     fetchAssets,
+    refetch: fetchAssets,
     createAsset,
     updateAsset,
     deleteAsset,

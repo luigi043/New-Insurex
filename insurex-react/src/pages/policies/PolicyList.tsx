@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Box, Typography, Button, Paper, Table, TableBody, TableCell, TableContainer,
@@ -12,7 +12,7 @@ import { formatCurrency, formatDate } from '../../utils/formatters';
 import { ConfirmDialog } from '../../components/Common/ConfirmDialog';
 import { useNotification } from '../../hooks/useNotification';
 
-const policyStatuses: { value: PolicyStatus | ''; label: string; color: any }[] = [
+const policyStatuses: { value: PolicyStatus | ''; label: string; color: 'default' | 'warning' | 'success' | 'error' | 'info' | 'primary' | 'secondary' }[] = [
   { value: '', label: 'All Statuses', color: 'default' },
   { value: PolicyStatus.DRAFT, label: 'Draft', color: 'default' },
   { value: PolicyStatus.PENDING, label: 'Pending', color: 'warning' },
@@ -46,6 +46,12 @@ export const PolicyList: React.FC = () => {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [policyToDelete, setPolicyToDelete] = useState<string | null>(null);
 
+  const filters = useMemo(() => ({
+    search: searchQuery || undefined,
+    status: statusFilter || undefined,
+    type: typeFilter || undefined,
+  }), [searchQuery, statusFilter, typeFilter]);
+
   const {
     policies,
     pagination,
@@ -56,11 +62,7 @@ export const PolicyList: React.FC = () => {
   } = usePolicies({
     page: page + 1,
     limit: pageSize,
-    filters: {
-      search: searchQuery || undefined,
-      status: statusFilter || undefined,
-      type: typeFilter || undefined,
-    },
+    filters,
   });
 
   const totalItems = pagination.total;
@@ -156,7 +158,7 @@ export const PolicyList: React.FC = () => {
                       <TableCell><Chip label={policyStatuses.find((s) => s.value === policy.status)?.label || policy.status} color={getStatusColor(policy.status)} size="small" /></TableCell>
                       <TableCell>{formatDate(policy.startDate)}</TableCell>
                       <TableCell>{formatDate(policy.endDate)}</TableCell>
-                      <TableCell align="right">{formatCurrency(policy.premium, 'BRL')}</TableCell>
+                      <TableCell align="right">{formatCurrency(policy.premium, 'ZAR')}</TableCell>
                       <TableCell align="center">
                         <Tooltip title="View"><IconButton size="small" onClick={() => navigate(`/policies/${policy.id}`)}><Visibility /></IconButton></Tooltip>
                         <Tooltip title="Edit"><IconButton size="small" onClick={() => navigate(`/policies/edit/${policy.id}`)}><Edit /></IconButton></Tooltip>

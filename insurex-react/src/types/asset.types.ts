@@ -1,10 +1,12 @@
 export interface Asset {
   id: string;
+  assetNumber?: string;
   name: string;
   description?: string;
   type: AssetType;
   status: AssetStatus;
   value: number;
+  currency?: string;
   ownerId: string;
   ownerName: string;
   location?: string;

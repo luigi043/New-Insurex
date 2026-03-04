@@ -19,6 +19,8 @@ export interface User {
 
 export enum UserRole {
   Admin = 'Admin',
+  Employee = 'Employee',
+  Client = 'Client',
   Insurer = 'Insurer',
   Broker = 'Broker',
   Viewer = 'Viewer',

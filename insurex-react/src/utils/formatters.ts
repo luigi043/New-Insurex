@@ -1,10 +1,10 @@
 /**
  * Format a number as currency
  */
-export const formatCurrency = (value: number | undefined | null, currency: string = 'USD'): string => {
+export const formatCurrency = (value: number | undefined | null, currency: string = 'ZAR'): string => {
   if (value === undefined || value === null) return '-';
 
-  return new Intl.NumberFormat('pt-BR', {
+  return new Intl.NumberFormat('en-ZA', {
     style: 'currency',
     currency,
     minimumFractionDigits: 2,
@@ -20,7 +20,7 @@ export const formatDate = (date: string | Date | undefined | null): string => {
 
   const d = typeof date === 'string' ? new Date(date) : date;
 
-  return new Intl.DateTimeFormat('pt-BR', {
+  return new Intl.DateTimeFormat('en-ZA', {
     year: 'numeric',
     month: '2-digit',
     day: '2-digit'
