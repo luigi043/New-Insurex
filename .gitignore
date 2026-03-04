@@ -63,3 +63,6 @@ Thumbs.db
 # Project specific
 **/appsettings.Development.json
 **/appsettings.Production.json
+
+# Duplicate web folder (files are in IAPR_Web/)
+web/
