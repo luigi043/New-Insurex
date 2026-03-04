@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/x-icon" href="/New-Insurex/favicon.ico" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>InsureX - Insurance Management System</title>
+    <!-- GitHub Pages SPA routing: restore path from query string set by 404.html -->
+    <script type="text/javascript">
+      (function(l) {
+        if (l.search[1] === '/') {
+          var decoded = l.search.slice(1).split('&').map(function(s) {
+            return s.replace(/~and~/g, '&');
+          }).join('?');
+          window.history.replaceState(
+            null, null,
+            l.pathname.slice(0, -1) + decoded + l.hash
+          );
+        }
+      }(window.location));
+    </script>
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css?family=Roboto:300,400,500,700&display=swap"
+    />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/icon?family=Material+Icons"
+    />
+    <script type="module" crossorigin src="/New-Insurex/assets/index-D_F12Hye.js"></script>
+    <link rel="modulepreload" crossorigin href="/New-Insurex/assets/api.service-DhHNx0ud.js">
+  </head>
+  <body>
+    <div id="root"></div>
+  </body>
+</html>

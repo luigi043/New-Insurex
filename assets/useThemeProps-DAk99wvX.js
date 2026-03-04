@@ -1,0 +1,1 @@
+import{au as t,av as p}from"./index-D_F12Hye.js";function m(n){const{theme:e,name:o,props:r}=n;return!e||!e.components||!e.components[o]||!e.components[o].defaultProps?r:t(e.components[o].defaultProps,r)}function c({props:n,name:e,defaultTheme:o,themeId:r}){let s=p(o);return r&&(s=s[r]||s),m({theme:s,name:e,props:n})}export{c as u};
