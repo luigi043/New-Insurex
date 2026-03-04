@@ -88,6 +88,12 @@ export const Login: React.FC = () => {
         <Paper sx={{ p: 4 }}>
           {/* Logo / Title */}
           <Box sx={{ textAlign: 'center', mb: 3 }}>
+            <img
+              src={`${import.meta.env.BASE_URL}InsureX.png`}
+              alt="InsureX"
+              onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+              style={{ height: 64, marginBottom: 8, objectFit: 'contain', display: 'block', margin: '0 auto 8px' }}
+            />
             <Typography variant="h4" fontWeight={700} color="primary">InsureX</Typography>
             <Typography variant="body2" color="textSecondary">South Africa — Insurance Management Platform</Typography>
           </Box>

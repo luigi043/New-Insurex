@@ -30,7 +30,6 @@ import {
   Assessment,
   Settings,
   AccountCircle,
-  ChevronLeft,
   Logout,
   Notifications,
 } from '@mui/icons-material';
@@ -90,12 +89,20 @@ export const Layout: React.FC = () => {
       <Toolbar
         sx={{
           display: 'flex',
+          flexDirection: 'column',
           alignItems: 'center',
           justifyContent: 'center',
           py: 2,
+          gap: 0.5,
         }}
       >
-        <Typography variant="h5" component="div" sx={{ fontWeight: 'bold', color: 'primary.main' }}>
+        <img
+          src={`${import.meta.env.BASE_URL}InsureX.png`}
+          alt="InsureX"
+          onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+          style={{ height: 48, objectFit: 'contain' }}
+        />
+        <Typography variant="h6" component="div" sx={{ fontWeight: 'bold', color: 'primary.main' }}>
           InsureX
         </Typography>
       </Toolbar>
@@ -201,9 +208,9 @@ export const Layout: React.FC = () => {
               onClick={handleProfileMenuOpen}
               size="small"
               sx={{ ml: 1 }}
-              aria-controls={Boolean(anchorEl) ? 'account-menu' : undefined}
+              aria-controls={anchorEl ? 'account-menu' : undefined}
               aria-haspopup="true"
-              aria-expanded={Boolean(anchorEl) ? 'true' : undefined}
+              aria-expanded={anchorEl ? 'true' : undefined}
             >
               <Avatar sx={{ width: 32, height: 32, bgcolor: 'primary.main' }}>
                 {user?.firstName?.[0] || user?.email?.[0] || 'U'}
