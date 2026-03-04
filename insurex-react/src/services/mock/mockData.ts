@@ -399,3 +399,33 @@ export const MOCK_CLAIMS_TREND = [
   { month: 'Jun', claims: 6 },
   { month: 'Jul', claims: 6 },
 ];
+
+// ---- New Dashboard Data (matching reference image) --------------------------
+
+export const MOCK_DASHBOARD_OVERVIEW = {
+  uninsuredAssets: 23,
+  uninsuredValue: 25548376,
+  totalAssets: 30,
+  totalFinancedValue: 31293841,
+};
+
+export const MOCK_PREMIUMS_VS_REINSTATED = [
+  { month: 'Aug', unpaidPremiums: 0,  reinstatedCover: 0  },
+  { month: 'Sep', unpaidPremiums: 0,  reinstatedCover: 0  },
+  { month: 'Oct', unpaidPremiums: 0,  reinstatedCover: 0  },
+  { month: 'Nov', unpaidPremiums: 15, reinstatedCover: 11 },
+  { month: 'Dec', unpaidPremiums: 0,  reinstatedCover: 0  },
+  { month: 'Jan', unpaidPremiums: 25, reinstatedCover: 13 },
+  { month: 'Feb', unpaidPremiums: 25, reinstatedCover: 13 },
+  { month: 'Mar', unpaidPremiums: 1,  reinstatedCover: 0  },
+  { month: 'Apr', unpaidPremiums: 0,  reinstatedCover: 0  },
+  { month: 'May', unpaidPremiums: 0,  reinstatedCover: 0  },
+  { month: 'Jun', unpaidPremiums: 0,  reinstatedCover: 0  },
+  { month: 'Jul', unpaidPremiums: 0,  reinstatedCover: 0  },
+];
+
+export const MOCK_INSURANCE_STATUS_PIE = [
+  { name: 'Insured assets',    value: 7,  percentage: 23.33, color: '#3d3d8f' },
+  { name: 'Premium Upaid',     value: 2,  percentage: 6.67,  color: '#00b5b5' },
+  { name: 'Unconfirmed cover', value: 21, percentage: 70.00, color: '#e57373' },
+];

@@ -30,14 +30,14 @@ export const Settings: React.FC = () => {
   const [activeSection, setActiveSection] = useState('general');
 
   const [generalSettings, setGeneralSettings] = useState({
-    companyName: 'InsureX Seguros',
-    companyDocument: '00.000.000/0000-00',
-    companyEmail: 'contato@insurex.com',
-    companyPhone: '(11) 3000-0000',
-    language: 'pt-BR',
-    timezone: 'America/Sao_Paulo',
+    companyName: 'InsureX South Africa',
+    companyDocument: '00/000/000/0000',
+    companyEmail: 'contact@insurex.co.za',
+    companyPhone: '+27 11 000 0000',
+    language: 'en-US',
+    timezone: 'Africa/Johannesburg',
     dateFormat: 'DD/MM/YYYY',
-    currency: 'BRL'
+    currency: 'ZAR'
   });
 
   const [notificationSettings, setNotificationSettings] = useState({
@@ -60,25 +60,25 @@ export const Settings: React.FC = () => {
   // const [userDialogOpen, setUserDialogOpen] = useState(false);
 
   const handleSaveGeneral = () => {
-    showSuccess('Configurações gerais salvas com sucesso!');
+    showSuccess('General settings saved successfully!');
   };
 
   const handleSaveNotifications = () => {
-    showSuccess('Configurações de notificações salvas com sucesso!');
+    showSuccess('Notification settings saved successfully!');
   };
 
   const handleSaveSecurity = () => {
-    showSuccess('Configurações de segurança salvas com sucesso!');
+    showSuccess('Security settings saved successfully!');
   };
 
   const renderGeneralSettings = () => (
     <Box>
-      <Typography variant="h6" gutterBottom>Informações da Empresa</Typography>
+      <Typography variant="h6" gutterBottom>Company Information</Typography>
       <Grid container spacing={3}>
         <Grid item xs={12} md={6}>
           <TextField
             fullWidth
-            label="Nome da Empresa"
+            label="Company Name"
             value={generalSettings.companyName}
             onChange={(e) => setGeneralSettings(prev => ({ ...prev, companyName: e.target.value }))}
           />
@@ -86,7 +86,7 @@ export const Settings: React.FC = () => {
         <Grid item xs={12} md={6}>
           <TextField
             fullWidth
-            label="CNPJ"
+            label="Registration Number"
             value={generalSettings.companyDocument}
             onChange={(e) => setGeneralSettings(prev => ({ ...prev, companyDocument: e.target.value }))}
           />
@@ -94,7 +94,7 @@ export const Settings: React.FC = () => {
         <Grid item xs={12} md={6}>
           <TextField
             fullWidth
-            label="E-mail"
+            label="Email"
             value={generalSettings.companyEmail}
             onChange={(e) => setGeneralSettings(prev => ({ ...prev, companyEmail: e.target.value }))}
           />
@@ -102,7 +102,7 @@ export const Settings: React.FC = () => {
         <Grid item xs={12} md={6}>
           <TextField
             fullWidth
-            label="Telefone"
+            label="Phone"
             value={generalSettings.companyPhone}
             onChange={(e) => setGeneralSettings(prev => ({ ...prev, companyPhone: e.target.value }))}
           />
@@ -115,25 +115,24 @@ export const Settings: React.FC = () => {
       <Grid container spacing={3}>
         <Grid item xs={12} md={6}>
           <FormControl fullWidth>
-            <InputLabel>Idioma</InputLabel>
+            <InputLabel>Language</InputLabel>
             <Select
               value={generalSettings.language}
               onChange={(e) => setGeneralSettings(prev => ({ ...prev, language: e.target.value }))}
             >
-              <MenuItem value="pt-BR">Português (Brasil)</MenuItem>
               <MenuItem value="en-US">English (US)</MenuItem>
-              <MenuItem value="es">Español</MenuItem>
+              <MenuItem value="en-ZA">English (South Africa)</MenuItem>
             </Select>
           </FormControl>
         </Grid>
         <Grid item xs={12} md={6}>
           <FormControl fullWidth>
-            <InputLabel>Fuso Horário</InputLabel>
+            <InputLabel>Time Zone</InputLabel>
             <Select
               value={generalSettings.timezone}
               onChange={(e) => setGeneralSettings(prev => ({ ...prev, timezone: e.target.value }))}
             >
-              <MenuItem value="America/Sao_Paulo">São Paulo (GMT-3)</MenuItem>
+              <MenuItem value="Africa/Johannesburg">Johannesburg (GMT+2)</MenuItem>
               <MenuItem value="America/New_York">New York (GMT-5)</MenuItem>
               <MenuItem value="Europe/London">London (GMT+0)</MenuItem>
             </Select>
@@ -141,7 +140,7 @@ export const Settings: React.FC = () => {
         </Grid>
         <Grid item xs={12} md={6}>
           <FormControl fullWidth>
-            <InputLabel>Formato de Data</InputLabel>
+            <InputLabel>Date Format</InputLabel>
             <Select
               value={generalSettings.dateFormat}
               onChange={(e) => setGeneralSettings(prev => ({ ...prev, dateFormat: e.target.value }))}
@@ -154,12 +153,12 @@ export const Settings: React.FC = () => {
         </Grid>
         <Grid item xs={12} md={6}>
           <FormControl fullWidth>
-            <InputLabel>Moeda</InputLabel>
+            <InputLabel>Currency</InputLabel>
             <Select
               value={generalSettings.currency}
               onChange={(e) => setGeneralSettings(prev => ({ ...prev, currency: e.target.value }))}
             >
-              <MenuItem value="BRL">Real (R$)</MenuItem>
+              <MenuItem value="ZAR">Rand (R)</MenuItem>
               <MenuItem value="USD">Dollar ($)</MenuItem>
               <MenuItem value="EUR">Euro (€)</MenuItem>
             </Select>
@@ -169,7 +168,7 @@ export const Settings: React.FC = () => {
 
       <Box sx={{ mt: 3, display: 'flex', justifyContent: 'flex-end' }}>
         <Button variant="contained" startIcon={<Save />} onClick={handleSaveGeneral}>
-          Salvar Alterações
+          Save Changes
         </Button>
       </Box>
     </Box>
@@ -177,12 +176,12 @@ export const Settings: React.FC = () => {
 
   const renderNotificationSettings = () => (
     <Box>
-      <Typography variant="h6" gutterBottom>Canais de Notificação</Typography>
+      <Typography variant="h6" gutterBottom>Notification Channels</Typography>
       <List>
         <ListItem>
           <ListItemText
-            primary="Notificações por E-mail"
-            secondary="Receber notificações importantes por e-mail"
+            primary="Email Notifications"
+            secondary="Receive important notifications by email"
           />
           <ListItemSecondaryAction>
             <Switch
@@ -193,8 +192,8 @@ export const Settings: React.FC = () => {
         </ListItem>
         <ListItem>
           <ListItemText
-            primary="Notificações Push"
-            secondary="Receber notificações em tempo real no navegador"
+            primary="Push Notifications"
+            secondary="Receive real-time notifications in the browser"
           />
           <ListItemSecondaryAction>
             <Switch
@@ -207,12 +206,12 @@ export const Settings: React.FC = () => {
 
       <Divider sx={{ my: 2 }} />
 
-      <Typography variant="h6" gutterBottom>Eventos</Typography>
+      <Typography variant="h6" gutterBottom>Events</Typography>
       <List>
         <ListItem>
           <ListItemText
-            primary="Alertas de Sinistros"
-            secondary="Notificar quando novos sinistros forem registrados"
+            primary="Claim Alerts"
+            secondary="Notify when new claims are registered"
           />
           <ListItemSecondaryAction>
             <Switch
@@ -223,8 +222,8 @@ export const Settings: React.FC = () => {
         </ListItem>
         <ListItem>
           <ListItemText
-            primary="Vencimento de Apólices"
-            secondary="Alertar sobre apólices próximas do vencimento"
+            primary="Policy Expirations"
+            secondary="Alert about policies nearing expiration"
           />
           <ListItemSecondaryAction>
             <Switch
@@ -235,8 +234,8 @@ export const Settings: React.FC = () => {
         </ListItem>
         <ListItem>
           <ListItemText
-            primary="Lembretes de Pagamento"
-            secondary="Enviar lembretes de faturas próximas do vencimento"
+            primary="Payment Reminders"
+            secondary="Send reminders for invoices nearing due date"
           />
           <ListItemSecondaryAction>
             <Switch
@@ -249,7 +248,7 @@ export const Settings: React.FC = () => {
 
       <Box sx={{ mt: 3, display: 'flex', justifyContent: 'flex-end' }}>
         <Button variant="contained" startIcon={<Save />} onClick={handleSaveNotifications}>
-          Salvar Alterações
+          Save Changes
         </Button>
       </Box>
     </Box>
@@ -257,12 +256,12 @@ export const Settings: React.FC = () => {
 
   const renderSecuritySettings = () => (
     <Box>
-      <Typography variant="h6" gutterBottom>Autenticação</Typography>
+      <Typography variant="h6" gutterBottom>Authentication</Typography>
       <List>
         <ListItem>
           <ListItemText
-            primary="Autenticação de Dois Fatores"
-            secondary="Exigir código adicional no login"
+            primary="Two-Factor Authentication"
+            secondary="Require an additional code at login"
           />
           <ListItemSecondaryAction>
             <Switch
@@ -275,13 +274,13 @@ export const Settings: React.FC = () => {
 
       <Divider sx={{ my: 2 }} />
 
-      <Typography variant="h6" gutterBottom>Sessão</Typography>
+      <Typography variant="h6" gutterBottom>Session</Typography>
       <Grid container spacing={3}>
         <Grid item xs={12} md={6}>
           <TextField
             fullWidth
             type="number"
-            label="Timeout da Sessão (minutos)"
+            label="Session Timeout (minutes)"
             value={securitySettings.sessionTimeout}
             onChange={(e) => setSecuritySettings(prev => ({ ...prev, sessionTimeout: parseInt(e.target.value) }))}
           />
@@ -290,7 +289,7 @@ export const Settings: React.FC = () => {
           <TextField
             fullWidth
             type="number"
-            label="Expiração de Senha (dias)"
+            label="Password Expiration (days)"
             value={securitySettings.passwordExpiration}
             onChange={(e) => setSecuritySettings(prev => ({ ...prev, passwordExpiration: parseInt(e.target.value) }))}
           />
@@ -299,7 +298,7 @@ export const Settings: React.FC = () => {
           <TextField
             fullWidth
             type="number"
-            label="Tentativas de Login"
+            label="Login Attempts"
             value={securitySettings.loginAttempts}
             onChange={(e) => setSecuritySettings(prev => ({ ...prev, loginAttempts: parseInt(e.target.value) }))}
           />
@@ -308,21 +307,21 @@ export const Settings: React.FC = () => {
 
       <Box sx={{ mt: 3, display: 'flex', justifyContent: 'flex-end' }}>
         <Button variant="contained" startIcon={<Save />} onClick={handleSaveSecurity}>
-          Salvar Alterações
+          Save Changes
         </Button>
       </Box>
     </Box>
   );
 
   const menuItems = [
-    { id: 'general', label: 'Geral', icon: <Business /> },
-    { id: 'notifications', label: 'Notificações', icon: <Notifications /> },
-    { id: 'security', label: 'Segurança', icon: <Security /> }
+    { id: 'general', label: 'General', icon: <Business /> },
+    { id: 'notifications', label: 'Notifications', icon: <Notifications /> },
+    { id: 'security', label: 'Security', icon: <Security /> }
   ];
 
   return (
     <Box>
-      <Typography variant="h4" sx={{ mb: 3 }}>Configurações</Typography>
+      <Typography variant="h4" sx={{ mb: 3 }}>Settings</Typography>
 
       <Grid container spacing={3}>
         <Grid item xs={12} md={3}>

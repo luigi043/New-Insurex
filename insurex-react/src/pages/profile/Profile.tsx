@@ -81,9 +81,9 @@ export const Profile: React.FC = () => {
       const newState = !twoFAEnabled;
       await updateProfile({ isTwoFactorEnabled: newState });
       setTwoFAEnabled(newState);
-      showSuccess(`Autenticação de dois fatores ${newState ? 'ativada' : 'desativada'} com sucesso!`);
+      showSuccess(`Two-factor authentication ${newState ? 'enabled' : 'disabled'} successfully!`);
     } catch (err) {
-      showError('Erro ao atualizar 2FA');
+      showError('Error updating 2FA');
     }
   };
 
@@ -113,16 +113,16 @@ export const Profile: React.FC = () => {
   const handleSave = async () => {
     try {
       await updateProfile(formData);
-      showSuccess('Perfil atualizado com sucesso!');
+      showSuccess('Profile updated successfully!');
       setIsEditing(false);
     } catch (err) {
-      showError('Erro ao atualizar perfil');
+      showError('Error updating profile');
     }
   };
 
   const handlePasswordChange = async () => {
     if (passwordData.newPassword !== passwordData.confirmPassword) {
-      showError('As senhas não coincidem');
+      showError('Passwords do not match');
       return;
     }
 
@@ -132,11 +132,11 @@ export const Profile: React.FC = () => {
         newPassword: passwordData.newPassword,
         confirmPassword: passwordData.confirmPassword
       });
-      showSuccess('Senha alterada com sucesso!');
+      showSuccess('Password changed successfully!');
       setPasswordDialogOpen(false);
       setPasswordData({ currentPassword: '', newPassword: '', confirmPassword: '' });
     } catch (err) {
-      showError('Erro ao alterar senha');
+      showError('Error changing password');
     }
   };
 
@@ -161,7 +161,7 @@ export const Profile: React.FC = () => {
 
   return (
     <Box>
-      <Typography variant="h4" sx={{ mb: 3 }}>Meu Perfil</Typography>
+      <Typography variant="h4" sx={{ mb: 3 }}>My Profile</Typography>
 
       <Paper>
         <Box sx={{ p: 3, display: 'flex', alignItems: 'center', gap: 3 }}>
@@ -210,7 +210,7 @@ export const Profile: React.FC = () => {
                 startIcon={<Edit />}
                 onClick={() => setIsEditing(true)}
               >
-                Editar Perfil
+                Edit Profile
               </Button>
             ) : (
               <Box sx={{ display: 'flex', gap: 1 }}>
@@ -218,14 +218,14 @@ export const Profile: React.FC = () => {
                   variant="outlined"
                   onClick={() => setIsEditing(false)}
                 >
-                  Cancelar
+                  Cancel
                 </Button>
                 <Button
                   variant="contained"
                   startIcon={<Save />}
                   onClick={handleSave}
                 >
-                  Salvar
+                  Save
                 </Button>
               </Box>
             )}
@@ -233,9 +233,9 @@ export const Profile: React.FC = () => {
         </Box>
 
         <Tabs value={activeTab} onChange={handleTabChange}>
-          <Tab icon={<Person />} label="Informações Pessoais" />
-          <Tab icon={<Business />} label="Empresa" />
-          <Tab icon={<VpnKey />} label="Segurança" />
+          <Tab icon={<Person />} label="Personal Information" />
+          <Tab icon={<Business />} label="Company" />
+          <Tab icon={<VpnKey />} label="Security" />
         </Tabs>
 
         <TabPanel value={activeTab} index={0}>
@@ -243,7 +243,7 @@ export const Profile: React.FC = () => {
             <Grid item xs={12} md={6}>
               <TextField
                 fullWidth
-                label="Nome"
+                label="First Name"
                 value={formData.firstName}
                 onChange={(e) => handleInputChange('firstName', e.target.value)}
                 disabled={!isEditing}
@@ -252,7 +252,7 @@ export const Profile: React.FC = () => {
             <Grid item xs={12} md={6}>
               <TextField
                 fullWidth
-                label="Sobrenome"
+                label="Last Name"
                 value={formData.lastName}
                 onChange={(e) => handleInputChange('lastName', e.target.value)}
                 disabled={!isEditing}
@@ -261,7 +261,7 @@ export const Profile: React.FC = () => {
             <Grid item xs={12} md={6}>
               <TextField
                 fullWidth
-                label="E-mail"
+                label="Email"
                 type="email"
                 value={formData.email}
                 onChange={(e) => handleInputChange('email', e.target.value)}
@@ -271,7 +271,7 @@ export const Profile: React.FC = () => {
             <Grid item xs={12} md={6}>
               <TextField
                 fullWidth
-                label="Telefone"
+                label="Phone"
                 value={formData.phone}
                 onChange={(e) => handleInputChange('phone', e.target.value)}
                 disabled={!isEditing}
@@ -280,7 +280,7 @@ export const Profile: React.FC = () => {
             <Grid item xs={12} md={6}>
               <TextField
                 fullWidth
-                label="CPF"
+                label="ID Number"
                 value={formData.document}
                 onChange={(e) => handleInputChange('document', e.target.value)}
                 disabled={!isEditing}
@@ -294,7 +294,7 @@ export const Profile: React.FC = () => {
             <Grid item xs={12} md={6}>
               <TextField
                 fullWidth
-                label="Cargo"
+                label="Position"
                 value={formData.position}
                 onChange={(e) => handleInputChange('position', e.target.value)}
                 disabled={!isEditing}
@@ -303,7 +303,7 @@ export const Profile: React.FC = () => {
             <Grid item xs={12} md={6}>
               <TextField
                 fullWidth
-                label="Departamento"
+                label="Department"
                 value={formData.department}
                 onChange={(e) => handleInputChange('department', e.target.value)}
                 disabled={!isEditing}
@@ -314,23 +314,23 @@ export const Profile: React.FC = () => {
 
         <TabPanel value={activeTab} index={2}>
           <Box>
-            <Typography variant="h6" gutterBottom>Alterar Senha</Typography>
+            <Typography variant="h6" gutterBottom>Change Password</Typography>
             <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-              Recomendamos usar uma senha forte com pelo menos 8 caracteres, incluindo letras maiúsculas, minúsculas, números e símbolos.
+              We recommend using a strong password with at least 8 characters, including uppercase, lowercase, numbers and symbols.
             </Typography>
             <Button
               variant="contained"
               startIcon={<Lock />}
               onClick={() => setPasswordDialogOpen(true)}
             >
-              Alterar Senha
+              Change Password
             </Button>
 
             <Divider sx={{ my: 4 }} />
 
-            <Typography variant="h6" gutterBottom>Autenticação de Dois Fatores (2FA)</Typography>
+            <Typography variant="h6" gutterBottom>Two-Factor Authentication (2FA)</Typography>
             <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-              Adicione uma camada extra de segurança à sua conta. Quando ativado, você precisará fornecer um código de verificação além da sua senha.
+              Add an extra layer of security to your account. When enabled, you will need to provide a verification code in addition to your password.
             </Typography>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
               <Security color={twoFAEnabled ? 'success' : 'action'} sx={{ fontSize: 40 }} />
@@ -342,7 +342,7 @@ export const Profile: React.FC = () => {
                     color="primary"
                   />
                 }
-                label={twoFAEnabled ? 'Ativo' : 'Inativo'}
+                label={twoFAEnabled ? 'Active' : 'Inactive'}
               />
             </Box>
           </Box>
@@ -350,12 +350,12 @@ export const Profile: React.FC = () => {
       </Paper>
 
       <Dialog open={passwordDialogOpen} onClose={() => setPasswordDialogOpen(false)} maxWidth="sm" fullWidth>
-        <DialogTitle>Alterar Senha</DialogTitle>
+        <DialogTitle>Change Password</DialogTitle>
         <DialogContent>
           <TextField
             fullWidth
             type="password"
-            label="Senha Atual"
+            label="Current Password"
             value={passwordData.currentPassword}
             onChange={(e) => setPasswordData(prev => ({ ...prev, currentPassword: e.target.value }))}
             sx={{ mb: 2, mt: 1 }}
@@ -363,7 +363,7 @@ export const Profile: React.FC = () => {
           <TextField
             fullWidth
             type="password"
-            label="Nova Senha"
+            label="New Password"
             value={passwordData.newPassword}
             onChange={(e) => setPasswordData(prev => ({ ...prev, newPassword: e.target.value }))}
             sx={{ mb: 2 }}
@@ -371,15 +371,15 @@ export const Profile: React.FC = () => {
           <TextField
             fullWidth
             type="password"
-            label="Confirmar Nova Senha"
+            label="Confirm New Password"
             value={passwordData.confirmPassword}
             onChange={(e) => setPasswordData(prev => ({ ...prev, confirmPassword: e.target.value }))}
           />
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setPasswordDialogOpen(false)}>Cancelar</Button>
+          <Button onClick={() => setPasswordDialogOpen(false)}>Cancel</Button>
           <Button variant="contained" onClick={handlePasswordChange}>
-            Alterar Senha
+            Change Password
           </Button>
         </DialogActions>
       </Dialog>

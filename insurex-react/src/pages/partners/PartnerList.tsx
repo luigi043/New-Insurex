@@ -45,12 +45,12 @@ import { ConfirmDialog } from '../../components/Common/ConfirmDialog';
 import { useNotification } from '../../hooks/useNotification';
 
 const partnerTypes = [
-  { value: '', label: 'Todos' },
-  { value: PartnerType.BROKER, label: 'Corretor' },
-  { value: PartnerType.AGENCY, label: 'Agência' },
-  { value: PartnerType.ADJUSTER, label: 'Ajustador' },
-  { value: PartnerType.REPAIR_SHOP, label: 'Oficina' },
-  { value: PartnerType.OTHER, label: 'Outro' }
+  { value: '', label: 'All' },
+  { value: PartnerType.BROKER, label: 'Broker' },
+  { value: PartnerType.AGENCY, label: 'Agency' },
+  { value: PartnerType.ADJUSTER, label: 'Adjuster' },
+  { value: PartnerType.REPAIR_SHOP, label: 'Repair Shop' },
+  { value: PartnerType.OTHER, label: 'Other' }
 ];
 
 const partnerStatusColors: Record<PartnerStatus, 'success' | 'error' | 'warning' | 'default'> = {
@@ -61,18 +61,18 @@ const partnerStatusColors: Record<PartnerStatus, 'success' | 'error' | 'warning'
 };
 
 const partnerStatusLabels: Record<PartnerStatus, string> = {
-  [PartnerStatus.ACTIVE]: 'Ativo',
-  [PartnerStatus.INACTIVE]: 'Inativo',
-  [PartnerStatus.SUSPENDED]: 'Suspenso',
-  [PartnerStatus.PENDING]: 'Pendente'
+  [PartnerStatus.ACTIVE]: 'Active',
+  [PartnerStatus.INACTIVE]: 'Inactive',
+  [PartnerStatus.SUSPENDED]: 'Suspended',
+  [PartnerStatus.PENDING]: 'Pending'
 };
 
 const partnerTypeLabels: Record<PartnerType, string> = {
-  [PartnerType.BROKER]: 'Corretor',
-  [PartnerType.AGENCY]: 'Agência',
-  [PartnerType.ADJUSTER]: 'Ajustador',
-  [PartnerType.REPAIR_SHOP]: 'Oficina',
-  [PartnerType.OTHER]: 'Outro'
+  [PartnerType.BROKER]: 'Broker',
+  [PartnerType.AGENCY]: 'Agency',
+  [PartnerType.ADJUSTER]: 'Adjuster',
+  [PartnerType.REPAIR_SHOP]: 'Repair Shop',
+  [PartnerType.OTHER]: 'Other'
 };
 
 export const PartnerList: React.FC = () => {
@@ -100,7 +100,7 @@ export const PartnerList: React.FC = () => {
         search: searchTerm || undefined
       });
     } catch (err) {
-      showError('Erro ao carregar parceiros');
+      showError('Error loading partners');
     }
   };
 
@@ -134,10 +134,10 @@ export const PartnerList: React.FC = () => {
     if (partnerToDelete) {
       try {
         await deletePartner(partnerToDelete);
-        showSuccess('Parceiro excluído com sucesso!');
+        showSuccess('Partner deleted successfully!');
         loadPartners();
       } catch (err) {
-        showError('Erro ao excluir parceiro');
+        showError('Error deleting partner');
       }
     }
     setDeleteDialogOpen(false);
@@ -150,13 +150,13 @@ export const PartnerList: React.FC = () => {
   return (
     <Box>
       <Box sx={{ mb: 3, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <Typography variant="h4">Parceiros</Typography>
+        <Typography variant="h4">Partners</Typography>
         <Button
           variant="contained"
           startIcon={<Add />}
           onClick={() => navigate('/partners/new')}
         >
-          Novo Parceiro
+          New Partner
         </Button>
       </Box>
 
@@ -164,7 +164,7 @@ export const PartnerList: React.FC = () => {
         <Grid item xs={12} sm={4}>
           <Card>
             <CardContent>
-              <Typography color="text.secondary" variant="body2">Total de Parceiros</Typography>
+              <Typography color="text.secondary" variant="body2">Total Partners</Typography>
               <Typography variant="h4">{totalPartners}</Typography>
             </CardContent>
           </Card>
@@ -172,7 +172,7 @@ export const PartnerList: React.FC = () => {
         <Grid item xs={12} sm={4}>
           <Card>
             <CardContent>
-              <Typography color="text.secondary" variant="body2">Parceiros Ativos</Typography>
+              <Typography color="text.secondary" variant="body2">Active Partners</Typography>
               <Typography variant="h4" color="success.main">{activePartners}</Typography>
             </CardContent>
           </Card>
@@ -180,7 +180,7 @@ export const PartnerList: React.FC = () => {
         <Grid item xs={12} sm={4}>
           <Card>
             <CardContent>
-              <Typography color="text.secondary" variant="body2">Pendentes</Typography>
+              <Typography color="text.secondary" variant="body2">Pending</Typography>
               <Typography variant="h4" color="warning.main">{pendingPartners}</Typography>
             </CardContent>
           </Card>
@@ -192,7 +192,7 @@ export const PartnerList: React.FC = () => {
           <Grid item xs={12} md={4}>
             <TextField
               fullWidth
-              placeholder="Buscar parceiro..."
+              placeholder="Search partner..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
@@ -222,10 +222,10 @@ export const PartnerList: React.FC = () => {
           </Grid>
           <Grid item xs={12} md={5} sx={{ display: 'flex', gap: 1 }}>
             <Button variant="contained" onClick={handleSearch} startIcon={<FilterList />}>
-              Filtrar
+              Filter
             </Button>
             <Button variant="outlined" onClick={handleClearFilters} startIcon={<Refresh />}>
-              Limpar
+              Clear
             </Button>
           </Grid>
         </Grid>
@@ -241,12 +241,12 @@ export const PartnerList: React.FC = () => {
         <Table>
           <TableHead>
             <TableRow>
-              <TableCell>Parceiro</TableCell>
-              <TableCell>Tipo</TableCell>
-              <TableCell>Contato</TableCell>
+              <TableCell>Partner</TableCell>
+              <TableCell>Type</TableCell>
+              <TableCell>Contact</TableCell>
               <TableCell>Status</TableCell>
-              <TableCell>Desde</TableCell>
-              <TableCell align="center">Ações</TableCell>
+              <TableCell>Since</TableCell>
+              <TableCell align="center">Actions</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
@@ -260,7 +260,7 @@ export const PartnerList: React.FC = () => {
               <TableRow>
                 <TableCell colSpan={6} align="center">
                   <Typography color="text.secondary" sx={{ py: 3 }}>
-                    Nenhum parceiro encontrado
+                    No partners found
                   </Typography>
                 </TableCell>
               </TableRow>
@@ -306,7 +306,7 @@ export const PartnerList: React.FC = () => {
                   </TableCell>
                   <TableCell>{formatDate(partner.createdAt)}</TableCell>
                   <TableCell align="center">
-                    <Tooltip title="Visualizar">
+                    <Tooltip title="View">
                       <IconButton
                         size="small"
                         onClick={() => navigate(`/partners/${partner.id}`)}
@@ -314,7 +314,7 @@ export const PartnerList: React.FC = () => {
                         <Visibility />
                       </IconButton>
                     </Tooltip>
-                    <Tooltip title="Editar">
+                    <Tooltip title="Edit">
                       <IconButton
                         size="small"
                         onClick={() => navigate(`/partners/edit/${partner.id}`)}
@@ -322,7 +322,7 @@ export const PartnerList: React.FC = () => {
                         <Edit />
                       </IconButton>
                     </Tooltip>
-                    <Tooltip title="Excluir">
+                    <Tooltip title="Delete">
                       <IconButton
                         size="small"
                         color="error"
@@ -345,18 +345,18 @@ export const PartnerList: React.FC = () => {
           rowsPerPage={rowsPerPage}
           onRowsPerPageChange={handleChangeRowsPerPage}
           rowsPerPageOptions={[5, 10, 25, 50]}
-          labelRowsPerPage="Itens por página"
-          labelDisplayedRows={({ from, to, count }) => `${from}-${to} de ${count}`}
+          labelRowsPerPage="Rows per page"
+          labelDisplayedRows={({ from, to, count }) => `${from}-${to} of ${count}`}
         />
       </TableContainer>
 
       <ConfirmDialog
         open={deleteDialogOpen}
-        title="Confirmar Exclusão"
-        message="Tem certeza que deseja excluir este parceiro? Esta ação não pode ser desfeita."
+        title="Confirm Deletion"
+        message="Are you sure you want to delete this partner? This action cannot be undone."
         onConfirm={handleConfirmDelete}
         onCancel={() => setDeleteDialogOpen(false)}
-        confirmText="Excluir"
+        confirmText="Delete"
         confirmColor="error"
       />
     </Box>

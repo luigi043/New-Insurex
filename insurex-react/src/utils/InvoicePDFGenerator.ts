@@ -14,12 +14,12 @@ export const generateInvoicePDF = (invoice: Invoice | any) => {
 
     doc.setFontSize(10);
     doc.setTextColor(100);
-    doc.text('Plataforma Digital de Seguros', 14, 28);
+    doc.text('Digital Insurance Platform', 14, 28);
 
     doc.setFontSize(12);
     doc.setTextColor(0);
-    doc.text(`FATURA #${invoice.invoiceNumber}`, pageWidth - 14, 22, { align: 'right' });
-    doc.text(`Data: ${formatDate(invoice.issueDate || invoice.createdAt)}`, pageWidth - 14, 28, { align: 'right' });
+    doc.text(`INVOICE #${invoice.invoiceNumber}`, pageWidth - 14, 22, { align: 'right' });
+    doc.text(`Date: ${formatDate(invoice.issueDate || invoice.createdAt)}`, pageWidth - 14, 28, { align: 'right' });
 
     doc.setDrawColor(200);
     doc.line(14, 35, pageWidth - 14, 35);
@@ -27,17 +27,17 @@ export const generateInvoicePDF = (invoice: Invoice | any) => {
     // Client Info
     doc.setFontSize(10);
     doc.setFont('helvetica', 'bold');
-    doc.text('DADOS DO CLIENTE:', 14, 45);
+    doc.text('CLIENT DETAILS:', 14, 45);
     doc.setFont('helvetica', 'normal');
     doc.text(invoice.holderName || 'N/A', 14, 50);
     doc.text(invoice.holderEmail || '', 14, 55);
 
     // Policy Info
     doc.setFont('helvetica', 'bold');
-    doc.text('REFERÊNCIA:', pageWidth / 2, 45);
+    doc.text('REFERENCE:', pageWidth / 2, 45);
     doc.setFont('helvetica', 'normal');
-    doc.text(`Apólice: ${invoice.policyNumber || 'N/A'}`, pageWidth / 2, 50);
-    doc.text(`Tipo: ${invoice.type}`, pageWidth / 2, 55);
+    doc.text(`Policy: ${invoice.policyNumber || 'N/A'}`, pageWidth / 2, 50);
+    doc.text(`Type: ${invoice.type}`, pageWidth / 2, 55);
 
     // Table
     const items = invoice.items || [{ description: invoice.description || 'Premium', quantity: 1, unitPrice: invoice.amount, totalPrice: invoice.amount }];
@@ -51,7 +51,7 @@ export const generateInvoicePDF = (invoice: Invoice | any) => {
     // @ts-ignore
     doc.autoTable({
         startY: 65,
-        head: [['Descrição', 'Qtd', 'Preço Unit.', 'Total']],
+        head: [['Description', 'Qty', 'Unit Price', 'Total']],
         body: tableData,
         theme: 'striped',
         headStyles: { fillColor: [25, 118, 210], textColor: 255 },
@@ -73,13 +73,13 @@ export const generateInvoicePDF = (invoice: Invoice | any) => {
     doc.text(formatCurrency(invoice.amount), totalsX, finalY, { align: 'right' });
 
     if (invoice.taxAmount) {
-        doc.text('Impostos:', totalsX - 40, finalY + 5);
+        doc.text('Tax:', totalsX - 40, finalY + 5);
         doc.text(formatCurrency(invoice.taxAmount), totalsX, finalY + 5, { align: 'right' });
     }
 
     if (invoice.discountAmount) {
         doc.setTextColor(211, 47, 47); // Error/Red
-        doc.text('Desconto:', totalsX - 40, finalY + 10);
+        doc.text('Discount:', totalsX - 40, finalY + 10);
         doc.text(`-${formatCurrency(invoice.discountAmount)}`, totalsX, finalY + 10, { align: 'right' });
         doc.setTextColor(0);
     }
@@ -93,9 +93,9 @@ export const generateInvoicePDF = (invoice: Invoice | any) => {
     doc.setFontSize(8);
     doc.setFont('helvetica', 'normal');
     doc.setTextColor(150);
-    const footerText = 'Obrigado por escolher a InsureX. Para dúvidas, entre em contato com suporte@insurex.com.br';
+    const footerText = 'Thank you for choosing InsureX. For enquiries, please contact support@insurex.co.za';
     doc.text(footerText, pageWidth / 2, doc.internal.pageSize.getHeight() - 10, { align: 'center' });
 
     // Save
-    doc.save(`Fatura_${invoice.invoiceNumber}.pdf`);
+    doc.save(`Invoice_${invoice.invoiceNumber}.pdf`);
 };

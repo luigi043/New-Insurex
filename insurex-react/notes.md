@@ -737,5 +737,17 @@ alias nrt='npm run test'
 
 ---
 
+## 🔑 Demo Credentials
+
+| Role | Email | Password | Name |
+|------|-------|----------|------|
+| Admin | admin@insurex.co.za | Admin1234! | Thabo Nkosi |
+| Employee | employee@insurex.co.za | Employee1234! | Nomsa Dlamini |
+| Client | client@insurex.co.za | Client1234! | Sipho Mthembu |
+
+> **Note**: These credentials work in demo mode (`VITE_DEMO_MODE=true`). The mock interceptor routes login by email to the correct user role.
+
+---
+
 **Last Updated**: 2026-03-04  
 **Author**: InsureX Development Team

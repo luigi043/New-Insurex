@@ -98,7 +98,7 @@ const policySlice = createSlice({
       })
       .addCase(fetchPolicies.rejected, (state, action) => {
         state.loading = false;
-        state.error = action.error.message || 'Erro ao carregar apólices';
+        state.error = action.error.message || 'Error loading policies';
       })
       // Fetch Policy by ID
       .addCase(fetchPolicyById.fulfilled, (state, action) => {

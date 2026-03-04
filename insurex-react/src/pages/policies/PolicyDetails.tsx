@@ -84,10 +84,10 @@ export const PolicyDetails: React.FC = () => {
     if (!id) return;
     try {
       await deletePolicy(id);
-      showNotification('success', 'Apólice excluída com sucesso');
+      showNotification('success', 'Policy deleted successfully');
       navigate('/policies');
     } catch (err: any) {
-      showNotification('error', err.message || 'Erro ao excluir apólice');
+      showNotification('error', err.message || 'Error deleting policy');
     }
   };
 
@@ -95,11 +95,11 @@ export const PolicyDetails: React.FC = () => {
     if (!id) return;
     try {
       await cancelPolicy(id, cancelReason);
-      showNotification('success', 'Apólice cancelada com sucesso');
+      showNotification('success', 'Policy cancelled successfully');
       setCancelDialogOpen(false);
       fetchPolicyData(id);
     } catch (err: any) {
-      showNotification('error', err.message || 'Erro ao cancelar apólice');
+      showNotification('error', err.message || 'Error cancelling policy');
     }
   };
 
@@ -107,21 +107,21 @@ export const PolicyDetails: React.FC = () => {
     if (!id) return;
     try {
       await approvePolicy(id);
-      showNotification('success', 'Apólice aprovada com sucesso');
+      showNotification('success', 'Policy approved successfully');
       fetchPolicyData(id);
     } catch (err: any) {
-      showNotification('error', err.message || 'Erro ao aprovar apólice');
+      showNotification('error', err.message || 'Error approving policy');
     }
   };
 
   const handleSuspendAction = async () => {
     if (!id) return;
     try {
-      await suspendPolicy(id, 'Suspensa pelo usuário');
-      showNotification('success', 'Apólice suspensa com sucesso');
+      await suspendPolicy(id, 'Suspended by user');
+      showNotification('success', 'Policy suspended successfully');
       fetchPolicyData(id);
     } catch (err: any) {
-      showNotification('error', err.message || 'Erro ao suspender apólice');
+      showNotification('error', err.message || 'Error suspending policy');
     }
   };
 
@@ -142,30 +142,30 @@ export const PolicyDetails: React.FC = () => {
   };
 
   if (localLoading || isLoading) return (<Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}><CircularProgress /></Box>);
-  if (localError || hookError || !policy) return (<Alert severity="error" sx={{ mb: 2 }}>{localError || hookError || 'Apólice não encontrada'}</Alert>);
+  if (localError || hookError || !policy) return (<Alert severity="error" sx={{ mb: 2 }}>{localError || hookError || 'Policy not found'}</Alert>);
 
   return (
     <Box>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-          <Button startIcon={<ArrowBack />} onClick={() => navigate('/policies')}>Voltar</Button>
-          <Typography variant="h4">Detalhes da Apólice</Typography>
+          <Button startIcon={<ArrowBack />} onClick={() => navigate('/policies')}>Back</Button>
+          <Typography variant="h4">Policy Details</Typography>
         </Box>
         <Box sx={{ display: 'flex', gap: 1 }}>
           {(policy.status.toUpperCase() === 'PENDING' || policy.status.toUpperCase() === 'DRAFT') && (
-            <Button variant="contained" color="success" startIcon={<PlayArrow />} onClick={handleApproveAction}>Aprovar</Button>
+            <Button variant="contained" color="success" startIcon={<PlayArrow />} onClick={handleApproveAction}>Approve</Button>
           )}
           {policy.status.toUpperCase() === 'ACTIVE' && (
-            <Button variant="outlined" color="warning" startIcon={<Pause />} onClick={handleSuspendAction}>Suspender</Button>
+            <Button variant="outlined" color="warning" startIcon={<Pause />} onClick={handleSuspendAction}>Suspend</Button>
           )}
           {(policy.status.toUpperCase() === 'ACTIVE' || policy.status.toUpperCase() === 'SUSPENDED') && (
-            <Button variant="outlined" startIcon={<Autorenew />} onClick={() => setRenewDialogOpen(true)}>Renovar</Button>
+            <Button variant="outlined" startIcon={<Autorenew />} onClick={() => setRenewDialogOpen(true)}>Renew</Button>
           )}
           {['ACTIVE', 'SUSPENDED', 'PENDING'].includes(policy.status.toUpperCase()) && (
-            <Button variant="outlined" color="error" startIcon={<Cancel />} onClick={() => setCancelDialogOpen(true)}>Cancelar</Button>
+            <Button variant="outlined" color="error" startIcon={<Cancel />} onClick={() => setCancelDialogOpen(true)}>Cancel</Button>
           )}
-          <Button variant="outlined" startIcon={<Edit />} onClick={() => navigate(`/policies/edit/${id}`)}>Editar</Button>
-          <Button variant="outlined" color="error" startIcon={<Delete />} onClick={() => setDeleteDialogOpen(true)}>Excluir</Button>
+          <Button variant="outlined" startIcon={<Edit />} onClick={() => navigate(`/policies/edit/${id}`)}>Edit</Button>
+          <Button variant="outlined" color="error" startIcon={<Delete />} onClick={() => setDeleteDialogOpen(true)}>Delete</Button>
         </Box>
       </Box>
 
@@ -177,9 +177,9 @@ export const PolicyDetails: React.FC = () => {
           textColor="primary"
           variant="fullWidth"
         >
-          <Tab icon={<Info />} label="Informações" />
-          <Tab icon={<Description />} label="Documentos" />
-          <Tab icon={<History />} label="Histórico" />
+          <Tab icon={<Info />} label="Information" />
+          <Tab icon={<Description />} label="Documents" />
+          <Tab icon={<History />} label="History" />
         </Tabs>
       </Paper>
 
@@ -196,39 +196,39 @@ export const PolicyDetails: React.FC = () => {
               <Divider sx={{ my: 2 }} />
               <Grid container spacing={3}>
                 <Grid item xs={12} sm={6}>
-                  <Typography variant="subtitle2" color="textSecondary">Tipo de Apólice</Typography>
+                  <Typography variant="subtitle2" color="textSecondary">Policy Type</Typography>
                   <Typography variant="body1" sx={{ textTransform: 'capitalize' }}>{policy.type}</Typography>
                 </Grid>
                 <Grid item xs={12} sm={6}>
-                  <Typography variant="subtitle2" color="textSecondary">Titular</Typography>
+                  <Typography variant="subtitle2" color="textSecondary">Policy Holder</Typography>
                   <Typography variant="body1">{policy.holderName}</Typography>
                   <Typography variant="body2" color="textSecondary">{policy.holderEmail}</Typography>
                 </Grid>
                 <Grid item xs={12} sm={6}>
-                  <Typography variant="subtitle2" color="textSecondary">Data de Início</Typography>
+                  <Typography variant="subtitle2" color="textSecondary">Start Date</Typography>
                   <Typography variant="body1">{formatDate(policy.startDate)}</Typography>
                 </Grid>
                 <Grid item xs={12} sm={6}>
-                  <Typography variant="subtitle2" color="textSecondary">Data de Término</Typography>
+                  <Typography variant="subtitle2" color="textSecondary">End Date</Typography>
                   <Typography variant="body1">{formatDate(policy.endDate)}</Typography>
                 </Grid>
                 <Grid item xs={12} sm={6}>
-                  <Typography variant="subtitle2" color="textSecondary">Prêmio</Typography>
+                  <Typography variant="subtitle2" color="textSecondary">Premium</Typography>
                   <Typography variant="body1">{formatCurrency(policy.premium)}</Typography>
                 </Grid>
                 <Grid item xs={12} sm={6}>
-                  <Typography variant="subtitle2" color="textSecondary">Valor Segurado</Typography>
+                  <Typography variant="subtitle2" color="textSecondary">Insured Amount</Typography>
                   <Typography variant="body1">{formatCurrency(policy.insuredAmount)}</Typography>
                 </Grid>
                 <Grid item xs={12} sm={6}>
-                  <Typography variant="subtitle2" color="textSecondary">Franquia</Typography>
+                  <Typography variant="subtitle2" color="textSecondary">Deductible</Typography>
                   <Typography variant="body1">{formatCurrency(policy.deductible || 0)}</Typography>
                 </Grid>
               </Grid>
               {policy.notes && (
                 <>
                   <Divider sx={{ my: 2 }} />
-                  <Typography variant="subtitle2" color="textSecondary" gutterBottom>Notas</Typography>
+                  <Typography variant="subtitle2" color="textSecondary" gutterBottom>Notes</Typography>
                   <Typography variant="body1">{policy.notes}</Typography>
                 </>
               )}
@@ -238,12 +238,12 @@ export const PolicyDetails: React.FC = () => {
           <Grid item xs={12} md={4}>
             <Card sx={{ mb: 3 }}>
               <CardContent>
-                <Typography variant="h6" gutterBottom>Resumo</Typography>
+                <Typography variant="h6" gutterBottom>Summary</Typography>
                 <List dense>
-                  <ListItem><ListItemText primary="Prêmio Total" secondary={formatCurrency(policy.premium)} /></ListItem>
-                  <ListItem><ListItemText primary="Cobertura Total" secondary={formatCurrency(policy.insuredAmount)} /></ListItem>
-                  <ListItem><ListItemText primary="Criado em" secondary={formatDate(policy.createdAt)} /></ListItem>
-                  <ListItem><ListItemText primary="Última Atualização" secondary={formatDate(policy.updatedAt)} /></ListItem>
+                  <ListItem><ListItemText primary="Total Premium" secondary={formatCurrency(policy.premium)} /></ListItem>
+                  <ListItem><ListItemText primary="Total Coverage" secondary={formatCurrency(policy.insuredAmount)} /></ListItem>
+                  <ListItem><ListItemText primary="Created On" secondary={formatDate(policy.createdAt)} /></ListItem>
+                  <ListItem><ListItemText primary="Last Updated" secondary={formatDate(policy.updatedAt)} /></ListItem>
                 </List>
               </CardContent>
             </Card>
@@ -255,34 +255,34 @@ export const PolicyDetails: React.FC = () => {
         <Paper sx={{ p: 3 }}>
           <PolicyDocumentViewer
             policy={policy}
-            onUpload={() => showNotification('info', 'Funcionalidade de upload em desenvolvimento')}
-            onDelete={(docId) => showNotification('success', `Documento ${docId} excluído`)}
+            onUpload={() => showNotification('info', 'Upload functionality coming soon')}
+            onDelete={(docId) => showNotification('success', `Document ${docId} deleted`)}
           />
         </Paper>
       </TabPanel>
 
       <TabPanel value={activeTab} index={2}>
         <Paper sx={{ p: 3 }}>
-          <Typography variant="h6" gutterBottom>Histórico de Atividades</Typography>
+          <Typography variant="h6" gutterBottom>Activity History</Typography>
           <PolicyHistoryTimeline policyId={policy.id} />
         </Paper>
       </TabPanel>
 
       <ConfirmDialog
         open={deleteDialogOpen}
-        title="Excluir Apólice"
-        message="Tem certeza que deseja excluir esta apólice? Esta ação não pode ser desfeita."
+        title="Delete Policy"
+        message="Are you sure you want to delete this policy? This action cannot be undone."
         onConfirm={handleDelete}
         onCancel={() => setDeleteDialogOpen(false)}
       />
 
       <Dialog open={cancelDialogOpen} onClose={() => setCancelDialogOpen(false)} maxWidth="sm" fullWidth>
-        <DialogTitle>Cancelar Apólice</DialogTitle>
+        <DialogTitle>Cancel Policy</DialogTitle>
         <DialogContent>
           <TextField
             autoFocus
             margin="dense"
-            label="Motivo do Cancelamento"
+            label="Cancellation Reason"
             fullWidth
             multiline
             rows={3}
@@ -291,8 +291,8 @@ export const PolicyDetails: React.FC = () => {
           />
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setCancelDialogOpen(false)}>Sair</Button>
-          <Button onClick={handleCancelAction} color="error" variant="contained">Confirmar Cancelamento</Button>
+          <Button onClick={() => setCancelDialogOpen(false)}>Close</Button>
+          <Button onClick={handleCancelAction} color="error" variant="contained">Confirm Cancellation</Button>
         </DialogActions>
       </Dialog>
 
@@ -302,7 +302,7 @@ export const PolicyDetails: React.FC = () => {
           onClose={() => setRenewDialogOpen(false)}
           policy={policy}
           onSuccess={() => {
-            showNotification('success', 'Apólice renovada com sucesso');
+            showNotification('success', 'Policy renewed successfully');
             fetchPolicyData(policy.id);
           }}
         />

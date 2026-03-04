@@ -444,7 +444,10 @@ Frontend will run at: `http://localhost:3000`
   - `/health` - Overall health
   - `/health/ready` - Readiness probe
   - `/health/live` - Liveness probe
-- **Default Login**: admin@insurex.com / Admin123!
+- **Demo Credentials**:
+  - Admin: `admin@insurex.co.za` / `Admin1234!`
+  - Employee: `employee@insurex.co.za` / `Employee1234!`
+  - Client: `client@insurex.co.za` / `Client1234!`
 
 ## 🔌 Complete API Endpoints
 

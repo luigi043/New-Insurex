@@ -765,9 +765,10 @@ With the backend now feature-complete and production-ready, the focus shifts ent
 - **Backend API**: https://localhost:7001 | http://localhost:5001  
 - **Swagger UI**: https://localhost:7001/swagger  
 - **Frontend**: http://localhost:3000  
-- **Default Login**: admin@insurex.com / Admin123!  
-- **Test User**: broker@insurex.com / Broker123!  
-- **Test User**: claims@insurex.com / Claims123!  
+- **Demo Credentials**:
+  - Admin: `admin@insurex.co.za` / `Admin1234!`
+  - Employee: `employee@insurex.co.za` / `Employee1234!`
+  - Client: `client@insurex.co.za` / `Client1234!`
 
 ### Useful Commands
 ```bash

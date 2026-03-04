@@ -92,6 +92,18 @@
 
 ---
 
+## 🔑 Demo Credentials
+
+| Role | Email | Password | Name |
+|------|-------|----------|------|
+| Admin | admin@insurex.co.za | Admin1234! | Thabo Nkosi |
+| Employee | employee@insurex.co.za | Employee1234! | Nomsa Dlamini |
+| Client | client@insurex.co.za | Client1234! | Sipho Mthembu |
+
+> Enable demo mode: set `VITE_DEMO_MODE=true` in your `.env` file.
+
+---
+
 **Last Updated**: 2026-03-04  
 **Next Review**: 2026-03-10  
 **Projected Completion**: 95% by 2026-03-15

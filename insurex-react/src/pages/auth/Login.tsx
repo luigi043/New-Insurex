@@ -3,7 +3,7 @@ import { useNavigate, useLocation, Link } from 'react-router-dom';
 import {
   Container, Box, TextField, Button, Typography, Paper, Alert,
   CircularProgress, IconButton, InputAdornment, Checkbox, FormControlLabel,
-  Divider, Chip, Grid, Tooltip,
+  Divider, Chip, Grid,
 } from '@mui/material';
 import {
   Visibility, VisibilityOff, AdminPanelSettings, Badge, Person,
@@ -112,29 +112,41 @@ export const Login: React.FC = () => {
                   const isThisLoading = demoLoading === u.label;
                   return (
                     <Grid item xs={4} key={u.label}>
-                      <Tooltip title={`${u.email} / ${u.password}`} arrow>
-                        <Button
-                          fullWidth
-                          variant="outlined"
-                          onClick={() => handleDemoLogin(u.email, u.password, u.label)}
-                          disabled={!!demoLoading || loading}
-                          sx={{
-                            flexDirection: 'column',
-                            py: 1.5,
-                            borderColor: u.color,
-                            color: u.color,
-                            '&:hover': { backgroundColor: u.color + '10', borderColor: u.color },
-                          }}
+                      <Button
+                        fullWidth
+                        variant="outlined"
+                        onClick={() => handleDemoLogin(u.email, u.password, u.label)}
+                        disabled={!!demoLoading || loading}
+                        sx={{
+                          flexDirection: 'column',
+                          py: 1.5,
+                          px: 0.5,
+                          borderColor: u.color,
+                          color: u.color,
+                          textTransform: 'none',
+                          '&:hover': { backgroundColor: u.color + '10', borderColor: u.color },
+                        }}
+                      >
+                        {isThisLoading
+                          ? <CircularProgress size={22} sx={{ color: u.color }} />
+                          : <IconComp sx={{ fontSize: 28, mb: 0.5 }} />}
+                        <Typography variant="caption" fontWeight={600}>{u.label}</Typography>
+                        <Typography variant="caption" color="textSecondary" sx={{ fontSize: '0.65rem' }}>
+                          {u.description}
+                        </Typography>
+                        <Typography
+                          variant="caption"
+                          sx={{ fontSize: '0.58rem', color: '#444', mt: 0.5, wordBreak: 'break-all', lineHeight: 1.3, textAlign: 'center' }}
                         >
-                          {isThisLoading
-                            ? <CircularProgress size={22} sx={{ color: u.color }} />
-                            : <IconComp sx={{ fontSize: 28, mb: 0.5 }} />}
-                          <Typography variant="caption" fontWeight={600}>{u.label}</Typography>
-                          <Typography variant="caption" color="textSecondary" sx={{ fontSize: '0.65rem' }}>
-                            {u.description}
-                          </Typography>
-                        </Button>
-                      </Tooltip>
+                          {u.email}
+                        </Typography>
+                        <Typography
+                          variant="caption"
+                          sx={{ fontSize: '0.58rem', color: '#666', lineHeight: 1.3 }}
+                        >
+                          {u.password}
+                        </Typography>
+                      </Button>
                     </Grid>
                   );
                 })}

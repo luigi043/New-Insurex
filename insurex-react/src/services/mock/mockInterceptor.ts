@@ -15,6 +15,9 @@ import {
   MOCK_CLAIM_STATS,
   MOCK_ASSET_STATS,
   MOCK_EXPIRING_POLICIES,
+  MOCK_DASHBOARD_OVERVIEW,
+  MOCK_PREMIUMS_VS_REINSTATED,
+  MOCK_INSURANCE_STATUS_PIE,
 } from './mockData';
 
 const delay = (ms = 250) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -197,6 +200,15 @@ export function setupMockInterceptor() {
     }
 
     // ── Dashboard ─────────────────────────────────────────────────────────────
+    if (path.includes('/dashboard/overview')) {
+      return makeResponse(MOCK_DASHBOARD_OVERVIEW, config);
+    }
+    if (path.includes('/dashboard/premiums-vs-reinstated')) {
+      return makeResponse(MOCK_PREMIUMS_VS_REINSTATED, config);
+    }
+    if (path.includes('/dashboard/insurance-status')) {
+      return makeResponse(MOCK_INSURANCE_STATUS_PIE, config);
+    }
     if (path.includes('/dashboard/summary') || path.includes('/dashboard/kpi')) {
       return makeResponse({
         totalPolicies: 8, activePolicies: 6, totalClaims: 6, pendingClaims: 3,
