@@ -90,6 +90,30 @@ export function setupMockInterceptor() {
     if (path.includes('/claims/summary') || path.includes('/claims/stats')) {
       return makeResponse(MOCK_CLAIM_STATS, config);
     }
+    // Sub-resources: /claims/:id/notes, /claims/:id/documents, etc.
+    if (/\/claims\/[^/]+\/notes\/[^/]+/.test(path) && method === 'delete') {
+      return makeResponse({ success: true }, config);
+    }
+    if (/\/claims\/[^/]+\/notes/.test(path) && method === 'post') {
+      const body = config.data ? JSON.parse(config.data) : {};
+      return makeResponse({
+        id: `note-${Date.now()}`,
+        content: body.content || '',
+        category: body.category || 'investigation',
+        isInternal: body.isInternal ?? true,
+        author: { id: 'demo-user-001', name: 'Alex Johnson' },
+        createdAt: new Date().toISOString(),
+      }, config);
+    }
+    if (/\/claims\/[^/]+\/notes/.test(path) && method === 'get') {
+      return makeResponse([], config);
+    }
+    if (/\/claims\/[^/]+\/documents/.test(path)) {
+      return makeResponse([], config);
+    }
+    if (/\/claims\/[^/]+\/[^/]+/.test(path) && method === 'get') {
+      return makeResponse([], config);
+    }
     if (/\/claims\/[^/]+$/.test(path) && method === 'get') {
       const id = path.split('/').pop();
       return makeResponse(MOCK_CLAIMS.find((c) => c.id === id) ?? MOCK_CLAIMS[0], config);
