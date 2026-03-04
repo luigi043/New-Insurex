@@ -9,6 +9,6 @@
 - [x] Update insurex-react/Checklist.md date
 - [x] Update insurex-react/TODO.md date
 - [x] Update insurex-react/notes.md date
-- [ ] git add -A
-- [ ] git commit
-- [ ] git push origin main
+- [x] git add -A
+- [x] git commit
+- [x] git push origin main
