@@ -26,12 +26,10 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '20'
-          cache: 'npm'
-          cache-dependency-path: insurex-react/package-lock.json
 
       - name: Install dependencies
         working-directory: insurex-react
-        run: npm ci
+        run: npm install
 
       - name: Build demo (GitHub Pages)
         working-directory: insurex-react
