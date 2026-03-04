@@ -14,9 +14,12 @@ import {
   Checkbox,
   FormControlLabel,
   Divider,
+  Chip,
 } from '@mui/material';
-import { Visibility, VisibilityOff } from '@mui/icons-material';
+import { Visibility, VisibilityOff, PlayArrow } from '@mui/icons-material';
 import { useAuth } from '../../hooks/useAuth';
+
+const IS_DEMO_MODE = import.meta.env.VITE_DEMO_MODE === 'true';
 
 export const Login: React.FC = () => {
   const navigate = useNavigate();
@@ -30,7 +33,21 @@ export const Login: React.FC = () => {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const from = (location.state as any)?.from?.pathname || '/dashboard';
+  const from = (location.state as { from?: { pathname?: string } } | null)?.from?.pathname || '/dashboard';
+
+  const handleDemoLogin = async () => {
+    setError('');
+    setLoading(true);
+    try {
+      await login({ email: 'admin@insurex.com', password: 'Demo1234!' });
+      navigate(from, { replace: true });
+    } catch {
+      // In demo mode the mock interceptor handles this; navigate directly
+      navigate('/dashboard', { replace: true });
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -40,8 +57,9 @@ export const Login: React.FC = () => {
     try {
       await login({ email, password, rememberMe });
       navigate(from, { replace: true });
-    } catch (err: any) {
-      setError(err.message || 'Invalid credentials. Please try again.');
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Invalid credentials. Please try again.';
+      setError(message);
     } finally {
       setLoading(false);
     }
@@ -128,6 +146,31 @@ export const Login: React.FC = () => {
               {loading ? <CircularProgress size={24} /> : 'Sign In'}
             </Button>
           </form>
+
+          {IS_DEMO_MODE && (
+            <>
+              <Divider sx={{ my: 2 }}>
+                <Chip label="DEMO" size="small" color="primary" variant="outlined" />
+              </Divider>
+              <Button
+                fullWidth
+                variant="outlined"
+                color="primary"
+                size="large"
+                startIcon={<PlayArrow />}
+                onClick={handleDemoLogin}
+                disabled={loading}
+                sx={{
+                  mb: 2,
+                  borderStyle: 'dashed',
+                  background: 'linear-gradient(135deg, #eff6ff 0%, #f0fdf4 100%)',
+                  '&:hover': { borderStyle: 'solid', background: 'linear-gradient(135deg, #dbeafe 0%, #dcfce7 100%)' },
+                }}
+              >
+                {loading ? <CircularProgress size={24} /> : 'Try Demo — No Login Required'}
+              </Button>
+            </>
+          )}
 
           <Divider sx={{ my: 2 }}>
             <Typography variant="body2" color="textSecondary">
