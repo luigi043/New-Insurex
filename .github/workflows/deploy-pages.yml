@@ -8,7 +8,7 @@ on:
   workflow_dispatch:
 
 concurrency:
-  group: pages
+  group: insurex-demo-deploy-${{ github.ref }}
   cancel-in-progress: true
 
 permissions:
