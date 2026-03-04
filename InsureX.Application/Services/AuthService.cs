@@ -47,10 +47,24 @@ public class AuthService : IAuthService
 
         return new AuthResponseDto
         {
+            Success = true,
             Token = token,
             RefreshToken = refreshToken,
             ExpiresAt = DateTime.UtcNow.AddHours(24),
-            User = new UserDto { Id = user.Id,    Role = user.Role } };
+            User = new UserDto
+            {
+                Id = user.Id,
+                Email = user.Email,
+                FirstName = user.FirstName,
+                LastName = user.LastName,
+                PhoneNumber = user.PhoneNumber,
+                Role = user.Role,
+                Status = user.Status,
+                TenantId = user.TenantId,
+                LastLoginAt = user.LastLoginAt,
+                EmailVerified = user.EmailVerified
+            }
+        };
     }
 
     public async Task<AuthResponseDto> RegisterAsync(RegisterRequestDto request)
@@ -80,10 +94,23 @@ public class AuthService : IAuthService
 
         return new AuthResponseDto
         {
+            Success = true,
             Token = token,
             RefreshToken = refreshToken,
             ExpiresAt = DateTime.UtcNow.AddHours(24),
-            User = new UserDto { Id = user.Id,    Role = user.Role } };
+            User = new UserDto
+            {
+                Id = user.Id,
+                Email = user.Email,
+                FirstName = user.FirstName,
+                LastName = user.LastName,
+                PhoneNumber = user.PhoneNumber,
+                Role = user.Role,
+                Status = user.Status,
+                TenantId = user.TenantId,
+                EmailVerified = user.EmailVerified
+            }
+        };
     }
 
     public async Task<AuthResponseDto> RefreshTokenAsync(string refreshToken)
@@ -117,10 +144,24 @@ public class AuthService : IAuthService
 
         return new AuthResponseDto
         {
+            Success = true,
             Token = token,
             RefreshToken = newRefreshToken,
             ExpiresAt = DateTime.UtcNow.AddHours(24),
-            User = new UserDto { Id = user.Id,    Role = user.Role } };
+            User = new UserDto
+            {
+                Id = user.Id,
+                Email = user.Email,
+                FirstName = user.FirstName,
+                LastName = user.LastName,
+                PhoneNumber = user.PhoneNumber,
+                Role = user.Role,
+                Status = user.Status,
+                TenantId = user.TenantId,
+                LastLoginAt = user.LastLoginAt,
+                EmailVerified = user.EmailVerified
+            }
+        };
     }
 
     public async Task RevokeTokenAsync(string refreshToken)

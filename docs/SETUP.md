@@ -1,7 +1,7 @@
 # InsureX — Setup & Installation Guide
 
 **GitHub Repository**: [https://github.com/luigi043/New-Insurex](https://github.com/luigi043/New-Insurex)  
-**Last Updated**: 2026-03-03
+**Last Updated**: 2026-03-04
 
 ---
 

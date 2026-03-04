@@ -301,7 +301,7 @@ app.MapHealthChecks("/health/live", new Microsoft.AspNetCore.Diagnostics.HealthC
 // Controllers
 app.MapControllers();
 
-// Ensure database is created and migrated
+// Ensure database is created and migrated, then seed default data
 using (var scope = app.Services.CreateScope())
 {
     var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
@@ -310,10 +310,27 @@ using (var scope = app.Services.CreateScope())
         Log.Information("Applying database migrations...");
         await dbContext.Database.MigrateAsync();
         Log.Information("Database migrations applied successfully");
+
+        // Seed default Tenant (Id=1) if it doesn't exist
+        if (!dbContext.Tenants.Any())
+        {
+            Log.Information("Seeding default tenant...");
+            dbContext.Tenants.Add(new InsureX.Domain.Entities.Tenant
+            {
+                Name = "InsureX Default",
+                Description = "Default tenant for InsureX platform",
+                ContactEmail = "admin@insurex.com",
+                IsActive = true,
+                CreatedAt = DateTime.UtcNow,
+                CreatedBy = "system"
+            });
+            await dbContext.SaveChangesAsync();
+            Log.Information("Default tenant seeded successfully (Id=1)");
+        }
     }
     catch (Exception ex)
     {
-        Log.Error(ex, "An error occurred while applying database migrations");
+        Log.Error(ex, "An error occurred while applying database migrations or seeding data");
     }
 }
 

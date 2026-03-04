@@ -1,6 +1,6 @@
 # InsureX Project - Complete TODO List
 
-**Last Updated**: 2026-03-05  
+**Last Updated**: 2026-03-04  
 **Overall Progress**: 45% (134/295 tasks completed)  
 **Backend Status**: ✅ 95% Complete  
 **Frontend Status**: 🚧 45% Complete  
@@ -324,9 +324,15 @@ These are the absolute highest priority as they block user testing:
 - [ ] Features/Auth/Register/RegisterCommand.cs
 
 ## Verify
-- [ ] dotnet build → 0 errors
+- [x] dotnet build → 0 errors  ✅ Fixed: Deleted duplicate PolicyController.cs (CS0101 CancelPolicyRequest)
 - [ ] dotnet run
 ```
+
+## 🔧 Build Fix Applied (2026-03-05)
+- [x] **CS0101 Error Fixed**: Deleted `InsureX.API/Controllers/PolicyController.cs`
+  - Root cause: `CancelPolicyRequest` class was defined in both `PolicyController.cs` AND `PoliciesController.cs` in the same namespace `InsureX.API.Controllers`
+  - Resolution: Removed the older/duplicate `PolicyController.cs` — `PoliciesController.cs` is the canonical version with full role-based auth, `ApiResponse<T>` wrappers, and all `IPolicyService` methods covered
+  - Build result: ✅ `Build succeeded in 9.9s`
 
 ---
 
@@ -424,7 +430,7 @@ gantt
 
 ---
 
-**Last Updated**: 2026-03-05  
+**Last Updated**: 2026-03-04  
 **Next Review**: Daily Standup at 9:30 AM  
 **Project Manager**: TBD  
 **Technical Lead**: TBD

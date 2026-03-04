@@ -87,6 +87,7 @@ public class ApplicationDbContext : DbContext, IUnitOfWork
         ConfigureClaim(modelBuilder);
         ConfigurePartner(modelBuilder);
         ConfigureInvoice(modelBuilder);
+        ConfigureTransaction(modelBuilder);
         ConfigureInvestigationNotes(modelBuilder);
         ConfigureTenantSettings(modelBuilder);
         ConfigureAuditEntry(modelBuilder);
@@ -103,10 +104,13 @@ public class ApplicationDbContext : DbContext, IUnitOfWork
     {
         var parameter = Expression.Parameter(typeof(TEntity), "e");
         var property = Expression.Property(parameter, "TenantId");
-        var constant = Expression.Constant(tenantId);
+        // Match the constant type to the property type (handles both int and int?)
+        var constant = Expression.Constant(
+            property.Type == typeof(int?) ? (int?)tenantId : (object)tenantId,
+            property.Type);
         var equality = Expression.Equal(property, constant);
         var lambda = Expression.Lambda<Func<TEntity, bool>>(equality, parameter);
-        
+
         builder.Entity<TEntity>().HasQueryFilter(lambda);
     }
 
@@ -145,13 +149,42 @@ public class ApplicationDbContext : DbContext, IUnitOfWork
             entity.Property(e => e.PremiumAmount).HasPrecision(18, 2);
             entity.Property(e => e.CoverageAmount).HasPrecision(18, 2);
             entity.Property(e => e.Deductible).HasPrecision(18, 2);
+
+            // Explicit Partner relationships (two FKs to same table)
+            entity.HasOne(e => e.Insured)
+                .WithMany(p => p.PoliciesAsInsured)
+                .HasForeignKey(e => e.InsuredId)
+                .OnDelete(DeleteBehavior.NoAction);
+
+            entity.HasOne(e => e.Broker)
+                .WithMany(p => p.PoliciesAsBroker)
+                .HasForeignKey(e => e.BrokerId)
+                .OnDelete(DeleteBehavior.NoAction);
+
+            // Explicit User relationships (multiple FKs to same table)
+            entity.HasOne(e => e.Underwriter)
+                .WithMany()
+                .HasForeignKey(e => e.UnderwriterId)
+                .OnDelete(DeleteBehavior.NoAction);
+
+            entity.HasOne(e => e.ApprovedBy)
+                .WithMany()
+                .HasForeignKey(e => e.ApprovedById)
+                .OnDelete(DeleteBehavior.NoAction);
+
+            entity.HasOne(e => e.CancelledBy)
+                .WithMany()
+                .HasForeignKey(e => e.CancelledById)
+                .OnDelete(DeleteBehavior.NoAction);
         });
 
         modelBuilder.Entity<PolicyAsset>(entity =>
         {
             entity.HasKey(e => new { e.PolicyId, e.AssetId });
-            entity.HasOne(e => e.Policy).WithMany(p => p.PolicyAssets).HasForeignKey(e => e.PolicyId);
-            entity.HasOne(e => e.Asset).WithMany(a => a.PolicyAssets).HasForeignKey(e => e.AssetId);
+            entity.Property(e => e.InsuredValue).HasPrecision(18, 2);
+            entity.HasOne(e => e.Policy).WithMany(p => p.PolicyAssets).HasForeignKey(e => e.PolicyId).OnDelete(DeleteBehavior.Cascade);
+            // NoAction to break Tenants→Assets→PolicyAssets AND Tenants→Policies→PolicyAssets cycle
+            entity.HasOne(e => e.Asset).WithMany(a => a.PolicyAssets).HasForeignKey(e => e.AssetId).OnDelete(DeleteBehavior.NoAction);
         });
     }
 
@@ -164,6 +197,7 @@ public class ApplicationDbContext : DbContext, IUnitOfWork
             entity.HasIndex(e => e.Status);
             entity.HasIndex(e => e.SerialNumber);
             entity.Property(e => e.Value).HasPrecision(18, 2);
+            entity.Property(e => e.DepreciationRate).HasPrecision(5, 2);
             entity.Property(e => e.Name).HasMaxLength(200);
         });
     }
@@ -180,12 +214,49 @@ public class ApplicationDbContext : DbContext, IUnitOfWork
             entity.Property(e => e.ClaimedAmount).HasPrecision(18, 2);
             entity.Property(e => e.ApprovedAmount).HasPrecision(18, 2);
             entity.Property(e => e.DeductibleApplied).HasPrecision(18, 2);
+
+            // Break cascade cycles: Tenants→Policies→Claims AND Tenants→Claims
+            entity.HasOne(e => e.Tenant)
+                .WithMany(t => t.Claims)
+                .HasForeignKey(e => e.TenantId)
+                .OnDelete(DeleteBehavior.NoAction);
+
+            entity.HasOne(e => e.Policy)
+                .WithMany(p => p.Claims)
+                .HasForeignKey(e => e.PolicyId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(e => e.Asset)
+                .WithMany(a => a.Claims)
+                .HasForeignKey(e => e.AssetId)
+                .OnDelete(DeleteBehavior.NoAction);
+
+            entity.HasOne(e => e.ResolvedBy)
+                .WithMany()
+                .HasForeignKey(e => e.ResolvedById)
+                .OnDelete(DeleteBehavior.NoAction);
+
+            entity.HasOne(e => e.ApprovedBy)
+                .WithMany()
+                .HasForeignKey(e => e.ApprovedById)
+                .OnDelete(DeleteBehavior.NoAction);
+
+            entity.HasOne(e => e.RejectedBy)
+                .WithMany()
+                .HasForeignKey(e => e.RejectedById)
+                .OnDelete(DeleteBehavior.NoAction);
+
+            entity.HasOne(e => e.PaidBy)
+                .WithMany()
+                .HasForeignKey(e => e.PaidById)
+                .OnDelete(DeleteBehavior.NoAction);
         });
 
         modelBuilder.Entity<ClaimStatusHistory>(entity =>
         {
             entity.HasIndex(e => e.ClaimId);
             entity.HasOne(e => e.Claim).WithMany(c => c.StatusHistory).HasForeignKey(e => e.ClaimId);
+            entity.HasOne(e => e.ChangedBy).WithMany().HasForeignKey(e => e.ChangedById).OnDelete(DeleteBehavior.NoAction);
         });
     }
 
@@ -215,11 +286,38 @@ public class ApplicationDbContext : DbContext, IUnitOfWork
             entity.Property(e => e.Amount).HasPrecision(18, 2);
             entity.Property(e => e.TaxAmount).HasPrecision(18, 2);
             entity.Property(e => e.PaidAmount).HasPrecision(18, 2);
+
+            // Break cascade cycles
+            entity.HasOne(e => e.Tenant)
+                .WithMany()
+                .HasForeignKey(e => e.TenantId)
+                .OnDelete(DeleteBehavior.NoAction);
+
+            entity.HasOne(e => e.Policy)
+                .WithMany(p => p.Invoices)
+                .HasForeignKey(e => e.PolicyId)
+                .OnDelete(DeleteBehavior.NoAction);
+
+            entity.HasOne(e => e.Partner)
+                .WithMany()
+                .HasForeignKey(e => e.PartnerId)
+                .OnDelete(DeleteBehavior.NoAction);
+
+            entity.HasOne(e => e.SentBy)
+                .WithMany()
+                .HasForeignKey(e => e.SentById)
+                .OnDelete(DeleteBehavior.NoAction);
+
+            entity.HasOne(e => e.ParentInvoice)
+                .WithMany(i => i.ChildInvoices)
+                .HasForeignKey(e => e.ParentInvoiceId)
+                .OnDelete(DeleteBehavior.NoAction);
         });
 
         modelBuilder.Entity<InvoiceLineItem>(entity =>
         {
             entity.HasIndex(e => e.InvoiceId);
+            entity.Property(e => e.Quantity).HasPrecision(18, 4);
             entity.Property(e => e.UnitPrice).HasPrecision(18, 2);
             entity.Property(e => e.Discount).HasPrecision(18, 2);
             entity.Property(e => e.TaxRate).HasPrecision(5, 2);
@@ -232,6 +330,21 @@ public class ApplicationDbContext : DbContext, IUnitOfWork
             entity.Property(e => e.Amount).HasPrecision(18, 2);
             entity.Property(e => e.ExchangeRate).HasPrecision(18, 6);
             entity.Property(e => e.OriginalAmount).HasPrecision(18, 2);
+        });
+    }
+
+    private void ConfigureTransaction(ModelBuilder modelBuilder)
+    {
+        modelBuilder.Entity<Transaction>(entity =>
+        {
+            entity.HasIndex(e => e.TenantId);
+            entity.HasIndex(e => e.Status);
+            entity.HasIndex(e => e.TransactionDate);
+            entity.Property(e => e.TransactionReference).HasMaxLength(100);
+            entity.Property(e => e.Currency).HasMaxLength(10);
+            entity.Property(e => e.Amount).HasPrecision(18, 2);
+            entity.HasOne(e => e.Tenant).WithMany().HasForeignKey(e => e.TenantId).OnDelete(DeleteBehavior.NoAction);
+            entity.HasOne(e => e.ApprovedBy).WithMany().HasForeignKey(e => e.ApprovedById).OnDelete(DeleteBehavior.NoAction);
         });
     }
 

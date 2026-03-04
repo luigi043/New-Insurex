@@ -40,37 +40,39 @@ public class Repository<T> : IRepository<T> where T : BaseEntity
     public virtual async Task<T> AddAsync(T entity)
     {
         await _dbSet.AddAsync(entity);
+        await _context.SaveChangesAsync();
         return entity;
     }
 
     public virtual async Task<IEnumerable<T>> AddRangeAsync(IEnumerable<T> entities)
     {
         await _dbSet.AddRangeAsync(entities);
+        await _context.SaveChangesAsync();
         return entities;
     }
 
-    public virtual Task UpdateAsync(T entity)
+    public virtual async Task UpdateAsync(T entity)
     {
         _dbSet.Update(entity);
-        return Task.CompletedTask;
+        await _context.SaveChangesAsync();
     }
 
-    public virtual Task DeleteAsync(T entity)
+    public virtual async Task DeleteAsync(T entity)
     {
         // Soft delete
         entity.IsDeleted = true;
         _dbSet.Update(entity);
-        return Task.CompletedTask;
+        await _context.SaveChangesAsync();
     }
 
-    public virtual Task DeleteRangeAsync(IEnumerable<T> entities)
+    public virtual async Task DeleteRangeAsync(IEnumerable<T> entities)
     {
         foreach (var entity in entities)
         {
             entity.IsDeleted = true;
         }
         _dbSet.UpdateRange(entities);
-        return Task.CompletedTask;
+        await _context.SaveChangesAsync();
     }
 
     public virtual async Task<bool> ExistsAsync(int id)
