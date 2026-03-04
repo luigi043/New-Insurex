@@ -35,7 +35,7 @@ export const formatDateTime = (date: string | Date | undefined | null): string =
 
   const d = typeof date === 'string' ? new Date(date) : date;
 
-  return new Intl.DateTimeFormat('en-US', {
+  return new Intl.DateTimeFormat('en-ZA', {
     year: 'numeric',
     month: 'short',
     day: 'numeric',
@@ -50,7 +50,7 @@ export const formatDateTime = (date: string | Date | undefined | null): string =
 export const formatNumber = (value: number | undefined | null, decimals: number = 0): string => {
   if (value === undefined || value === null) return '-';
 
-  return new Intl.NumberFormat('en-US', {
+  return new Intl.NumberFormat('en-ZA', {
     minimumFractionDigits: decimals,
     maximumFractionDigits: decimals
   }).format(value);
@@ -62,7 +62,7 @@ export const formatNumber = (value: number | undefined | null, decimals: number 
 export const formatPercent = (value: number | undefined | null, decimals: number = 2): string => {
   if (value === undefined || value === null) return '-';
 
-  return new Intl.NumberFormat('en-US', {
+  return new Intl.NumberFormat('en-ZA', {
     style: 'percent',
     minimumFractionDigits: decimals,
     maximumFractionDigits: decimals
@@ -70,21 +70,29 @@ export const formatPercent = (value: number | undefined | null, decimals: number
 };
 
 /**
- * Format a phone number
+ * Format a South African phone number
+ * Handles: +27 XX XXX XXXX, 0XX XXX XXXX, international +27 format
  */
 export const formatPhone = (phone: string | undefined | null): string => {
   if (!phone) return '-';
 
+  // If already formatted with +27, return as-is (SA international format)
+  if (phone.startsWith('+27')) return phone;
+
   // Remove all non-numeric characters
   const cleaned = phone.replace(/\D/g, '');
 
-  // Format based on length
-  if (cleaned.length === 10) {
-    return `(${cleaned.slice(0, 3)}) ${cleaned.slice(3, 6)}-${cleaned.slice(6)}`;
-  } else if (cleaned.length === 11 && cleaned.startsWith('1')) {
-    return `+1 (${cleaned.slice(1, 4)}) ${cleaned.slice(4, 7)}-${cleaned.slice(7)}`;
+  // SA local: 10 digits starting with 0 → 0XX XXX XXXX
+  if (cleaned.length === 10 && cleaned.startsWith('0')) {
+    return `${cleaned.slice(0, 3)} ${cleaned.slice(3, 6)} ${cleaned.slice(6)}`;
   }
 
+  // SA international without +: 27 + 9 digits → +27 XX XXX XXXX
+  if (cleaned.length === 11 && cleaned.startsWith('27')) {
+    return `+27 ${cleaned.slice(2, 4)} ${cleaned.slice(4, 7)} ${cleaned.slice(7)}`;
+  }
+
+  // Return original if no pattern matches
   return phone;
 };
 
